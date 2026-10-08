@@ -38,6 +38,7 @@
             --glass-blur: 12px;
             --nav-bg: rgba(30, 41, 59, 0.85);
             --nav-border: rgba(148, 163, 184, 0.15);
+            --anim-state: running;
         }
 
         [data-theme="light"] {
@@ -121,6 +122,8 @@
             position: absolute;
             border-radius: 50%;
             transform: translateZ(0);
+            will-change: transform;
+            animation-play-state: var(--anim-state, running);
         }
 
         .orb-1 {
@@ -151,39 +154,18 @@
         }
 
         @keyframes orbFloat1 {
-
-            0%,
-            100% {
-                transform: translate3d(0, 0, 0) scale(1);
-            }
-
-            50% {
-                transform: translate3d(90px, 60px, 0) scale(1.08);
-            }
+            0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+            50% { transform: translate3d(90px, 60px, 0) scale(1.08); }
         }
 
         @keyframes orbFloat2 {
-
-            0%,
-            100% {
-                transform: translate3d(0, 0, 0) scale(1);
-            }
-
-            50% {
-                transform: translate3d(-70px, -90px, 0) scale(1.05);
-            }
+            0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+            50% { transform: translate3d(-70px, -90px, 0) scale(1.05); }
         }
 
         @keyframes orbFloat3 {
-
-            0%,
-            100% {
-                transform: translate3d(-50%, -50%, 0) scale(1);
-            }
-
-            50% {
-                transform: translate3d(calc(-50% - 40px), calc(-50% + 55px), 0) scale(1.1);
-            }
+            0%, 100% { transform: translate3d(-50%, -50%, 0) scale(1); }
+            50% { transform: translate3d(calc(-50% - 40px), calc(-50% + 55px), 0) scale(1.1); }
         }
 
         [data-theme="light"] .orb-1 {
@@ -277,18 +259,12 @@
             border: 1.5px solid var(--accent);
             opacity: 0;
             animation: liveDotRing 2s ease-out infinite;
+            animation-play-state: var(--anim-state, running);
         }
 
         @keyframes liveDotRing {
-            0% {
-                transform: scale(0.6);
-                opacity: 0.7;
-            }
-
-            100% {
-                transform: scale(2);
-                opacity: 0;
-            }
+            0% { transform: scale(0.6); opacity: 0.7; }
+            100% { transform: scale(2); opacity: 0; }
         }
 
         .actions {
@@ -337,25 +313,17 @@
         }
 
         @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
+            to { transform: rotate(360deg); }
         }
 
         #refreshBtn {
             animation: refreshBreath 4s ease-in-out infinite;
+            animation-play-state: var(--anim-state, running);
         }
 
         @keyframes refreshBreath {
-
-            0%,
-            100% {
-                box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.45);
-            }
-
-            50% {
-                box-shadow: 0 0 0 6px rgba(56, 189, 248, 0);
-            }
+            0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.45); }
+            50% { box-shadow: 0 0 0 6px rgba(56, 189, 248, 0); }
         }
 
         .tab-content {
@@ -538,27 +506,26 @@
             position: relative;
             min-width: 0;
             overflow: hidden;
-            transition: transform 0.25s, border-color 0.25s;
+            transition: transform 0.25s;
             content-visibility: auto;
             contain-intrinsic-size: auto 380px;
+            contain: layout paint style;
+        }
+
+        .card:nth-child(-n+6) {
+            content-visibility: visible;
         }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         @media (hover: hover) {
             .card:hover {
                 transform: translateY(-2px);
                 border-color: rgba(56, 189, 248, 0.35);
+                will-change: transform;
             }
         }
 
@@ -572,16 +539,8 @@
         }
 
         @keyframes cardRemove {
-            0% {
-                opacity: 1;
-                transform: scale(1);
-            }
-
-            100% {
-                opacity: 0;
-                transform: scale(0.6);
-                filter: blur(3px);
-            }
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.6); filter: blur(3px); }
         }
 
         .card.is-favorite {
@@ -878,10 +837,6 @@
             line-height: 1.6;
         }
 
-        /* ============================================================
-           ✅ COUNTDOWN TIMER — Fixed for RTL
-           Always LTR for digits, label keeps its own direction
-           ============================================================ */
         #countdown {
             display: inline-flex;
             align-items: center;
@@ -934,25 +889,10 @@
         }
 
         @keyframes digitRoll {
-            0% {
-                transform: translateY(0);
-                opacity: 1;
-            }
-
-            45% {
-                transform: translateY(-105%);
-                opacity: 0;
-            }
-
-            55% {
-                transform: translateY(105%);
-                opacity: 0;
-            }
-
-            100% {
-                transform: translateY(0);
-                opacity: 1;
-            }
+            0% { transform: translateY(0); opacity: 1; }
+            45% { transform: translateY(-105%); opacity: 0; }
+            55% { transform: translateY(105%); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
         }
 
         #countdown .cd-sep {
@@ -979,7 +919,8 @@
             min-width: 0;
             position: relative;
             overflow: hidden;
-            transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+            transition: transform 0.25s, box-shadow 0.25s;
+            contain: layout paint style;
         }
 
         [data-glass="true"] .aqi-card {
@@ -1004,7 +945,6 @@
             width: 4px;
             background: var(--aqi-color, var(--text-muted));
             border-radius: 18px 0 0 18px;
-            transition: background 0.3s;
         }
 
         body[dir="rtl"] .aqi-card::before {
@@ -1171,6 +1111,7 @@
             padding: 1rem 1.25rem;
             box-shadow: var(--shadow);
             animation: fadeIn 0.35s ease both;
+            contain: layout paint style;
         }
 
         .settings-section-title {
@@ -1485,17 +1426,8 @@
         }
 
         @keyframes welcomeFadeScale {
-            from {
-                opacity: 0;
-                transform: scale(0.6) translateY(20px);
-                filter: blur(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-                filter: blur(0);
-            }
+            from { opacity: 0; transform: scale(0.6) translateY(20px); filter: blur(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
         }
 
         .welcome-title {
@@ -1519,15 +1451,8 @@
         }
 
         @keyframes welcomeSubIn {
-            from {
-                opacity: 0;
-                transform: translateY(15px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .welcome-loader {
@@ -1552,21 +1477,10 @@
         }
 
         @keyframes welcomeLoaderFill {
-            0% {
-                width: 0%;
-            }
-
-            40% {
-                width: 45%;
-            }
-
-            70% {
-                width: 75%;
-            }
-
-            100% {
-                width: 100%;
-            }
+            0% { width: 0%; }
+            40% { width: 45%; }
+            70% { width: 75%; }
+            100% { width: 100%; }
         }
 
         .cookie-banner {
@@ -1656,106 +1570,82 @@
                 padding-top: calc(0.65rem + env(safe-area-inset-top));
                 padding-bottom: calc(110px + env(safe-area-inset-bottom));
             }
-
-            .header {
-                padding: 0.75rem 0.85rem;
-                gap: 0.4rem;
-            }
-
-            .title h1 {
-                font-size: 0.95rem;
-            }
-
-            .sub {
-                font-size: 0.65rem;
-            }
-
-            .icon-btn {
-                width: 38px;
-                height: 38px;
-                min-width: 38px;
-                font-size: 1rem;
-            }
-
-            .card {
-                padding: 1rem;
-            }
-
-            .cards {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-
-            .suggestions {
-                max-height: 60vh;
-            }
-
-            .nav-item {
-                padding: 0.5rem 0.85rem;
-                min-width: 62px;
-            }
-
-            .nav-icon {
-                font-size: 1.2rem;
-            }
-
-            .nav-label {
-                font-size: 0.58rem;
-            }
-
-            .bottom-nav {
-                padding: 0.35rem;
-            }
-
-            .aqi-list {
-                grid-template-columns: 1fr;
-            }
-
-            .aqi-ring {
-                width: 72px;
-                height: 72px;
-            }
-
-            .aqi-ring-value .num {
-                font-size: 1.25rem;
-            }
+            .header { padding: 0.75rem 0.85rem; gap: 0.4rem; }
+            .title h1 { font-size: 0.95rem; }
+            .sub { font-size: 0.65rem; }
+            .icon-btn { width: 38px; height: 38px; min-width: 38px; font-size: 1rem; }
+            .card { padding: 1rem; }
+            .cards { grid-template-columns: 1fr; gap: 1rem; }
+            .suggestions { max-height: 60vh; }
+            .nav-item { padding: 0.5rem 0.85rem; min-width: 62px; }
+            .nav-icon { font-size: 1.2rem; }
+            .nav-label { font-size: 0.58rem; }
+            .bottom-nav { padding: 0.35rem; }
+            .aqi-list { grid-template-columns: 1fr; }
+            .aqi-ring { width: 72px; height: 72px; }
+            .aqi-ring-value .num { font-size: 1.25rem; }
         }
 
         @media (max-width: 600px) {
-            .ambient-orb {
-                opacity: 0.5;
-            }
-
-            .orb-1 {
-                width: 300px;
-                height: 300px;
-            }
-
-            .orb-2 {
-                width: 340px;
-                height: 340px;
-            }
-
-            .orb-3 {
-                width: 240px;
-                height: 240px;
-            }
+            .ambient-orb { opacity: 0.5; }
+            .orb-1 { width: 300px; height: 300px; }
+            .orb-2 { width: 340px; height: 340px; }
+            .orb-3 { width: 240px; height: 240px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-
-            *,
-            *::before,
-            *::after {
+            *, *::before, *::after {
                 animation-duration: 0.01ms !important;
                 animation-iteration-count: 1 !important;
                 transition-duration: 0.01ms !important;
             }
-
-            .ambient-bg {
-                display: none;
-            }
+            .ambient-bg { display: none; }
         }
+
+        /* CITY ADD/REMOVE — Random Animation Pack */
+        @keyframes cityAddPop { 0% { opacity: 0; transform: scale(0.3) rotate(-12deg); } 55% { opacity: 1; transform: scale(1.15) rotate(4deg); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
+        @keyframes cityAddSlideRight { 0% { opacity: 0; transform: translateX(120px) scale(0.85); } 100% { opacity: 1; transform: translateX(0) scale(1); } }
+        @keyframes cityAddSlideLeft { 0% { opacity: 0; transform: translateX(-120px) scale(0.85); } 100% { opacity: 1; transform: translateX(0) scale(1); } }
+        @keyframes cityAddFlip { 0% { opacity: 0; transform: perspective(600px) rotateY(90deg) scale(0.7); } 60% { opacity: 1; transform: perspective(600px) rotateY(-15deg) scale(1.05); } 100% { opacity: 1; transform: perspective(600px) rotateY(0) scale(1); } }
+        @keyframes cityAddDropIn { 0% { opacity: 0; transform: translateY(-80px) scale(0.7); } 60% { opacity: 1; transform: translateY(10px) scale(1.08); } 80% { transform: translateY(-4px) scale(0.98); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes cityAddZoomBlur { 0% { opacity: 0; filter: blur(12px); transform: scale(1.4); } 60% { opacity: 1; filter: blur(2px); transform: scale(0.96); } 100% { opacity: 1; filter: blur(0); transform: scale(1); } }
+        @keyframes cityAddRotateIn { 0% { opacity: 0; transform: rotate(-180deg) scale(0.2); } 100% { opacity: 1; transform: rotate(0) scale(1); } }
+        @keyframes cityAddBounceUp { 0% { opacity: 0; transform: translateY(100px) scale(0.5); } 40% { opacity: 1; transform: translateY(-25px) scale(1.1); } 70% { transform: translateY(8px) scale(0.95); } 90% { transform: translateY(-3px) scale(1.02); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes cityAddSkew { 0% { opacity: 0; transform: skewX(35deg) translateX(-60px); } 60% { opacity: 1; transform: skewX(-8deg) translateX(6px); } 100% { opacity: 1; transform: skewX(0) translateX(0); } }
+        @keyframes cityAddElastic { 0% { opacity: 0; transform: scale(0.1) rotate(30deg); } 40% { opacity: 1; transform: scale(1.25) rotate(-10deg); } 60% { transform: scale(0.9) rotate(5deg); } 80% { transform: scale(1.06) rotate(-2deg); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
+
+        @keyframes cityRemoveShrink { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0); } }
+        @keyframes cityRemoveSlideRight { 0% { opacity: 1; transform: translateX(0) rotate(0); } 100% { opacity: 0; transform: translateX(180px) rotate(20deg); } }
+        @keyframes cityRemoveSlideLeft { 0% { opacity: 1; transform: translateX(0) rotate(0); } 100% { opacity: 0; transform: translateX(-180px) rotate(-20deg); } }
+        @keyframes cityRemoveFlip { 0% { opacity: 1; transform: perspective(600px) rotateY(0); } 100% { opacity: 0; transform: perspective(600px) rotateY(90deg); } }
+        @keyframes cityRemoveFlyAway { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-200px) scale(0.4) rotate(-25deg); } }
+        @keyframes cityRemoveDropDown { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(200px) scale(0.5); } }
+        @keyframes cityRemoveZoomBlur { 0% { opacity: 1; filter: blur(0); transform: scale(1); } 100% { opacity: 0; filter: blur(15px); transform: scale(1.5); } }
+        @keyframes cityRemoveExplode { 0% { opacity: 1; transform: scale(1) rotate(0); } 30% { opacity: 1; transform: scale(1.15) rotate(-5deg); } 100% { opacity: 0; transform: scale(0.2) rotate(30deg); filter: blur(8px); } }
+        @keyframes cityRemoveFadePulse { 0% { opacity: 1; transform: scale(1); } 30% { opacity: 1; transform: scale(1.08); } 100% { opacity: 0; transform: scale(0.85); } }
+        @keyframes cityRemoveSpinAway { 0% { opacity: 1; transform: rotate(0) scale(1); } 100% { opacity: 0; transform: rotate(360deg) scale(0.2); } }
+
+        .city-add-pop { animation: cityAddPop 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+        .city-add-slide-r { animation: cityAddSlideRight 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        .city-add-slide-l { animation: cityAddSlideLeft 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        .city-add-flip { animation: cityAddFlip 0.7s cubic-bezier(0.34, 1.3, 0.64, 1) both; }
+        .city-add-drop { animation: cityAddDropIn 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+        .city-add-blur { animation: cityAddZoomBlur 0.6s cubic-bezier(0.4, 0, 0.2, 1) both; }
+        .city-add-rotate { animation: cityAddRotateIn 0.75s cubic-bezier(0.34, 1.3, 0.64, 1) both; }
+        .city-add-bounce { animation: cityAddBounceUp 0.85s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+        .city-add-skew { animation: cityAddSkew 0.55s cubic-bezier(0.34, 1.3, 0.64, 1) both; }
+        .city-add-elastic { animation: cityAddElastic 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+        .city-remove-shrink { animation: cityRemoveShrink 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards; pointer-events: none; }
+        .city-remove-slide-r { animation: cityRemoveSlideRight 0.5s cubic-bezier(0.4, 0, 0.6, 1) forwards; pointer-events: none; }
+        .city-remove-slide-l { animation: cityRemoveSlideLeft 0.5s cubic-bezier(0.4, 0, 0.6, 1) forwards; pointer-events: none; }
+        .city-remove-flip { animation: cityRemoveFlip 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards; pointer-events: none; }
+        .city-remove-fly { animation: cityRemoveFlyAway 0.7s cubic-bezier(0.4, 0, 0.6, 1) forwards; pointer-events: none; }
+        .city-remove-drop { animation: cityRemoveDropDown 0.6s cubic-bezier(0.4, 0, 0.6, 1) forwards; pointer-events: none; }
+        .city-remove-blur { animation: cityRemoveZoomBlur 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; pointer-events: none; }
+        .city-remove-explode { animation: cityRemoveExplode 0.6s cubic-bezier(0.4, 0, 0.6, 1) forwards; pointer-events: none; }
+        .city-remove-pulse { animation: cityRemoveFadePulse 0.5s ease-in-out forwards; pointer-events: none; }
+        .city-remove-spin { animation: cityRemoveSpinAway 0.7s cubic-bezier(0.4, 0, 0.6, 1) forwards; pointer-events: none; }
     </style>
 </head>
 
@@ -1784,8 +1674,7 @@
     <div class="app">
         <header class="header">
             <div class="title">
-                <h1><span class="title-icon" aria-hidden="true">🌤️</span> <span data-i18n="app_title">Weather & Air
-                        Quality</span></h1>
+                <h1><span class="title-icon" aria-hidden="true">🌤️</span> <span data-i18n="app_title">Weather & Air Quality</span></h1>
                 <p class="sub">
                     <span data-i18n="auto_refresh">Auto refresh every</span>
                     <span id="intervalLabel">1</span>
@@ -1826,8 +1715,7 @@
                     <span class="disclaimer-icon" aria-hidden="true">ℹ️</span>
                     <p>
                         <strong data-i18n="note">Note:</strong>
-                        <span data-i18n="disclaimer_text">Weather data is sourced from Open-Meteo and may differ
-                            slightly from other providers.</span>
+                        <span data-i18n="disclaimer_text">Weather data is sourced from Open-Meteo and may differ slightly from other providers.</span>
                     </p>
                 </div>
 
@@ -1858,8 +1746,7 @@
             <section id="tab-settings" class="tab-panel">
                 <div class="settings-container">
                     <div class="settings-section">
-                        <div class="settings-section-title">🎨 <span data-i18n="settings_appearance">Appearance</span>
-                        </div>
+                        <div class="settings-section-title">🎨 <span data-i18n="settings_appearance">Appearance</span></div>
 
                         <div class="setting-row">
                             <div class="setting-label">
@@ -1876,8 +1763,7 @@
                         <div class="setting-row">
                             <div class="setting-label">
                                 <div class="setting-label-main" data-i18n="glass_mode">Glass Mode</div>
-                                <div class="setting-label-desc" data-i18n="glass_mode_desc">Frosted glass effect on
-                                    cards</div>
+                                <div class="setting-label-desc" data-i18n="glass_mode_desc">Frosted glass effect on cards</div>
                             </div>
                             <label class="toggle">
                                 <input type="checkbox" id="setting-glass">
@@ -1890,8 +1776,7 @@
                                 <div class="setting-label-main" data-i18n="glass_intensity">Glass Intensity</div>
                             </div>
                             <div class="slider-wrapper">
-                                <input type="range" class="slider" id="setting-glass-intensity" min="0" max="100"
-                                    value="65">
+                                <input type="range" class="slider" id="setting-glass-intensity" min="0" max="100" value="65">
                                 <span class="slider-value" id="glass-intensity-value">65%</span>
                             </div>
                         </div>
@@ -1901,8 +1786,7 @@
                                 <div class="setting-label-main" data-i18n="blur_intensity">Blur Intensity</div>
                             </div>
                             <div class="slider-wrapper">
-                                <input type="range" class="slider" id="setting-blur-intensity" min="0" max="30"
-                                    value="12">
+                                <input type="range" class="slider" id="setting-blur-intensity" min="0" max="30" value="12">
                                 <span class="slider-value" id="blur-intensity-value">12px</span>
                             </div>
                         </div>
@@ -1924,7 +1808,6 @@
 
                     <div class="settings-section">
                         <div class="settings-section-title">🌡️ <span data-i18n="settings_units">Units</span></div>
-
                         <div class="setting-row">
                             <div class="setting-label">
                                 <div class="setting-label-main" data-i18n="temp_unit">Temperature</div>
@@ -1934,7 +1817,6 @@
                                 <option value="F">°F</option>
                             </select>
                         </div>
-
                         <div class="setting-row">
                             <div class="setting-label">
                                 <div class="setting-label-main" data-i18n="wind_unit">Wind Speed</div>
@@ -1949,12 +1831,10 @@
 
                     <div class="settings-section">
                         <div class="settings-section-title">🔄 <span data-i18n="settings_refresh">Refresh</span></div>
-
                         <div class="setting-row">
                             <div class="setting-label">
                                 <div class="setting-label-main" data-i18n="refresh_interval">Auto Refresh Interval</div>
-                                <div class="setting-label-desc" data-i18n="refresh_interval_desc">How often to fetch new
-                                    data</div>
+                                <div class="setting-label-desc" data-i18n="refresh_interval_desc">How often to fetch new data</div>
                             </div>
                             <select class="select" id="setting-refresh-interval">
                                 <option value="0.5" data-i18n="min30">30 min</option>
@@ -1963,12 +1843,10 @@
                                 <option value="6" data-i18n="hours6">6 hours</option>
                             </select>
                         </div>
-
                         <div class="setting-row">
                             <div class="setting-label">
                                 <div class="setting-label-main" data-i18n="background_refresh">Background Refresh</div>
-                                <div class="setting-label-desc" data-i18n="background_refresh_desc">Keep refreshing when
-                                    tab is hidden</div>
+                                <div class="setting-label-desc" data-i18n="background_refresh_desc">Keep refreshing when tab is hidden</div>
                             </div>
                             <label class="toggle">
                                 <input type="checkbox" id="setting-background-refresh">
@@ -1978,14 +1856,11 @@
                     </div>
 
                     <div class="settings-section">
-                        <div class="settings-section-title">🎬 <span data-i18n="settings_animations">Animations</span>
-                        </div>
-
+                        <div class="settings-section-title">🎬 <span data-i18n="settings_animations">Animations</span></div>
                         <div class="setting-row">
                             <div class="setting-label">
                                 <div class="setting-label-main" data-i18n="ambient_animation">Ambient Background</div>
-                                <div class="setting-label-desc" data-i18n="ambient_animation_desc">Floating orbs in
-                                    background</div>
+                                <div class="setting-label-desc" data-i18n="ambient_animation_desc">Floating orbs in background</div>
                             </div>
                             <label class="toggle">
                                 <input type="checkbox" id="setting-ambient" checked>
@@ -1996,7 +1871,6 @@
 
                     <div class="settings-section">
                         <div class="settings-section-title">ℹ️ <span data-i18n="settings_about">About</span></div>
-
                         <div class="setting-row">
                             <div class="setting-label">
                                 <div class="setting-label-main" data-i18n="telegram">Contact on Telegram</div>
@@ -2004,14 +1878,12 @@
                             <a href="https://t.me/amirmohamad_Ahvaz" target="_blank" rel="noopener noreferrer"
                                 class="setting-btn" style="text-decoration: none;">@amirmohamad_Ahvaz</a>
                         </div>
-
                         <div class="setting-row">
                             <div class="setting-label">
                                 <div class="setting-label-main" data-i18n="cookie_settings">Cookie Settings</div>
                             </div>
                             <button class="setting-btn" id="cookieSettingsBtn" data-i18n="manage">Manage</button>
                         </div>
-
                         <div class="setting-row">
                             <div class="setting-label">
                                 <div class="setting-label-main" data-i18n="created_by">Created by</div>
@@ -2047,15 +1919,24 @@
                 <p data-i18n="cookie_desc">We use cookies to remember your preferences and cache weather data.</p>
             </div>
             <div class="cookie-actions">
-                <button id="cookieAccept" class="cookie-btn cookie-btn-accept" data-i18n="cookie_accept">Accept
-                    all</button>
-                <button id="cookieReject" class="cookie-btn cookie-btn-reject" data-i18n="cookie_reject">Reject
-                    non-essential</button>
+                <button id="cookieAccept" class="cookie-btn cookie-btn-accept" data-i18n="cookie_accept">Accept all</button>
+                <button id="cookieReject" class="cookie-btn cookie-btn-reject" data-i18n="cookie_reject">Reject non-essential</button>
             </div>
         </div>
     </div>
 
     <script>
+        // ============================================================
+        //  DEBUG FLAG (silences console in production)
+        // ============================================================
+        const DEBUG = false;
+        const _log = console.log.bind(console);
+        const _warn = console.warn.bind(console);
+        const _error = console.error.bind(console);
+        console.log = (...a) => { if (DEBUG) _log(...a); };
+        console.warn = (...a) => { if (DEBUG) _warn(...a); };
+        console.error = _error;
+
         // ============================================================
         //  WELCOME
         // ============================================================
@@ -2184,6 +2065,7 @@
         };
 
         let currentLang = 'en';
+        let lastAppliedLang = null;
         function t(key) { return I18N[currentLang]?.[key] || I18N.en[key] || key; }
         function getWmoDesc(code) {
             const w = WMO_DESC[code];
@@ -2192,6 +2074,9 @@
         }
 
         function applyTranslations() {
+            // ✅ Skip if language didn't change
+            if (lastAppliedLang === currentLang) return;
+            lastAppliedLang = currentLang;
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.getAttribute('data-i18n');
                 const txt = t(key);
@@ -2221,7 +2106,6 @@
         };
 
         let settings = { ...DEFAULT_SETTINGS };
-
         const FAVORITES_KEY = 'iran_weather_favorites';
         let favorites = [];
 
@@ -2301,6 +2185,7 @@
             applyGlass();
             applyAnimationSettings();
             currentLang = settings.language;
+            lastAppliedLang = null; // ✅ force re-apply
             applyTranslations();
             const el = id => document.getElementById(id);
             if (el('setting-theme')) el('setting-theme').value = settings.theme;
@@ -2336,6 +2221,7 @@
             });
             document.getElementById('setting-language').addEventListener('change', (e) => {
                 settings.language = e.target.value; currentLang = settings.language; saveSettings();
+                lastAppliedLang = null;
                 applyTranslations();
                 if (weatherCache) renderCards(weatherCache);
                 renderAQIList();
@@ -2602,7 +2488,6 @@
             h.fail++;
             if (h.fail >= 3) {
                 h.skippedUntil = Date.now() + 30 * 60 * 1000;
-                console.log(`[SelfHeal] '${key}' disabled 30 min`);
             }
         }
         function isSourceSkipped(key) {
@@ -2611,6 +2496,18 @@
             if (h.skippedUntil && Date.now() >= h.skippedUntil) { h.skippedUntil = 0; h.fail = 0; }
             return false;
         }
+
+        // ✅ Periodic cleanup of stale source health entries
+        setInterval(() => {
+            const now = Date.now();
+            for (const key in sourceHealth) {
+                const h = sourceHealth[key];
+                if (h.skippedUntil && now > h.skippedUntil + 3600_000) {
+                    h.skippedUntil = 0;
+                    h.fail = 0;
+                }
+            }
+        }, 600_000);
 
         function loadCities() {
             if (!hasConsent()) return [...DEFAULT_CITIES];
@@ -2710,17 +2607,20 @@
         };
         const digitTimers = {};
 
+        // ✅ One global listener instead of adding one per tick (fixes memory leak)
+        Object.values(countdownDigitEls).forEach(el => {
+            if (el) el.addEventListener('animationend', () => el.classList.remove('flipping'));
+        });
+
         function setDigit(key, value, animate = true) {
             const el = countdownDigitEls[key];
             if (!el) return;
             if (el.textContent === value) return;
-            if (!animate) { el.textContent = value; el.classList.remove('flipping'); return; }
             if (digitTimers[key]) clearTimeout(digitTimers[key]);
             el.classList.remove('flipping');
             void el.offsetWidth;
-            el.classList.add('flipping');
-            digitTimers[key] = setTimeout(() => { el.textContent = value; }, 150);
-            el.addEventListener('animationend', () => { el.classList.remove('flipping'); }, { once: true });
+            el.textContent = value;
+            if (animate) el.classList.add('flipping');
         }
 
         function updateCountdownDisplay(h, m, s, animate = true) {
@@ -2735,10 +2635,12 @@
         let countdownTimer = null;
         let refreshIntervalTimer = null;
         let isFetching = false;
+        let lastFetchPromise = null;
         let suggestDebounce = null;
         let suggestAbort = null;
         let activeSuggestionIndex = -1;
         let currentSuggestions = [];
+        let lastSelectTime = 0;
 
         themeBtn.addEventListener('click', () => {
             const isLight = document.documentElement.getAttribute('data-theme') === 'light';
@@ -2756,36 +2658,12 @@
         }
 
         function getAQICat(aqi) {
-            if (aqi <= 20) return {
-                label: t('good'), color: 'var(--aqi-good)', icon: '🟢',
-                advice: currentLang === 'fa' ? 'هوا عالیه! برای فعالیت بیرون مناسب است' : 'Ideal for outdoor activities',
-                adviceIcon: '✅'
-            };
-            if (aqi <= 40) return {
-                label: t('fair'), color: 'var(--aqi-fair)', icon: '🟡',
-                advice: currentLang === 'fa' ? 'کیفیت هوا قابل قبوله' : 'Air quality is acceptable',
-                adviceIcon: '👍'
-            };
-            if (aqi <= 60) return {
-                label: t('moderate'), color: 'var(--aqi-moderate)', icon: '🟠',
-                advice: currentLang === 'fa' ? 'گروه‌های حساس باید احتیاط کنند' : 'Sensitive groups should take care',
-                adviceIcon: '⚠️'
-            };
-            if (aqi <= 80) return {
-                label: t('poor'), color: 'var(--aqi-poor)', icon: '🔴',
-                advice: currentLang === 'fa' ? 'فعالیت بیرون رو محدود کنید' : 'Limit outdoor activities',
-                adviceIcon: '😷'
-            };
-            if (aqi <= 100) return {
-                label: t('very_poor'), color: 'var(--aqi-very-poor)', icon: '🟣',
-                advice: currentLang === 'fa' ? 'از فعالیت بیرون خودداری کنید' : 'Avoid outdoor activities',
-                adviceIcon: '🚫'
-            };
-            return {
-                label: t('hazardous'), color: 'var(--aqi-hazardous)', icon: '⚫',
-                advice: currentLang === 'fa' ? 'در خانه بمانید و ماسک بزنید' : 'Stay indoors and wear a mask',
-                adviceIcon: '🆘'
-            };
+            if (aqi <= 20) return { label: t('good'), color: 'var(--aqi-good)', icon: '🟢', advice: currentLang === 'fa' ? 'هوا عالیه! برای فعالیت بیرون مناسب است' : 'Ideal for outdoor activities', adviceIcon: '✅' };
+            if (aqi <= 40) return { label: t('fair'), color: 'var(--aqi-fair)', icon: '🟡', advice: currentLang === 'fa' ? 'کیفیت هوا قابل قبوله' : 'Air quality is acceptable', adviceIcon: '👍' };
+            if (aqi <= 60) return { label: t('moderate'), color: 'var(--aqi-moderate)', icon: '🟠', advice: currentLang === 'fa' ? 'گروه‌های حساس باید احتیاط کنند' : 'Sensitive groups should take care', adviceIcon: '⚠️' };
+            if (aqi <= 80) return { label: t('poor'), color: 'var(--aqi-poor)', icon: '🔴', advice: currentLang === 'fa' ? 'فعالیت بیرون رو محدود کنید' : 'Limit outdoor activities', adviceIcon: '😷' };
+            if (aqi <= 100) return { label: t('very_poor'), color: 'var(--aqi-very-poor)', icon: '🟣', advice: currentLang === 'fa' ? 'از فعالیت بیرون خودداری کنید' : 'Avoid outdoor activities', adviceIcon: '🚫' };
+            return { label: t('hazardous'), color: 'var(--aqi-hazardous)', icon: '⚫', advice: currentLang === 'fa' ? 'در خانه بمانید و ماسک بزنید' : 'Stay indoors and wear a mask', adviceIcon: '🆘' };
         }
 
         function fmtTime(isoString) {
@@ -2885,8 +2763,16 @@
                     </div>
                     ${country ? `<span class="suggestion-country">${country}</span>` : ''}
                 `;
-                item.addEventListener('mousedown', (e) => { e.preventDefault(); selectSuggestion(index); });
-                item.addEventListener('touchstart', (e) => { e.preventDefault(); selectSuggestion(index); }, { passive: false });
+                // ✅ Debounce selection to avoid double-firing on touch
+                const handleSelect = (e) => {
+                    e.preventDefault();
+                    const now = Date.now();
+                    if (now - lastSelectTime < 300) return;
+                    lastSelectTime = now;
+                    selectSuggestion(index);
+                };
+                item.addEventListener('mousedown', handleSelect);
+                item.addEventListener('touchstart', handleSelect, { passive: false });
                 frag.appendChild(item);
             });
             suggestionsEl.appendChild(frag);
@@ -2960,23 +2846,26 @@
                     const result = { city, weather: finalWeather, aqi };
                     if (weatherCache) weatherCache.push(result); else weatherCache = [result];
                     const newCard = createCard(result);
-                    newCard.classList.add('newly-added');
+                    const anim = getRandomAddAnim();
+                    newCard.classList.add(anim);
                     cardsEl.appendChild(newCard);
-                    setTimeout(() => newCard.classList.remove('newly-added'), 1600);
+                    setTimeout(() => newCard.classList.remove(anim), 1200);
                     saveWeatherCacheToStorage(weatherCache);
                 } else {
                     const errCard = createCard({ city, weather: null, aqi: null });
-                    errCard.classList.add('newly-added');
+                    const anim = getRandomAddAnim();
+                    errCard.classList.add(anim);
                     cardsEl.appendChild(errCard);
-                    setTimeout(() => errCard.classList.remove('newly-added'), 1600);
+                    setTimeout(() => errCard.classList.remove(anim), 1200);
                 }
                 renderAQIList();
             } catch (err) {
                 tempCard.remove();
                 const errCard = createCard({ city, weather: null, aqi: null });
-                errCard.classList.add('newly-added');
+                const anim = getRandomAddAnim();
+                errCard.classList.add(anim);
                 cardsEl.appendChild(errCard);
-                setTimeout(() => errCard.classList.remove('newly-added'), 1600);
+                setTimeout(() => errCard.classList.remove(anim), 1200);
             }
         }
 
@@ -3082,28 +2971,46 @@
             activeControllers.clear();
         }
 
+        // ✅ Concurrent queue with MAX_CONCURRENT = 3
         const omQueue = {
-            items: [], processing: false, lastRun: 0,
-            async add(fn, label = 'task') {
+            items: [],
+            processing: false,
+            lastRun: 0,
+            active: 0,
+            MAX_CONCURRENT: 3,
+
+            add(fn, label = 'task') {
                 return new Promise((resolve, reject) => {
                     this.items.push({ fn, resolve, reject, label });
                     this.process();
                 });
             },
+
             async process() {
                 if (this.processing) return;
                 this.processing = true;
-                while (this.items.length > 0) {
-                    if (document.hidden) { await new Promise(r => setTimeout(r, 500)); continue; }
-                    const elapsed = Date.now() - this.lastRun;
-                    if (elapsed < MIN_REQUEST_INTERVAL_MS) {
-                        await new Promise(r => setTimeout(r, MIN_REQUEST_INTERVAL_MS - elapsed));
+
+                while (this.items.length > 0 || this.active > 0) {
+                    if (document.hidden) {
+                        await new Promise(r => setTimeout(r, 500));
+                        continue;
                     }
-                    const item = this.items.shift();
-                    if (!item) break;
-                    try { item.resolve(await item.fn()); } catch (e) { item.reject(e); }
-                    this.lastRun = Date.now();
+
+                    while (this.active < this.MAX_CONCURRENT && this.items.length > 0) {
+                        const item = this.items.shift();
+                        this.active++;
+                        Promise.resolve()
+                            .then(() => item.fn())
+                            .then(item.resolve)
+                            .catch(item.reject)
+                            .finally(() => { this.active--; });
+                    }
+
+                    if (this.active >= this.MAX_CONCURRENT || this.items.length === 0) {
+                        await new Promise(r => setTimeout(r, 50));
+                    }
                 }
+
                 this.processing = false;
             }
         };
@@ -3252,6 +3159,27 @@
         function tempSymbol() { return settings.tempUnit === 'F' ? '°F' : '°C'; }
         function windSymbol() { return settings.windUnit === 'mph' ? 'mph' : settings.windUnit === 'ms' ? 'm/s' : 'km/h'; }
 
+        // ============================================================
+        //  RANDOM ANIMATION PICKER
+        // ============================================================
+        const ADD_ANIMATIONS = [
+            'city-add-pop', 'city-add-slide-r', 'city-add-slide-l',
+            'city-add-flip', 'city-add-drop', 'city-add-blur',
+            'city-add-rotate', 'city-add-bounce', 'city-add-skew', 'city-add-elastic'
+        ];
+        const REMOVE_ANIMATIONS = [
+            'city-remove-shrink', 'city-remove-slide-r', 'city-remove-slide-l',
+            'city-remove-flip', 'city-remove-fly', 'city-remove-drop',
+            'city-remove-blur', 'city-remove-explode', 'city-remove-pulse', 'city-remove-spin'
+        ];
+
+        function getRandomAddAnim() {
+            return ADD_ANIMATIONS[Math.floor(Math.random() * ADD_ANIMATIONS.length)];
+        }
+        function getRandomRemoveAnim() {
+            return REMOVE_ANIMATIONS[Math.floor(Math.random() * REMOVE_ANIMATIONS.length)];
+        }
+
         function createCard(item) {
             const { city, weather, aqi } = item;
             const card = document.createElement('div');
@@ -3386,38 +3314,64 @@
                 saveWeatherCacheToStorage(weatherCache);
             }
             if (cardEl) {
-                cardEl.classList.add('removing');
-                setTimeout(() => cardEl.remove(), 350);
+                const anim = getRandomRemoveAnim();
+                cardEl.classList.add(anim);
+                setTimeout(() => cardEl.remove(), 900);
             }
             renderAQIList();
         }
 
+        // ✅ DOM Diffing: preserve existing cards, only update what changed
         function renderCards(results) {
-            const fragment = document.createDocumentFragment();
-            const wasFirstLoad = isFirstLoad;
-            const addedName = lastAddedCityName;
-
             const sorted = [...results].sort((a, b) => {
                 const aFav = isFavorite(a.city.name) ? 0 : 1;
                 const bFav = isFavorite(b.city.name) ? 0 : 1;
                 return aFav - bFav;
             });
 
-            sorted.forEach((item, index) => {
-                const card = createCard(item);
-                if (wasFirstLoad) {
-                    card.style.setProperty('--stagger-delay', (index * 0.06) + 's');
-                } else if (addedName && item.city.name === addedName) {
-                    card.animate([
-                        { transform: 'scale(0.2) rotate(-15deg)', opacity: 0 },
-                        { transform: 'scale(1.12) rotate(5deg)', opacity: 1 },
-                        { transform: 'scale(1) rotate(0)', opacity: 1 }
-                    ], { duration: 700, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
-                } else {
-                    card.classList.add('no-anim');
-                }
-                fragment.appendChild(card);
+            const existingMap = new Map();
+            cardsEl.querySelectorAll('.card:not(.removing)').forEach(c => {
+                const name = c.querySelector('.city-name')?.textContent;
+                if (name) existingMap.set(name, c);
             });
+
+            const fragment = document.createDocumentFragment();
+            const usedNames = new Set();
+
+            sorted.forEach((item, index) => {
+                const oldCard = existingMap.get(item.city.name);
+                const newCard = createCard(item);
+
+                if (oldCard && oldCard.innerHTML === newCard.innerHTML && oldCard.className === newCard.className) {
+                    // ✅ Unchanged - reuse old card (preserves animation state, hover, etc.)
+                    fragment.appendChild(oldCard);
+                    usedNames.add(item.city.name);
+                    return;
+                }
+
+                // New or changed card
+                if (!oldCard) {
+                    if (isFirstLoad) {
+                        newCard.style.setProperty('--stagger-delay', (index * 0.06) + 's');
+                    } else if (lastAddedCityName === item.city.name) {
+                        newCard.classList.add(getRandomAddAnim());
+                    } else {
+                        newCard.classList.add('no-anim');
+                    }
+                }
+                fragment.appendChild(newCard);
+                usedNames.add(item.city.name);
+            });
+
+            // Handle removed cities (with animation)
+            existingMap.forEach((oldCard, name) => {
+                if (!usedNames.has(name)) {
+                    const anim = getRandomRemoveAnim();
+                    oldCard.classList.add(anim);
+                    setTimeout(() => oldCard.remove(), 900);
+                }
+            });
+
             cardsEl.innerHTML = '';
             cardsEl.appendChild(fragment);
             isFirstLoad = false;
@@ -3425,6 +3379,7 @@
             renderAQIList();
         }
 
+        // ✅ DOM Diffing for AQI cards
         function renderAQIList() {
             if (!aqiListEl) return;
             const aqiEmpty = document.getElementById('aqiEmpty');
@@ -3440,17 +3395,23 @@
             }
             if (aqiEmpty) aqiEmpty.style.display = 'none';
 
+            const existingMap = new Map();
+            aqiListEl.querySelectorAll('.aqi-card').forEach(c => {
+                const name = c.querySelector('.aqi-card-city span')?.textContent;
+                if (name) existingMap.set(name, c);
+            });
+
             const fragment = document.createDocumentFragment();
+            const usedNames = new Set();
+
             data.forEach((item, index) => {
                 const { city } = item;
+                const oldCard = existingMap.get(city.name);
+
                 const aqiData = normalizeAqiData(item.aqi);
                 const aqiValue = aqiData?.aqi ?? null;
                 const pm25 = aqiData?.pm25 ?? null;
                 const pm10 = aqiData?.pm10 ?? null;
-
-                const card = document.createElement('div');
-                card.className = 'aqi-card';
-                card.style.animationDelay = (index * 0.05) + 's';
 
                 const cat = aqiValue != null ? getAQICat(aqiValue) : {
                     label: '—', color: 'var(--text-muted)', icon: '❓',
@@ -3458,6 +3419,23 @@
                     adviceIcon: 'ℹ️'
                 };
 
+                // Build signature to check if update needed
+                const sig = `${aqiValue ?? 'n'}|${pm25 ?? 'n'}|${pm10 ?? 'n'}|${cat.label}|${city.name}`;
+                if (oldCard && oldCard.dataset.sig === sig) {
+                    fragment.appendChild(oldCard);
+                    usedNames.add(city.name);
+                    return;
+                }
+
+                // Build new card
+                const card = document.createElement('div');
+                card.className = 'aqi-card';
+                card.dataset.sig = sig;
+                if (!oldCard) {
+                    card.style.animationDelay = (index * 0.05) + 's';
+                } else {
+                    card.style.animation = 'none';
+                }
                 card.style.setProperty('--aqi-color', cat.color);
 
                 const circumference = 213.6;
@@ -3513,14 +3491,22 @@
                 `;
 
                 fragment.appendChild(card);
+                usedNames.add(city.name);
             });
+
+            // Remove cards for cities that no longer exist
+            existingMap.forEach((oldCard, name) => {
+                if (!usedNames.has(name)) oldCard.remove();
+            });
+
             aqiListEl.innerHTML = '';
             aqiListEl.appendChild(fragment);
         }
 
+        // ✅ Smart lock on updateAll - prevents double-fetch
         async function updateAll(force = false) {
             if (document.hidden) return;
-            if (isFetching) return;
+            if (isFetching) return lastFetchPromise;
             if (!force && lastFetchTimestamp > 0) {
                 const age = Date.now() - lastFetchTimestamp;
                 if (age < MIN_CACHE_AGE_MS) {
@@ -3529,51 +3515,60 @@
                     return;
                 }
             }
-            isFetching = true;
-            setStatus('refreshing');
-            refreshBtn.classList.add('spinning');
-            errorBanner.classList.remove('visible');
-            try {
-                const validResults = await fetchAllCitiesData(cities);
-                if (document.hidden) return;
-                const successCount = validResults.filter(r => r.weather && r.weather.current).length;
-                const totalCount = validResults.length;
-                if (successCount > 0) {
-                    weatherCache = validResults;
-                    lastFetchTimestamp = Date.now();
-                    saveWeatherCacheToStorage(validResults);
-                    renderCards(validResults);
-                    errorBanner.classList.remove('visible');
-                    isCachedData = false;
-                    lastUpdateTime = new Date().toLocaleTimeString(currentLang === 'fa' ? 'fa-IR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
-                    updateLastUpdateLabel();
-                    setStatus(successCount === totalCount ? 'updated' : 'partial');
-                } else {
-                    let cachedData = await cacheGet('weather-data');
-                    if (!cachedData || !cachedData.data) {
-                        const sc = loadWeatherCacheFromStorage();
-                        if (sc && sc.data) cachedData = { data: sc.data };
-                    }
-                    if (cachedData && cachedData.data) {
-                        renderCards(cachedData.data);
+
+            lastFetchPromise = (async () => {
+                isFetching = true;
+                setStatus('refreshing');
+                refreshBtn.classList.add('spinning');
+                errorBanner.classList.remove('visible');
+                try {
+                    const validResults = await fetchAllCitiesData(cities);
+                    if (document.hidden) return;
+                    const successCount = validResults.filter(r => r.weather && r.weather.current).length;
+                    const totalCount = validResults.length;
+                    if (successCount > 0) {
+                        weatherCache = validResults;
+                        lastFetchTimestamp = Date.now();
+                        saveWeatherCacheToStorage(validResults);
+                        renderCards(validResults);
                         errorBanner.classList.remove('visible');
-                        isCachedData = true;
+                        isCachedData = false;
                         lastUpdateTime = new Date().toLocaleTimeString(currentLang === 'fa' ? 'fa-IR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
                         updateLastUpdateLabel();
-                        setStatus('offline');
+                        setStatus(successCount === totalCount ? 'updated' : 'partial');
                     } else {
-                        renderCards(validResults);
-                        errorBanner.classList.add('visible');
-                        setStatus('failed');
+                        let cachedData = await cacheGet('weather-data');
+                        if (!cachedData || !cachedData.data) {
+                            const sc = loadWeatherCacheFromStorage();
+                            if (sc && sc.data) cachedData = { data: sc.data };
+                        }
+                        if (cachedData && cachedData.data) {
+                            renderCards(cachedData.data);
+                            errorBanner.classList.remove('visible');
+                            isCachedData = true;
+                            lastUpdateTime = new Date().toLocaleTimeString(currentLang === 'fa' ? 'fa-IR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+                            updateLastUpdateLabel();
+                            setStatus('offline');
+                        } else {
+                            renderCards(validResults);
+                            errorBanner.classList.add('visible');
+                            setStatus('failed');
+                        }
                     }
+                    startCountdown();
+                } catch (err) {
+                    console.error('Update error:', err);
+                    if (!document.hidden) { errorBanner.classList.add('visible'); setStatus('failed'); }
+                } finally {
+                    isFetching = false;
+                    refreshBtn.classList.remove('spinning');
                 }
-                startCountdown();
-            } catch (err) {
-                console.error('Update error:', err);
-                if (!document.hidden) { errorBanner.classList.add('visible'); setStatus('failed'); }
+            })();
+
+            try {
+                await lastFetchPromise;
             } finally {
-                isFetching = false;
-                refreshBtn.classList.remove('spinning');
+                lastFetchPromise = null;
             }
         }
 
@@ -3654,11 +3649,14 @@
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 hiddenAt = Date.now();
+                // ✅ Pause all CSS animations via CSS var
+                document.documentElement.style.setProperty('--anim-state', 'paused');
                 if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
                 stopRefreshInterval();
                 abortAllRequests();
                 if (suggestAbort) { try { suggestAbort.abort(); } catch (e) { } suggestAbort = null; }
             } else {
+                document.documentElement.style.setProperty('--anim-state', 'running');
                 const hiddenFor = Date.now() - hiddenAt;
                 startRefreshInterval();
                 if (hiddenFor > MAX_HIDDEN_BEFORE_REFRESH_MS) {
@@ -3701,6 +3699,7 @@
             };
 
             function log(msg, data) {
+                if (!DEBUG) return;
                 console.log(`[SelfHeal ${new Date().toLocaleTimeString()}] ${msg}`, data || '');
             }
             function logRepair(type, detail) {
@@ -3731,7 +3730,7 @@
                 } catch (e) { }
                 if (state.errors.length > 10) state.health = 'critical';
                 else if (state.errors.length > 3) state.health = 'degraded';
-                console.warn('[SelfHeal] ⚠️ Error:', err.message);
+                if (DEBUG) console.warn('[SelfHeal] ⚠️ Error:', err.message);
             }
 
             function quickCheck() {
@@ -3753,8 +3752,9 @@
 
             function deepCheck() {
                 state.lastDeepCheck = Date.now();
+                if (!DEBUG) return;
                 log('🔍 Deep check running…');
-                console.table && console.table({
+                console.table({
                     'Errors': state.errors.length,
                     'Repairs': state.repairs.length,
                     'Health': state.health,
@@ -3790,7 +3790,7 @@
                 try {
                     let totalSize = 0;
                     for (let key in localStorage) {
-                        if (localStorage.hasOwnProperty(key)) totalSize += (localStorage[key] || '').length;
+                        if (Object.prototype.hasOwnProperty.call(localStorage, key)) totalSize += (localStorage[key] || '').length;
                     }
                     const sizeMB = (totalSize / 1024 / 1024).toFixed(2);
                     if (totalSize > 4 * 1024 * 1024) {
@@ -3863,6 +3863,7 @@
             }
 
             function sendReport() {
+                if (!DEBUG) return;
                 try {
                     const stored = JSON.parse(localStorage.getItem('iran_weather_errors') || '[]');
                     if (stored.length === 0) return;
@@ -3892,6 +3893,7 @@
                 start, state, quickCheck, deepCheck,
                 report: () => ({ health: state.health, errors: state.errors.length, repairs: state.repairs, deviceClass: state.deviceClass, lastCheck: new Date(state.lastCheck).toLocaleTimeString() }),
                 diagnose: () => {
+                    if (!DEBUG) return;
                     console.log('=== Self-Heal v2 Diagnostics ===');
                     console.table({
                         'Health': state.health,
@@ -3939,9 +3941,13 @@
             startRefreshInterval();
             refreshBtn.addEventListener('click', () => updateAll(true));
 
-            SelfHealV2.start();
+            // ✅ Defer Self-Heal to idle time
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(() => SelfHealV2.start(), { timeout: 3000 });
+            } else {
+                setTimeout(() => SelfHealV2.start(), 2000);
+            }
 
-            // Console-only diagnostic (not visible in UI)
             window.diagnose = () => {
                 console.log('=== App Diagnostic ===');
                 console.table(sourceHealth);
