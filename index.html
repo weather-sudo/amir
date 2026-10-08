@@ -1927,15 +1927,29 @@
 
     <script>
         // ============================================================
-        //  DEBUG FLAG (silences console in production)
+        //  SMART DEBUG — auto-on in dev environments
+        //  Enable on production with ?debug=1 or localStorage.setItem('debug','1')
         // ============================================================
-        const DEBUG = false;
+        const DEBUG = (() => {
+            try {
+                const h = location.hostname;
+                if (h === 'localhost' || h === '127.0.0.1' || h === '' ||
+                    h.startsWith('192.168.') || h.startsWith('10.') ||
+                    h.endsWith('.local')) return true;
+                if (new URLSearchParams(location.search).has('debug')) return true;
+                if (localStorage.getItem('debug') === '1') return true;
+            } catch (e) { }
+            return false;
+        })();
+
         const _log = console.log.bind(console);
         const _warn = console.warn.bind(console);
         const _error = console.error.bind(console);
         console.log = (...a) => { if (DEBUG) _log(...a); };
         console.warn = (...a) => { if (DEBUG) _warn(...a); };
         console.error = _error;
+
+        if (DEBUG) _log('%c🔧 DEBUG mode active', 'color:#38bdf8;font-weight:bold');
 
         // ============================================================
         //  WELCOME
@@ -2074,7 +2088,6 @@
         }
 
         function applyTranslations() {
-            // ✅ Skip if language didn't change
             if (lastAppliedLang === currentLang) return;
             lastAppliedLang = currentLang;
             document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -2185,7 +2198,7 @@
             applyGlass();
             applyAnimationSettings();
             currentLang = settings.language;
-            lastAppliedLang = null; // ✅ force re-apply
+            lastAppliedLang = null;
             applyTranslations();
             const el = id => document.getElementById(id);
             if (el('setting-theme')) el('setting-theme').value = settings.theme;
@@ -2497,7 +2510,6 @@
             return false;
         }
 
-        // ✅ Periodic cleanup of stale source health entries
         setInterval(() => {
             const now = Date.now();
             for (const key in sourceHealth) {
@@ -2607,11 +2619,12 @@
         };
         const digitTimers = {};
 
-        // ✅ One global listener instead of adding one per tick (fixes memory leak)
+        // ✅ FIX #1: One global listener per digit span (no memory leak)
         Object.values(countdownDigitEls).forEach(el => {
             if (el) el.addEventListener('animationend', () => el.classList.remove('flipping'));
         });
 
+        // ✅ FIX #1: restore original setTimeout so digits animate correctly
         function setDigit(key, value, animate = true) {
             const el = countdownDigitEls[key];
             if (!el) return;
@@ -2619,8 +2632,12 @@
             if (digitTimers[key]) clearTimeout(digitTimers[key]);
             el.classList.remove('flipping');
             void el.offsetWidth;
-            el.textContent = value;
-            if (animate) el.classList.add('flipping');
+            if (!animate) {
+                el.textContent = value;
+                return;
+            }
+            el.classList.add('flipping');
+            digitTimers[key] = setTimeout(() => { el.textContent = value; }, 150);
         }
 
         function updateCountdownDisplay(h, m, s, animate = true) {
@@ -2763,7 +2780,6 @@
                     </div>
                     ${country ? `<span class="suggestion-country">${country}</span>` : ''}
                 `;
-                // ✅ Debounce selection to avoid double-firing on touch
                 const handleSelect = (e) => {
                     e.preventDefault();
                     const now = Date.now();
@@ -2975,7 +2991,6 @@
         const omQueue = {
             items: [],
             processing: false,
-            lastRun: 0,
             active: 0,
             MAX_CONCURRENT: 3,
 
@@ -3321,7 +3336,7 @@
             renderAQIList();
         }
 
-        // ✅ DOM Diffing: preserve existing cards, only update what changed
+        // ✅ FIX #2: DOM Diffing (removed dead code for removing cards — removeCity handles that)
         function renderCards(results) {
             const sorted = [...results].sort((a, b) => {
                 const aFav = isFavorite(a.city.name) ? 0 : 1;
@@ -3330,26 +3345,22 @@
             });
 
             const existingMap = new Map();
-            cardsEl.querySelectorAll('.card:not(.removing)').forEach(c => {
+            cardsEl.querySelectorAll('.card').forEach(c => {
                 const name = c.querySelector('.city-name')?.textContent;
                 if (name) existingMap.set(name, c);
             });
 
             const fragment = document.createDocumentFragment();
-            const usedNames = new Set();
 
             sorted.forEach((item, index) => {
                 const oldCard = existingMap.get(item.city.name);
                 const newCard = createCard(item);
 
                 if (oldCard && oldCard.innerHTML === newCard.innerHTML && oldCard.className === newCard.className) {
-                    // ✅ Unchanged - reuse old card (preserves animation state, hover, etc.)
                     fragment.appendChild(oldCard);
-                    usedNames.add(item.city.name);
                     return;
                 }
 
-                // New or changed card
                 if (!oldCard) {
                     if (isFirstLoad) {
                         newCard.style.setProperty('--stagger-delay', (index * 0.06) + 's');
@@ -3360,16 +3371,6 @@
                     }
                 }
                 fragment.appendChild(newCard);
-                usedNames.add(item.city.name);
-            });
-
-            // Handle removed cities (with animation)
-            existingMap.forEach((oldCard, name) => {
-                if (!usedNames.has(name)) {
-                    const anim = getRandomRemoveAnim();
-                    oldCard.classList.add(anim);
-                    setTimeout(() => oldCard.remove(), 900);
-                }
             });
 
             cardsEl.innerHTML = '';
@@ -3419,7 +3420,6 @@
                     adviceIcon: 'ℹ️'
                 };
 
-                // Build signature to check if update needed
                 const sig = `${aqiValue ?? 'n'}|${pm25 ?? 'n'}|${pm10 ?? 'n'}|${cat.label}|${city.name}`;
                 if (oldCard && oldCard.dataset.sig === sig) {
                     fragment.appendChild(oldCard);
@@ -3427,7 +3427,6 @@
                     return;
                 }
 
-                // Build new card
                 const card = document.createElement('div');
                 card.className = 'aqi-card';
                 card.dataset.sig = sig;
@@ -3494,7 +3493,6 @@
                 usedNames.add(city.name);
             });
 
-            // Remove cards for cities that no longer exist
             existingMap.forEach((oldCard, name) => {
                 if (!usedNames.has(name)) oldCard.remove();
             });
@@ -3503,7 +3501,6 @@
             aqiListEl.appendChild(fragment);
         }
 
-        // ✅ Smart lock on updateAll - prevents double-fetch
         async function updateAll(force = false) {
             if (document.hidden) return;
             if (isFetching) return lastFetchPromise;
@@ -3649,7 +3646,6 @@
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 hiddenAt = Date.now();
-                // ✅ Pause all CSS animations via CSS var
                 document.documentElement.style.setProperty('--anim-state', 'paused');
                 if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
                 stopRefreshInterval();
@@ -3700,7 +3696,7 @@
 
             function log(msg, data) {
                 if (!DEBUG) return;
-                console.log(`[SelfHeal ${new Date().toLocaleTimeString()}] ${msg}`, data || '');
+                _log(`[SelfHeal ${new Date().toLocaleTimeString()}] ${msg}`, data || '');
             }
             function logRepair(type, detail) {
                 state.repairs.push({ type, detail, time: Date.now() });
@@ -3730,7 +3726,7 @@
                 } catch (e) { }
                 if (state.errors.length > 10) state.health = 'critical';
                 else if (state.errors.length > 3) state.health = 'degraded';
-                if (DEBUG) console.warn('[SelfHeal] ⚠️ Error:', err.message);
+                if (DEBUG) _warn('[SelfHeal] ⚠️ Error:', err.message);
             }
 
             function quickCheck() {
@@ -3754,7 +3750,7 @@
                 state.lastDeepCheck = Date.now();
                 if (!DEBUG) return;
                 log('🔍 Deep check running…');
-                console.table({
+                _log('SelfHeal Deep Check:', {
                     'Errors': state.errors.length,
                     'Repairs': state.repairs.length,
                     'Health': state.health,
@@ -3867,7 +3863,7 @@
                 try {
                     const stored = JSON.parse(localStorage.getItem('iran_weather_errors') || '[]');
                     if (stored.length === 0) return;
-                    console.log('[SelfHeal] 📊 Report:', { total: stored.length, recent: stored.slice(-3) });
+                    _log('[SelfHeal] 📊 Report:', { total: stored.length, recent: stored.slice(-3) });
                     localStorage.setItem('iran_weather_errors', '[]');
                 } catch (e) { }
             }
@@ -3893,9 +3889,8 @@
                 start, state, quickCheck, deepCheck,
                 report: () => ({ health: state.health, errors: state.errors.length, repairs: state.repairs, deviceClass: state.deviceClass, lastCheck: new Date(state.lastCheck).toLocaleTimeString() }),
                 diagnose: () => {
-                    if (!DEBUG) return;
-                    console.log('=== Self-Heal v2 Diagnostics ===');
-                    console.table({
+                    _log('=== Self-Heal v2 Diagnostics ===');
+                    _log({
                         'Health': state.health,
                         'Device Class': state.deviceClass,
                         'Errors Captured': state.errors.length,
@@ -3904,8 +3899,7 @@
                         'Last Check': new Date(state.lastCheck).toLocaleTimeString(),
                         'Last Activity': new Date(state.lastActivityAt).toLocaleTimeString()
                     });
-                    console.log('Recent Repairs:');
-                    console.table(state.repairs.slice(-10));
+                    _log('Recent Repairs:', state.repairs.slice(-10));
                 }
             };
         })();
@@ -3941,22 +3935,23 @@
             startRefreshInterval();
             refreshBtn.addEventListener('click', () => updateAll(true));
 
-            // ✅ Defer Self-Heal to idle time
             if ('requestIdleCallback' in window) {
                 requestIdleCallback(() => SelfHealV2.start(), { timeout: 3000 });
             } else {
                 setTimeout(() => SelfHealV2.start(), 2000);
             }
 
+            // ✅ Diagnose ALWAYS works (uses _log directly, not console.log)
             window.diagnose = () => {
-                console.log('=== App Diagnostic ===');
-                console.table(sourceHealth);
-                console.log('Last fetch:', lastFetchTimestamp ? new Date(lastFetchTimestamp).toLocaleString() : 'never');
-                console.log('Cities:', cities.length);
-                console.log('Favorites:', favorites);
-                console.log('Queue:', omQueue.items.length);
-                console.log('Settings:', settings);
-                console.log('--- Self-Heal v2 ---');
+                _log('=== App Diagnostic ===');
+                _log('sourceHealth:', JSON.parse(JSON.stringify(sourceHealth)));
+                _log('Last fetch:', lastFetchTimestamp ? new Date(lastFetchTimestamp).toLocaleString() : 'never');
+                _log('Cities:', cities.length);
+                _log('Favorites:', favorites);
+                _log('Queue:', omQueue.items.length, 'active:', omQueue.active);
+                _log('Settings:', settings);
+                _log('DEBUG mode:', DEBUG);
+                _log('--- Self-Heal v2 ---');
                 SelfHealV2.diagnose();
             };
         }
