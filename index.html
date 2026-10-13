@@ -1430,10 +1430,7 @@
             border: 1px solid var(--border);
         }
 
-        /* ============================================================
-           THEME SWITCH — From Uiverse.io by Galahhad
-           Replaces the old emoji button. Sized down via --toggle-size
-           ============================================================ */
+        /* THEME SWITCH — From Uiverse.io by Galahhad */
         .theme-switch {
             --toggle-size: 10px;
             --container-width: 5.625em;
@@ -2492,7 +2489,6 @@
             updateThemeIcon();
         }
 
-        // ✅ Updated for the new switch — sync checkbox state with theme
         function updateThemeIcon() {
             const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
             if (themeSwitch) themeSwitch.checked = isDark;
@@ -2659,7 +2655,9 @@
 
         const DEFAULT_CITIES = [{ name: 'Tehran', lat: 35.6892, lon: 51.3890 }];
 
+        // ✅ Expanded Iran cities list with new major centers and small towns
         const IRAN_CITIES = [
+            // --- Original 42 cities ---
             { name: 'Tehran', name_fa: 'تهران', lat: 35.6892, lon: 51.3890, admin: 'Tehran', country: 'Iran', country_code: 'IR' },
             { name: 'Mashhad', name_fa: 'مشهد', lat: 36.2605, lon: 59.6168, admin: 'Razavi Khorasan', country: 'Iran', country_code: 'IR' },
             { name: 'Isfahan', name_fa: 'اصفهان', lat: 32.6546, lon: 51.6680, admin: 'Isfahan', country: 'Iran', country_code: 'IR' },
@@ -2701,7 +2699,53 @@
             { name: 'Shushtar', name_fa: 'شوشتر', lat: 32.0452, lon: 48.8540, admin: 'Khuzestan', country: 'Iran', country_code: 'IR' },
             { name: 'Behbahan', name_fa: 'بهبهان', lat: 30.5959, lon: 50.2417, admin: 'Khuzestan', country: 'Iran', country_code: 'IR' },
             { name: 'Sardasht', name_fa: 'سردشت', lat: 36.1580, lon: 45.4752, admin: 'West Azerbaijan', country: 'Iran', country_code: 'IR' },
-            { name: 'Bam', name_fa: 'بم', lat: 29.1060, lon: 58.3570, admin: 'Kerman', country: 'Iran', country_code: 'IR' }
+            { name: 'Bam', name_fa: 'بم', lat: 29.1060, lon: 58.3570, admin: 'Kerman', country: 'Iran', country_code: 'IR' },
+
+            // --- NEW: Major city centers (province capitals) ---
+            { name: 'Osku', name_fa: 'اسکو', lat: 37.9161, lon: 46.1245, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Ahar', name_fa: 'اهر', lat: 38.4775, lon: 47.0662, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Azarshahr', name_fa: 'آذرشهر', lat: 37.7585, lon: 45.9794, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Jolfa', name_fa: 'جلفا', lat: 38.9376, lon: 45.6252, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Maragheh', name_fa: 'مراغه', lat: 37.3892, lon: 46.2382, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Marand', name_fa: 'مرند', lat: 38.4320, lon: 45.7700, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Sarab', name_fa: 'سراب', lat: 36.3175, lon: 47.5648, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Shabestar', name_fa: 'شبستر', lat: 38.1784, lon: 45.7002, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Ajab Shir', name_fa: 'عجب شیر', lat: 37.4908, lon: 45.8868, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Bukan', name_fa: 'بوکان', lat: 36.5210, lon: 46.2100, admin: 'West Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Mahabad', name_fa: 'مهاباد', lat: 36.7639, lon: 45.7222, admin: 'West Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Khoy', name_fa: 'خوی', lat: 38.5500, lon: 44.9500, admin: 'West Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Saqqez', name_fa: 'سقز', lat: 36.2498, lon: 46.2735, admin: 'Kurdistan', country: 'Iran', country_code: 'IR' },
+            { name: 'Borujerd', name_fa: 'بروجرد', lat: 33.8973, lon: 48.7516, admin: 'Lorestan', country: 'Iran', country_code: 'IR' },
+            { name: 'Dorud', name_fa: 'دورود', lat: 33.4922, lon: 49.0580, admin: 'Lorestan', country: 'Iran', country_code: 'IR' },
+            { name: 'Najafabad', name_fa: 'نجف‌آباد', lat: 32.6333, lon: 51.3667, admin: 'Isfahan', country: 'Iran', country_code: 'IR' },
+            { name: 'Khomeynishahr', name_fa: 'خمینی‌شهر', lat: 32.7000, lon: 51.5167, admin: 'Isfahan', country: 'Iran', country_code: 'IR' },
+            { name: 'Shahin Shahr', name_fa: 'شاهین‌شهر', lat: 32.8667, lon: 51.5500, admin: 'Isfahan', country: 'Iran', country_code: 'IR' },
+            { name: 'Shahreza', name_fa: 'شهرضا', lat: 32.0000, lon: 51.8667, admin: 'Isfahan', country: 'Iran', country_code: 'IR' },
+
+            // --- NEW: Additional smaller towns & secondary cities ---
+            { name: 'Bostan Abad', name_fa: 'بستان‌آباد', lat: 34.8878, lon: 46.0804, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Bonab', name_fa: 'بناب', lat: 38.4283, lon: 45.9087, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Ilkhchi', name_fa: 'ایلخچی', lat: 37.9389, lon: 45.9800, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Basmenj', name_fa: 'باسمنج', lat: 37.9956, lon: 46.4749, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Tasuj', name_fa: 'تسوج', lat: 38.3169, lon: 45.3590, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Zonuz', name_fa: 'زنوز', lat: 38.5880, lon: 45.8320, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Sard Rud', name_fa: 'سردرود', lat: 36.6155, lon: 50.0498, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Sufian', name_fa: 'صوفیان', lat: 38.2769, lon: 45.9814, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Khamaneh', name_fa: 'خامنه', lat: 38.1935, lon: 45.6298, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Khosroshah', name_fa: 'خسروشهر', lat: 37.9163, lon: 46.1239, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Khodaju', name_fa: 'خداجو', lat: 37.3128, lon: 46.5310, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Khezerloo', name_fa: 'خضرلو', lat: 37.4295, lon: 45.9580, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Duzduzan', name_fa: 'دوزدوزان', lat: 37.9490, lon: 47.1198, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Zarnaq', name_fa: 'زرنق', lat: 37.3352, lon: 47.6725, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Sharafkhaneh', name_fa: 'شرفخانه', lat: 38.1787, lon: 45.4893, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Shendabad', name_fa: 'شندآباد', lat: 38.1624, lon: 45.6717, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Torkamanchay', name_fa: 'ترکمانچای', lat: 37.5817, lon: 47.3911, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Tikmedash', name_fa: 'تیکمه‌داش', lat: 37.7257, lon: 46.9376, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Kharvana', name_fa: 'خاروانا', lat: 38.6851, lon: 46.1698, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Khumarlu', name_fa: 'خمارلو', lat: 39.1584, lon: 47.0326, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Khajeh', name_fa: 'خواجه', lat: 38.1529, lon: 46.5828, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Sis', name_fa: 'سیس', lat: 38.1997, lon: 45.8124, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Siyahrud', name_fa: 'سیه‌رود', lat: 38.8694, lon: 46.0023, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' }
         ];
 
         const WMO_ICONS = {
@@ -2885,7 +2929,7 @@
         const aqiListEl = $('aqiList');
         const statusTextEl = $('statusText');
         const refreshBtn = $('refreshBtn');
-        const themeSwitch = $('themeSwitch');   // ✅ New switch checkbox
+        const themeSwitch = $('themeSwitch');
         const lastUpdateEl = $('lastUpdate');
         const errorBanner = $('errorBanner');
         const searchInput = $('citySearch');
@@ -2952,7 +2996,6 @@
         let activeSuggestionIndex = -1;
         let currentSuggestions = [];
 
-        // ✅ New switch — change listener instead of click
         if (themeSwitch) {
             themeSwitch.addEventListener('change', () => {
                 settings.theme = themeSwitch.checked ? 'dark' : 'light';
