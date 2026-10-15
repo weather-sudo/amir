@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ربات هوشمند آب‌وهوا — نسخه نهایی"""
+"""ربات هوشمند آب‌وهوا — نسخه نهایی با پنل ادمین"""
 
 import os, logging, asyncio, time, sqlite3
 from datetime import datetime
@@ -18,7 +18,7 @@ from telegram.ext import (
 
 # ==================== تنظیمات ====================
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
-ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
+ADMIN_PASSWORD = "NASA2010"  # 🔐 رمز ادمین
 WEB_APP_URL = os.environ.get("WEB_APP_URL", "")
 GEO_API = "https://geocoding-api.open-meteo.com/v1/search"
 WEATHER_API = "https://api.open-meteo.com/v1/forecast"
@@ -27,6 +27,29 @@ DB_PATH = "weather_bot.db"
 
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# ==================== نشست ادمین (در حافظه) ====================
+_admin_sessions = {}  # {user_id: timestamp}
+ADMIN_SESSION_TTL = 3600  # 1 ساعت
+
+
+def is_admin(uid: int) -> bool:
+    """چک کن کاربر ادمین هست یا نه (با TTL)"""
+    ts = _admin_sessions.get(uid)
+    if ts and time.time() - ts < ADMIN_SESSION_TTL:
+        return True
+    if ts:
+        _admin_sessions.pop(uid, None)
+    return False
+
+
+def login_admin(uid: int):
+    _admin_sessions[uid] = time.time()
+
+
+def logout_admin(uid: int):
+    _admin_sessions.pop(uid, None)
+
 
 # ==================== دیتابیس ====================
 def db():
@@ -92,6 +115,26 @@ def total_users():
         c = db(); r = c.execute("SELECT COUNT(*) as n FROM users").fetchone(); c.close()
         return r["n"]
     except Exception: return 0
+
+
+def active_users_24h():
+    try:
+        c = db()
+        r = c.execute("SELECT COUNT(*) as n FROM users WHERE last_seen > datetime('now', '-1 day')").fetchone()
+        c.close()
+        return r["n"]
+    except Exception: return 0
+
+
+def top_cities(limit=5):
+    try:
+        c = db()
+        r = c.execute("""SELECT default_city as c, COUNT(*) as n FROM users
+                         WHERE default_city IS NOT NULL GROUP BY default_city
+                         ORDER BY n DESC LIMIT ?""", (limit,)).fetchall()
+        c.close()
+        return [(x["c"], x["n"]) for x in r]
+    except Exception: return []
 
 
 # ==================== کاربران ====================
@@ -177,7 +220,7 @@ def notify_users():
     except Exception: return []
 
 
-# ==================== HTTP Client مشترک ====================
+# ==================== HTTP Client ====================
 _http: Optional[httpx.AsyncClient] = None
 
 
@@ -203,9 +246,8 @@ def _cget(cache, tc, key, ttl):
     cache.pop(key, None); tc.pop(key, None); return None
 
 
-# ==================== لیست شهرهای ایران (۲۵۰+) ====================
+# ==================== لیست شهرها ====================
 IRAN = [
-    # ========== تهران و حومه ==========
     ("Tehran","تهران",35.6892,51.3890),("Karaj","کرج",35.8355,50.9915),
     ("Eslamshahr","اسلامشهر",35.5522,51.2350),("Shahriar","شهریار",35.6594,51.0589),
     ("Varamin","ورامین",35.3244,51.6458),("Pakdasht","پاکدشت",35.4722,51.6828),
@@ -217,13 +259,10 @@ IRAN = [
     ("Salehieh","صالحیه",35.6333,51.0667),("Baghestan","باغستان",35.6333,51.0833),
     ("Sabashahr","صباشهر",35.6167,51.1000),("Vahidieh","وحیدیه",35.6167,51.0500),
     ("Parand","پرند",35.4833,50.9500),("Chahardangeh","چهاردانگه",35.6000,51.2833),
-    ("Ahmadabad Mostoufi","احمدآباد مستوفی",35.5000,51.3167),("Hasanabad","حسن‌آباد",35.3667,51.2333),
     ("Qarchak","قرچک",35.4394,51.5689),("Pishva","پیشوا",35.3092,51.7275),
     ("Absard","آبسرد",35.6172,52.1411),("Kilan","کیلان",35.5433,52.2222),
-    ("Rudehen","رودهن",35.7347,51.9103),("Abali","آبعلی",35.7667,51.9667),
-    ("Shemshak","شمشک",36.0167,51.5000),("Dizin","دیزین",36.0500,51.4167),
+    ("Abali","آبعلی",35.7667,51.9667),("Shemshak","شمشک",36.0167,51.5000),
 
-    # ========== خراسان رضوی ==========
     ("Mashhad","مشهد",36.2605,59.6168),("Neyshabur","نیشابور",36.2133,58.7958),
     ("Sabzevar","سبزوار",36.2125,57.6819),("Torbat-e Heydarieh","تربت حیدریه",35.2736,59.2197),
     ("Torbat-e Jam","تربت جام",35.2439,60.6236),("Quchan","قوچان",37.1061,58.5094),
@@ -231,12 +270,10 @@ IRAN = [
     ("Chenaran","چناران",36.6456,59.1211),("Sarakhs","سرخس",36.5447,61.1581),
     ("Fariman","فریمان",35.7039,59.8500),("Khaf","خواف",34.5764,60.1408),
     ("Bardaskan","بردسکن",35.2606,57.9711),("Dargaz","درگز",37.4444,59.1067),
-    ("Kalat","کلات",36.9961,59.7619),("Joveyn","جُوین",36.6167,57.0667),
-    ("Bajestan","بجستان",34.5167,58.1833),("Mahvelat","مه‌ولات",34.7833,58.5000),
+    ("Kalat","کلات",36.9961,59.7619),("Bajestan","بجستان",34.5167,58.1833),
     ("Roshtkhar","رشتخوار",34.9769,59.6222),("Khalilabad","خلیل‌آباد",35.2561,58.2856),
     ("Bakharz","باخرز",34.9833,60.3167),("Salehabad","صالح‌آباد",35.6833,61.1000),
 
-    # ========== اصفهان ==========
     ("Isfahan","اصفهان",32.6546,51.6680),("Kashan","کاشان",33.9850,51.4100),
     ("Najafabad","نجف‌آباد",32.6333,51.3667),("Khomeynishahr","خمینی‌شهر",32.7000,51.5167),
     ("Shahin Shahr","شاهین‌شهر",32.8667,51.5500),("Shahreza","شهرضا",32.0000,51.8667),
@@ -247,14 +284,9 @@ IRAN = [
     ("Borkhar","برخوار",32.8667,51.6167),("Tiran","تیران",32.7000,51.1500),
     ("Karkevand","کرکوند",32.3667,51.4333),("Varzaneh","ورزنه",32.4167,52.6500),
     ("Nain","نائین",32.8603,53.0869),("Khur","خوروبیابانک",33.7722,54.8722),
-    ("Anarak","انارک",33.3117,53.6953),("Jowsheqan","جوشقان",33.9833,51.1000),
-    ("Neyasar","نیاسر",34.0317,51.1461),("Barzok","برزک",33.8819,51.0767),
-    ("Mobarakeh","مبارکه",32.3453,51.5014),("Baghabad","باغ‌آباد",32.3833,51.3333),
-    ("Kuhpayeh","کوهپایه",32.7167,52.4333),("Mehriz","مهریز",31.5833,54.4333),
-    ("Meymeh","میمه",33.4500,51.1667),("Chadegan","چادگان",32.7683,50.6278),
-    ("Fereydunshahr","فریدن",32.9411,50.1211),("Fereydan","فریدون‌شهر",32.9411,50.1211),
+    ("Mobarakeh","مبارکه",32.3453,51.5014),("Kuhpayeh","کوهپایه",32.7167,52.4333),
+    ("Mehriz","مهریز",31.5833,54.4333),("Chadegan","چادگان",32.7683,50.6278),
 
-    # ========== فارس ==========
     ("Shiraz","شیراز",29.5918,52.5837),("Marvdasht","مرودشت",29.8739,52.8025),
     ("Jahrom","جهرم",28.5000,53.5600),("Fasa","فسا",28.9389,53.6481),
     ("Kazerun","کازرون",29.6158,51.6553),("Lar","لار",27.6833,54.3417),
@@ -264,16 +296,10 @@ IRAN = [
     ("Zarqan","زرقان",29.7711,52.7233),("Kharameh","خرامه",29.5000,53.3167),
     ("Pasargad","پاسارگاد",30.2000,53.1833),("Bavanat","بوانات",30.4667,53.6500),
     ("Arsanjan","ارسنجان",29.9167,53.3167),("Mamasani","ممسنی",30.1000,51.5333),
-    ("Rostam","رستم",30.2000,51.3833),("Khour","خفر",28.9500,53.2333),
     ("Mohr","مهر",27.5500,52.8833),("Lamerd","لامرد",27.3333,53.1833),
-    ("Ghir","قیر",28.3333,53.0333),("Farashband","فراشبند",28.8667,52.0833),
-    ("Qir va Karzin","قیر و کارزین",28.5000,52.9833),("Marvdasht","مرودشت",29.8739,52.8025),
-    ("Sadra","صدرا",29.7833,52.4667),("Shahrekord","شهرک",29.1500,53.7500),
-    ("Sedeh","سده",30.8000,52.2500),("Safashahr","صفاشهر",30.6167,53.6500),
-    ("Hasanabad","حسن‌آباد",30.5333,52.3000),("Surmaq","سورمق",31.0333,52.8333),
-    ("Khosrow Shirin","خسروشیرین",30.3667,52.0333),("Doborji","دوبرجی",29.5000,52.1167),
+    ("Qir","قیر",28.3333,53.0333),("Farashband","فراشبند",28.8667,52.0833),
+    ("Sadra","صدرا",29.7833,52.4667),("Safashahr","صفاشهر",30.6167,53.6500),
 
-    # ========== آذربایجان شرقی ==========
     ("Tabriz","تبریز",38.0962,46.2738),("Maragheh","مراغه",37.3892,46.2382),
     ("Marand","مرند",38.4320,45.7700),("Ahar","اهر",38.4775,47.0662),
     ("Mianeh","میانه",37.4211,47.7100),("Bonab","بناب",38.4283,45.9087),
@@ -281,17 +307,12 @@ IRAN = [
     ("Osku","اسکو",37.9161,46.1245),("Shabestar","شبستر",38.1784,45.7002),
     ("Jolfa","جلفا",38.9376,45.6252),("Sardrud","سردرود",38.0314,46.1475),
     ("Ajab Shir","عجب‌شیر",37.4828,45.8936),("Bostanabad","بستان‌آباد",37.8500,46.8333),
-    ("Charoymaq","چاراویماق",37.1333,47.0833),("Hashtrud","هشترود",37.4833,47.0500),
-    ("Heris","هریس",38.2500,47.1167),("Khoda Afarin","خداآفرین",39.0333,46.8833),
+    ("Hashtrud","هشترود",37.4833,47.0500),("Heris","هریس",38.2500,47.1167),
     ("Malekan","ملکان",37.1333,46.1000),("Varzaqan","ورزقان",38.5167,46.6500),
-    ("Kaleybar","کلیبر",38.8667,47.0333),("Siahrood","سیه‌رود",38.8667,46.0000),
-    ("Basmenj","باسمنج",37.9833,46.4667),("Khosroshahr","خسروشهر",37.9500,46.0500),
+    ("Kaleybar","کلیبر",38.8667,47.0333),("Basmenj","باسمنج",37.9833,46.4667),
     ("Ilkhchi","ایلخچی",37.9333,45.9833),("Sahand","سهند",37.9500,46.1167),
-    ("Mehraban","مهربان",38.1667,47.1000),("Tark","ترک",37.6167,47.3167),
-    ("Torkamanchay","ترکمانچای",37.5833,47.3833),("Nazarkahrizi","نظرکهریزی",37.8000,46.8833),
-    ("Qareh Aghaj","قره‌آغاج",37.0167,46.7667),("Kharvana","خاروانا",38.7000,46.1667),
+    ("Torkamanchay","ترکمانچای",37.5833,47.3833),
 
-    # ========== آذربایجان غربی ==========
     ("Urmia","ارومیه",37.5553,45.0725),("Khoy","خوی",38.5500,44.9500),
     ("Mahabad","مهاباد",36.7639,45.7222),("Bukan","بوکان",36.5210,46.2100),
     ("Miandoab","میاندوآب",36.9667,46.1000),("Salmas","سلماس",38.1972,44.7683),
@@ -300,13 +321,9 @@ IRAN = [
     ("Takab","تکاب",36.4008,47.1125),("Maku","ماکو",39.2956,44.5117),
     ("Chaldoran","چالدران",39.0642,44.3833),("Oshnavieh","اشنویه",37.0397,45.0983),
     ("Chaypareh","چایپاره",38.8333,45.0333),("Poldasht","پلدشت",39.3483,45.0711),
-    ("Showt","شوط",39.2167,44.7667),("Marganlar","مرگنلر",39.3667,44.8667),
-    ("Keshavarz","کشاورز",37.1167,46.1667),("Baruq","باروق",37.0833,46.3167),
-    ("Mohammadyar","محمدیار",37.0833,45.5000),("Qarah Zia od Din","قره‌ضیاءالدین",38.8833,45.0333),
-    ("Firuraq","فیرورق",38.6000,44.8500),("Zurabad","زورآباد",38.6500,44.6500),
-    ("Bazargan","بازرگان",39.3911,44.3875),("Razi","رازی",38.8333,44.2833),
+    ("Showt","شوط",39.2167,44.7667),("Keshavarz","کشاورز",37.1167,46.1667),
+    ("Mohammadyar","محمدیار",37.0833,45.5000),("Firuraq","فیرورق",38.6000,44.8500),
 
-    # ========== خوزستان ==========
     ("Ahvaz","اهواز",31.3167,48.6844),("Abadan","آبادان",30.3392,48.3043),
     ("Khorramshahr","خرمشهر",30.4408,48.1845),("Dezful","دزفول",32.3830,48.4058),
     ("Andimeshk","اندیمشک",32.4610,48.3534),("Shushtar","شوشتر",32.0452,48.8540),
@@ -315,16 +332,10 @@ IRAN = [
     ("Bandar Mahshahr","بندر ماهشهر",30.5589,49.1981),("Omidiyeh","امیدیه",30.7622,49.7025),
     ("Ramhormoz","رامهرمز",31.2792,49.6022),("Susangerd","سوسنگرد",31.5619,48.1819),
     ("Hendijan","هندیجان",30.2342,49.7139),("Dehdez","دهدز",31.7083,50.2856),
-    ("Baghmolek","باغ‌ملک",31.5258,49.8831),("Baghmalek","باغ‌ملک",31.5258,49.8831),
     ("Shadegan","شادگان",30.6500,48.6667),("Hoveyzeh","هویزه",31.4667,48.0833),
-    ("Dasht-e Azadegan","دشت آزادگان",31.5500,48.1333),("Haftgel","هفتکل",31.4667,49.5500),
-    ("Aghajari","آغاجاری",30.7000,49.8333),("Bavi","باوی",31.4667,48.7167),
-    ("Karun","کارون",31.2000,48.6500),("Hamidiyeh","حمیدیه",31.4833,48.4667),
+    ("Haftgel","هفتکل",31.4667,49.5500),("Aghajari","آغاجاری",30.7000,49.8333),
     ("Gotvand","گتوند",32.2500,48.8167),("Lali","لالی",32.3333,49.1000),
-    ("Baghmalek","باغ‌ملک",31.5258,49.8831),("Seydun","صیدون",31.3500,50.0833),
-    ("Qaleh Tall","قلعه‌تل",31.6333,50.2667),("Mollasani","ملاثانی",31.5833,48.8833),
 
-    # ========== گیلان ==========
     ("Rasht","رشت",37.2808,49.5832),("Bandar Anzali","بندر انزلی",37.4739,49.4578),
     ("Lahijan","لاهیجان",37.2019,50.0047),("Langarud","لنگرود",37.1956,50.1525),
     ("Astaneh-ye Ashrafiyeh","آستانه اشرفیه",37.2611,49.9431),("Talesh","تالش",37.8008,48.9058),
@@ -332,18 +343,12 @@ IRAN = [
     ("Sowme'eh Sara","صومعه‌سرا",37.3114,49.3206),("Rudbar","رودبار",36.8236,49.4278),
     ("Astara","آستارا",38.4222,48.8722),("Masal","ماسال",37.3631,49.1325),
     ("Rezvanshahr","رضوانشهر",37.5514,49.1372),("Amlash","املش",37.1000,50.1833),
-    ("Khomam","خمام",37.4000,49.6333),("Sangar","سنگar",37.0333,49.6000),
-    ("Lasht-e Nesha","لشت نشا",37.3667,49.8500),("Kuchesfahan","کوچصفهان",37.2833,49.7667),
-    ("Chaboksar","چابکسر",36.9667,50.5667),("Kelachay","کلachay",37.0833,50.4000),
-    ("Vajargah","واجارگاه",37.0333,50.4000),("Rahimabad","رحیم‌آباد",37.0333,50.3167),
-    ("Shalman","شلمان",37.1667,50.2833),("Kumeleh","کومله",37.1500,50.1833),
-    ("Otaghvar","اتاقور",37.1833,50.0333),("Rodsar","رودسر",37.1364,50.2931),
+    ("Khomam","خمام",37.4000,49.6333),("Lasht-e Nesha","لشت نشا",37.3667,49.8500),
+    ("Kuchesfahan","کوچصفهان",37.2833,49.7667),("Chaboksar","چابکسر",36.9667,50.5667),
     ("Manjil","منجیل",36.7442,49.4019),("Lowshan","لوشان",36.6333,49.5167),
-    ("Jirandeh","جیرنده",36.6833,49.8000),("Rostamabad","رستم‌آباد",36.9000,49.4833),
-    ("Pareh Sar","پره‌سر",37.6000,49.0667),("Asalem","اسالم",37.7333,48.9333),
-    ("Hashtpar","هشتپر",37.8008,48.9058),("Lisar","لیسار",37.8333,48.9000),
+    ("Rostamabad","رستم‌آباد",36.9000,49.4833),("Pareh Sar","پره‌سر",37.6000,49.0667),
+    ("Asalem","اسالم",37.7333,48.9333),("Hashtpar","هشتپر",37.8008,48.9058),
 
-    # ========== مازندران ==========
     ("Sari","ساری",36.5633,53.0601),("Babol","بابل",36.5513,52.6789),
     ("Amol","آمل",36.4696,52.3506),("Qaem Shahr","قائم‌شهر",36.4633,52.8600),
     ("Behshahr","بهشهر",36.6925,53.5522),("Chalus","چالوس",36.6550,51.4200),
@@ -353,46 +358,35 @@ IRAN = [
     ("Neka","نکا",36.6528,53.2961),("Galugah","گلوگاه",36.7219,53.8083),
     ("Savadkuh","سوادکوه",36.1900,52.8600),("Pol-e Sefid","پل سفید",36.1167,52.9167),
     ("Zirab","زیرآب",36.1833,52.9667),("Shirgah","شیرگاه",36.2833,52.8833),
-    ("Kiasar","کیاسر",36.2333,53.5333),("Dodangeh","دودانگه",36.1500,53.4000),
-    ("Mahmudabad","محمودآباد",36.6333,52.2667),("Nur","نور",36.5667,52.0167),
-    ("Nowshahr","نوشهر",36.6489,51.4964),("Kojur","کجور",36.3833,51.6333),
-    ("Kelardasht","کلاردشت",36.4833,51.1333),("Marzanabad","مرزن‌آباد",36.4500,51.3000),
-    ("Dohezar","دوهزار",36.6833,50.8500),("Sehezar","سه‌هزار",36.7000,50.8333),
-    ("Salman Shahr","سلمان‌شهر",36.7000,51.1833),("Nashtarud","نشتارود",36.7500,51.0000),
-    ("Abbasabad","عباس‌آباد",36.7167,51.1000),("Kelarabad","کلارآباد",36.6833,51.2667),
+    ("Kiasar","کیاسر",36.2333,53.5333),("Mahmudabad","محمودآباد",36.6333,52.2667),
+    ("Nur","نور",36.5667,52.0167),("Kelardasht","کلاردشت",36.4833,51.1333),
+    ("Marzanabad","مرزن‌آباد",36.4500,51.3000),("Salman Shahr","سلمان‌شهر",36.7000,51.1833),
+    ("Nashtarud","نشتارود",36.7500,51.0000),("Abbasabad","عباس‌آباد",36.7167,51.1000),
     ("Rineh","رینه",35.8833,52.0500),("Polur","پلور",35.8333,52.0500),
-    ("Gazanak","گزنک",35.9000,52.2167),("Amol","آمل",36.4696,52.3506),
 
-    # ========== کرمان ==========
     ("Kerman","کرمان",30.2839,57.0834),("Bam","بم",29.1060,58.3570),
     ("Rafsanjan","رفسنجان",30.4067,55.9939),("Sirjan","سیرجان",29.4522,55.6794),
     ("Jiroft","جیرفت",28.6744,57.7436),("Zarand","زرند",30.8128,56.5619),
     ("Shahr-e Babak","شهربابک",30.1147,55.1172),("Kahnuj","کهنوج",27.9522,57.7006),
     ("Bardsir","بردسیر",29.9256,56.5739),("Ravar","راور",31.2647,56.8050),
     ("Anar","انار",30.8667,55.2667),("Manujan","منوجان",27.4000,57.5000),
-    ("Qaleh Ganj","قلعه گنج",27.5333,57.8833),("Rudbar","رودبار",28.0333,57.7500),
-    ("Fahraj","فهرج",28.9500,58.8833),("Rigan","ریگان",28.7500,59.0333),
-    ("Narmashir","نرماشیر",28.9500,58.6833),("Faryab","فاریاب",28.1167,57.2333),
-    ("Arzuiyeh","ارزوئیه",28.4500,56.3667),("Kuhbanan","کوهبنان",31.4167,56.2833),
-    ("Rabor","رابر",29.2833,56.9167),("Rayen","راین",29.6000,57.4333),
-    ("Mahan","ماهان",30.0500,57.2833),("Shahdad","شهداد",30.4167,57.7000),
-    ("Golbaf","گلباف",29.8833,57.7333),("Anduhjerd","اندوهجرد",30.2333,57.7500),
-    ("Chatrud","چترود",30.6000,56.9167),("Zangiabad","زنگی‌آباد",30.4167,56.9333),
-    ("Baghin","باغین",30.1833,56.8000),("Mahan","ماهان",30.0500,57.2833),
+    ("Qaleh Ganj","قلعه گنج",27.5333,57.8833),("Fahraj","فهرج",28.9500,58.8833),
+    ("Rigan","ریگان",28.7500,59.0333),("Narmashir","نرماشیر",28.9500,58.6833),
+    ("Faryab","فاریاب",28.1167,57.2333),("Arzuiyeh","ارزوئیه",28.4500,56.3667),
+    ("Kuhbanan","کوهبنان",31.4167,56.2833),("Rabor","رابر",29.2833,56.9167),
+    ("Rayen","راین",29.6000,57.4333),("Mahan","ماهان",30.0500,57.2833),
+    ("Shahdad","شهداد",30.4167,57.7000),("Golbaf","گلباف",29.8833,57.7333),
+    ("Chatrud","چترود",30.6000,56.9167),("Baghin","باغین",30.1833,56.8000),
 
-    # ========== خراسان شمالی و جنوبی ==========
     ("Bojnord","بجنورد",37.4747,57.3290),("Shirvan","شیروان",37.3975,57.9300),
     ("Esfarayen","اسفراین",37.0764,57.5100),("Birjand","بیرجند",32.8663,59.2211),
     ("Qaen","قائن",33.7258,59.1858),("Ferdows","فردوس",34.0175,58.1700),
     ("Tabas","طبس",33.5956,56.9244),("Jajrom","جاجرم",37.0333,56.3833),
-    ("Garmeh","گرمه",37.0167,56.2833),("Maneh","مانه",37.6333,57.2333),
-    ("Raz","راز",37.9333,56.9167),("Safiabad","صفی‌آباد",36.2333,57.7500),
-    ("Nehbandan","نهبندان",31.5333,60.0333),("Sarbisheh","سربیشه",32.5833,59.8000),
-    ("Darmian","درمیان",32.9500,60.0333),("Khusf","خوسف",32.7833,58.8833),
-    ("Boshruyeh","بشرویه",33.8667,57.4167),("Sarayan","سرایان",33.8667,58.5167),
-    ("Zirkuh","زیرکوه",33.5833,60.0333),("Boshruyeh","بشرویه",33.8667,57.4167),
+    ("Garmeh","گرمه",37.0167,56.2833),("Nehbandan","نهبندان",31.5333,60.0333),
+    ("Sarbisheh","سربیشه",32.5833,59.8000),("Darmian","درمیان",32.9500,60.0333),
+    ("Khusf","خوسف",32.7833,58.8833),("Boshruyeh","بشرویه",33.8667,57.4167),
+    ("Sarayan","سرایان",33.8667,58.5167),("Zirkuh","زیرکوه",33.5833,60.0333),
 
-    # ========== کرمانشاه و کردستان ==========
     ("Kermanshah","کرمانشاه",34.3142,47.0650),("Eslamabad-e Gharb","اسلام‌آباد غرب",34.1089,46.5308),
     ("Harsin","هرسین",34.2736,47.5861),("Sonqor","سنقر",34.7839,47.5986),
     ("Paveh","پاوه",35.0456,46.3575),("Sanandaj","سنندج",35.3149,46.9921),
@@ -400,13 +394,10 @@ IRAN = [
     ("Baneh","بانه",35.9989,45.8867),("Qorveh","قروه",35.1664,47.8047),
     ("Bijar","بیجار",35.8728,47.6025),("Kangavar","کنگاور",34.5000,47.9667),
     ("Sahneh","صحنه",34.4833,47.6833),("Gilan-e Gharb","گیلان غرب",34.1333,45.9167),
-    ("Dalahu","دالاهو",34.4667,46.0000),("Ravansar","روانسر",34.7167,46.6500),
-    ("Javanrud","جوانرود",34.8000,46.5000),("Salas-e Babajani","ثلاث باباجانی",34.8500,46.0333),
+    ("Ravansar","روانسر",34.7167,46.6500),("Javanrud","جوانرود",34.8000,46.5000),
     ("Divandarreh","دیواندره",35.9167,47.0333),("Kamyaran","کامیاران",34.8000,46.9333),
     ("Dehgolan","دهگلان",35.2833,47.4167),("Sarvabad","سروآباد",35.3167,46.3667),
-    ("Baneh","بانه",35.9989,45.8867),("Sanandaj","سنندج",35.3149,46.9921),
 
-    # ========== سایر استان‌ها ==========
     ("Qom","قم",34.6416,50.8746),("Ardabil","اردبیل",38.2494,48.3014),
     ("Parsabad","پارس‌آباد",39.6489,47.9164),("Khalkhal","خلخال",37.6192,48.5253),
     ("Meshgin Shahr","مشگین‌شهر",38.3986,47.6806),("Germi","گرمی",39.0333,48.0833),
@@ -440,13 +431,10 @@ IRAN = [
     ("Yasuj","یاسوج",30.6681,51.5881),("Dogonbadan","دوگنبدان",30.3600,50.7953),
     ("Shahr-e Kord","شهرکرد",32.3260,50.8644),("Borujen","بروجن",31.9667,51.2833),
     ("Lordegan","لردگان",31.5167,50.8167),("Farsan","فارسان",32.2500,50.5667),
-    ("Ardal","اردل",32.0000,50.6500),("Kiar","کیار",32.1000,50.6167),
-    ("Ben","بن",32.5500,50.7000),("Saman","سامان",32.4500,50.9167),
-    ("Farrokhshahr","فرخ‌شهر",32.2833,50.9833),("Hafshejan","هفشجان",32.1833,50.8333),
-    ("Sudejan","سودجان",32.5167,50.3833),("Gandoman","گندمان",31.8667,51.1333),
+    ("Ardal","اردل",32.0000,50.6500),("Farrokhshahr","فرخ‌شهر",32.2833,50.9833),
+    ("Hafshejan","هفشجان",32.1833,50.8333),("Gandoman","گندمان",31.8667,51.1333),
     ("Boldaji","بلداجی",31.9333,51.0500),("Nafch","نافچ",32.4167,50.8000),
     ("Shalamzar","شلمزار",32.0500,50.8167),("Junqan","جونقان",32.1500,50.6833),
-    ("Farsan","فارسان",32.2500,50.5667),("Babaheydar","باباحیدر",32.3333,50.4667),
 ]
 
 PERSIAN_MAP = {c[1]: c[0] for c in IRAN}
@@ -621,7 +609,6 @@ def build_w(city, w, a, lang, unit):
         L.append(f"<i>{desc}</i>")
         L.append("")
         L.append(f"🌡️ <b>{tmp}</b>  •  حس: <b>{fls}</b>")
-        # مقایسه با دیروز
         try:
             if len(d.get("temperature_2m_max", [])) >= 2:
                 diff = d["temperature_2m_max"][1] - d["temperature_2m_max"][0]
@@ -697,14 +684,6 @@ def build_w(city, w, a, lang, unit):
         L.append("")
         L.append("<i>📡 Open-Meteo</i>")
     return "\n".join(L)
-
-
-# ==================== تایپ نرم ====================
-async def smooth_type(msg, text, duration=1.0):
-    """تایپ نرم کلمه‌به‌کلمه"""
-    try:
-        await msg.edit_text(text)
-    except Exception: pass
 
 
 # ==================== ارسال‌ها ====================
@@ -806,7 +785,9 @@ async def snd_forecast(chat, uid, q, u):
 
 async def snd_compare(chat, uid, cities, u):
     if len(cities) < 2:
-        await chat.send_message("مثال: /compare تهران مشهد" if u["lang"]=="fa" else "Example: /compare Tehran Mashhad")
+        await chat.send_message(
+            "مثال: /compare تهران مشهد" if u["lang"]=="fa"
+            else "Example: /compare Tehran Mashhad")
         return
     msg = await chat.send_message("⏳ ...")
     try:
@@ -820,7 +801,7 @@ async def snd_compare(chat, uid, cities, u):
             await msg.edit_text("⚠️ خطا"); return
         def nm(c): return (c.get("name_fa") or c["name"]) if u["lang"]=="fa" else c["name"]
         t1, t2 = w1["current"]["temperature_2m"], w2["current"]["temperature_2m"]
-        L = [f"⚖️ <b>{'مقایسه' if u['lang']=='fa' else 'Compare'}</b>", "",
+        L = [f"⚖️ <b>{'مقایسه دمای دو شهر' if u['lang']=='fa' else 'Compare City Temperatures'}</b>", "",
              f"📍 <b>{nm(c1)}</b>", f"  🌡️ {fmt_t(t1, u['unit'])}",
              f"  💧 {w1['current']['relative_humidity_2m']}%",
              f"  💨 {round(w1['current']['wind_speed_10m'])} km/h"]
@@ -849,21 +830,138 @@ async def snd_compare(chat, uid, cities, u):
         except Exception: pass
 
 
-# ==================== کیبورد ====================
+# ==================== کیبورد پایین ====================
 def kb_main(lang):
     if lang == "fa":
         rows = [[KeyboardButton("🌤️ آب‌وهوا"), KeyboardButton("🌫️ کیفیت هوا")],
                 [KeyboardButton("📅 پیش‌بینی"), KeyboardButton("⭐ علاقه‌مندی‌ها")],
-                [KeyboardButton("⚖️ مقایسه"), KeyboardButton("🏙️ شهر پیش‌فرض")],
-                [KeyboardButton("🔔 اعلان"), KeyboardButton("🎛️ منو")]]
+                [KeyboardButton("🎛️ منو"), KeyboardButton("🔐 پنل مدیریت")]]
         ph = "اسم شهر رو بنویس..."
     else:
         rows = [[KeyboardButton("🌤️ Weather"), KeyboardButton("🌫️ Air Quality")],
                 [KeyboardButton("📅 Forecast"), KeyboardButton("⭐ Favorites")],
-                [KeyboardButton("⚖️ Compare"), KeyboardButton("🏙️ Default")],
-                [KeyboardButton("🔔 Notify"), KeyboardButton("🎛️ Menu")]]
+                [KeyboardButton("🎛️ Menu"), KeyboardButton("🔐 Admin Panel")]]
         ph = "Type a city name..."
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, input_field_placeholder=ph)
+
+
+# ==================== منو ====================
+def build_menu(u):
+    s = get_user(u["user_id"])
+    lang = u["lang"]
+    nst = "✅ روشن" if s.get("notify_enabled") else "❌ خاموش"
+    nst_en = "ON ✅" if s.get("notify_enabled") else "OFF ❌"
+
+    if lang == "fa":
+        txt = (f"🎛️ <b>منوی ربات</b>  ✨\n\n"
+               f"🏙️ شهر پیش‌فرض: <b>{s.get('default_city') or 'تنظیم نشده'}</b>\n"
+               f"🔔 اعلان: <b>{nst}</b>\n"
+               f"⏰ ساعت: <b>{s.get('notify_time','07:00')}</b>\n"
+               f"🌡️ واحد: <b>{s['unit']}</b>\n"
+               f"🌐 زبان: <b>فارسی</b>")
+        rows = [
+            [InlineKeyboardButton("🏙️ تغییر شهر پیش‌فرض", callback_data="m:def")],
+            [InlineKeyboardButton("⚖️ مقایسه دمای دو شهر", callback_data="m:cmp")],
+            [InlineKeyboardButton(f"🔔 اعلان ({nst})", callback_data="m:ntf")],
+            [InlineKeyboardButton("⏰ ساعت اعلان", callback_data="m:tim")],
+            [InlineKeyboardButton("🌐 زبان", callback_data="m:lng"),
+             InlineKeyboardButton("🌡️ واحد", callback_data="m:unt")],
+        ]
+    else:
+        txt = (f"🎛️ <b>Bot Menu</b>  ✨\n\n"
+               f"🏙️ Default: <b>{s.get('default_city') or 'not set'}</b>\n"
+               f"🔔 Notify: <b>{nst_en}</b>\n"
+               f"⏰ Time: <b>{s.get('notify_time','07:00')}</b>\n"
+               f"🌡️ Unit: <b>{s['unit']}</b>\n"
+               f"🌐 Language: <b>English</b>")
+        rows = [
+            [InlineKeyboardButton("🏙️ Change Default City", callback_data="m:def")],
+            [InlineKeyboardButton("⚖️ Compare City Temperatures", callback_data="m:cmp")],
+            [InlineKeyboardButton(f"🔔 Notify ({nst_en})", callback_data="m:ntf")],
+            [InlineKeyboardButton("⏰ Notify Time", callback_data="m:tim")],
+            [InlineKeyboardButton("🌐 Language", callback_data="m:lng"),
+             InlineKeyboardButton("🌡️ Unit", callback_data="m:unt")],
+        ]
+    return txt, rows
+
+
+# ==================== پنل ادمین ====================
+def build_admin_panel(u):
+    """ساخت متن و کیبورد پنل ادمین"""
+    lang = u["lang"]
+    s = all_stats()
+    total = total_users()
+    active = active_users_24h()
+    errs = recent_errors(3)
+    tops = top_cities(5)
+
+    if lang == "fa":
+        txt = (f"🔐 <b>پنل مدیریت</b>  👑\n\n"
+               f"📊 <b>آمار کلی:</b>\n"
+               f"  👥 کل کاربران: <b>{total}</b>\n"
+               f"  🟢 فعال ۲۴ ساعت: <b>{active}</b>\n"
+               f"  🚀 تعداد اجرا: <b>{s.get('bot_starts',0)}</b>\n\n"
+               f"📈 <b>استفاده:</b>\n"
+               f"  🌤️ آب‌وهوا: <b>{s.get('weather_requests',0)}</b>\n"
+               f"  🌫️ AQI: <b>{s.get('aqi_requests',0)}</b>\n"
+               f"  📅 پیش‌بینی: <b>{s.get('forecast_requests',0)}</b>\n"
+               f"  ⚖️ مقایسه: <b>{s.get('compare_requests',0)}</b>\n"
+               f"  ⭐ علاقه‌مندی: <b>{s.get('favorites_added',0)}</b>\n\n"
+               f"🔔 <b>اعلان:</b>\n"
+               f"  🔛 فعال: <b>{s.get('notify_enabled',0)}</b>\n"
+               f"  📨 ارسال‌شده: <b>{s.get('notifications_sent',0)}</b>")
+
+        if tops:
+            txt += "\n\n🏆 <b>محبوب‌ترین شهرها:</b>\n"
+            medals = ["🥇","🥈","🥉","4️⃣","5️⃣"]
+            for i, (cn, cnt) in enumerate(tops):
+                txt += f"  {medals[i]} {cn} — <b>{cnt}</b>\n"
+
+        if errs:
+            txt += "\n⚠️ <b>خطاهای اخیر:</b>\n"
+            for e in errs:
+                txt += f"  <code>{e['error'][:60]}</code>\n"
+
+        txt += "\n🕐 <i>نشست ۱ ساعته — بعدش باید دوباره وارد شوی</i>"
+
+        rows = [
+            [InlineKeyboardButton("🔄 رفرش آمار", callback_data="a:refresh")],
+            [InlineKeyboardButton("🚪 خروج از پنل", callback_data="a:logout")],
+        ]
+    else:
+        txt = (f"🔐 <b>Admin Panel</b>  👑\n\n"
+               f"📊 <b>Overview:</b>\n"
+               f"  👥 Total users: <b>{total}</b>\n"
+               f"  🟢 Active 24h: <b>{active}</b>\n"
+               f"  🚀 Bot starts: <b>{s.get('bot_starts',0)}</b>\n\n"
+               f"📈 <b>Usage:</b>\n"
+               f"  🌤️ Weather: <b>{s.get('weather_requests',0)}</b>\n"
+               f"  🌫️ AQI: <b>{s.get('aqi_requests',0)}</b>\n"
+               f"  📅 Forecast: <b>{s.get('forecast_requests',0)}</b>\n"
+               f"  ⚖️ Compare: <b>{s.get('compare_requests',0)}</b>\n"
+               f"  ⭐ Favorites: <b>{s.get('favorites_added',0)}</b>\n\n"
+               f"🔔 <b>Notifications:</b>\n"
+               f"  🔛 Enabled: <b>{s.get('notify_enabled',0)}</b>\n"
+               f"  📨 Sent: <b>{s.get('notifications_sent',0)}</b>")
+
+        if tops:
+            txt += "\n\n🏆 <b>Top Cities:</b>\n"
+            medals = ["🥇","🥈","🥉","4️⃣","5️⃣"]
+            for i, (cn, cnt) in enumerate(tops):
+                txt += f"  {medals[i]} {cn} — <b>{cnt}</b>\n"
+
+        if errs:
+            txt += "\n⚠️ <b>Recent errors:</b>\n"
+            for e in errs:
+                txt += f"  <code>{e['error'][:60]}</code>\n"
+
+        txt += "\n🕐 <i>Session 1h — re-login after expiry</i>"
+
+        rows = [
+            [InlineKeyboardButton("🔄 Refresh", callback_data="a:refresh")],
+            [InlineKeyboardButton("🚪 Logout", callback_data="a:logout")],
+        ]
+    return txt, rows
 
 
 # ==================== دستورات ====================
@@ -872,13 +970,13 @@ async def cmd_start(update, ctx):
     save_user(u["user_id"], pending_action=None)
     lang = u["lang"]
     if lang == "fa":
-        txt = ("🌤️ <b>به ربات هوشمند آب‌وهوا خوش آمدید!</b>\n\n"
+        txt = ("🌤️ <b>به ربات هوشمند آب‌وهوا خوش آمدید!</b>  ✨\n\n"
                "🔹 <b>راحت‌ترین راه:</b>\n"
                "فقط اسم شهر رو بنویس و بفرست! 🚀\n\n"
                "🎛️ برای همه امکانات، دکمه <b>منو</b> رو بزن.\n\n"
                "💡 مثلاً: <code>تهران</code> یا <code>Paris</code>")
     else:
-        txt = ("🌤️ <b>Welcome!</b>\n\n"
+        txt = ("🌤️ <b>Welcome!</b>  ✨\n\n"
                "🔹 Just type a city name and send! 🚀\n\n"
                "🎛️ Tap <b>Menu</b> for all features.\n\n"
                "💡 Example: <code>Tehran</code>")
@@ -932,31 +1030,28 @@ async def cmd_default(update, ctx):
     if not city: await update.message.reply_text("❌ پیدا نشد"); return
     save_user(u["user_id"], default_city=city["name"])
     await update.message.reply_text(
-        f"✅ <b>{city['name']}</b> تنظیم شد" if u["lang"]=="fa" else f"✅ Set: <b>{city['name']}</b>",
+        f"✅ <b>{city['name']}</b> تنظیم شد  ✨" if u["lang"]=="fa" else f"✅ Set: <b>{city['name']}</b>  ✨",
         parse_mode=ParseMode.HTML)
 
 
 async def cmd_notify(update, ctx):
     u = get_user(update.effective_user.id, update)
     if not ctx.args:
-        s = "روشن ✅" if u.get("notify_enabled") else "خاموش ❌" if u["lang"]=="fa" else ("On" if u.get("notify_enabled") else "Off")
+        s = "روشن ✅" if u.get("notify_enabled") else "خاموش ❌"
         await update.message.reply_text(
             f"🔔 اعلان: <b>{s}</b>\n⏰ ساعت: <b>{u.get('notify_time','07:00')}</b>\n\n"
-            f"<code>/notify on</code> / <code>/notify off</code>" if u["lang"]=="fa"
-            else f"🔔 Notify: <b>{s}</b>\n⏰ {u.get('notify_time','07:00')}",
+            f"<code>/notify on</code> / <code>/notify off</code>",
             parse_mode=ParseMode.HTML); return
     a = ctx.args[0].lower()
     if a in ("on","روشن"):
         if not u.get("default_city"):
-            await update.message.reply_text("⚠️ اول شهر پیش‌فرض تنظیم کن: /default تهران" if u["lang"]=="fa"
-                                            else "⚠️ Set default first"); return
+            await update.message.reply_text("⚠️ اول شهر پیش‌فرض تنظیم کن: /default تهران"); return
         save_user(u["user_id"], notify_enabled=1)
-        await update.message.reply_text(f"✅ روشن شد\n⏰ {u.get('notify_time','07:00')}" if u["lang"]=="fa"
-                                        else f"✅ ON at {u.get('notify_time','07:00')}")
+        await update.message.reply_text(f"✅ روشن شد\n⏰ {u.get('notify_time','07:00')}")
         stat("notify_enabled")
     elif a in ("off","خاموش"):
         save_user(u["user_id"], notify_enabled=0)
-        await update.message.reply_text("❌ خاموش شد" if u["lang"]=="fa" else "❌ OFF")
+        await update.message.reply_text("❌ خاموش شد")
 
 
 async def cmd_settime(update, ctx):
@@ -968,31 +1063,9 @@ async def cmd_settime(update, ctx):
         if not (0<=h<24 and 0<=m<60): raise ValueError
         t = f"{h:02d}:{m:02d}"
         save_user(u["user_id"], notify_time=t)
-        await update.message.reply_text(f"✅ ساعت: <b>{t}</b>" if u["lang"]=="fa" else f"✅ Time: <b>{t}</b>",
-                                        parse_mode=ParseMode.HTML)
+        await update.message.reply_text(f"✅ ساعت: <b>{t}</b>", parse_mode=ParseMode.HTML)
     except Exception:
         await update.message.reply_text("❌ فرمت اشتباه")
-
-
-async def cmd_stats(update, ctx):
-    u = get_user(update.effective_user.id, update)
-    if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("⛔ دسترسی نداری" if u["lang"]=="fa" else "⛔ Access denied"); return
-    s = all_stats(); total = total_users(); errs = recent_errors(3)
-    txt = (f"📊 <b>آمار (Admin)</b>\n\n"
-           f"👥 کاربران: <b>{total}</b>\n"
-           f"🌤️ آب‌وهوا: <b>{s.get('weather_requests',0)}</b>\n"
-           f"🌫️ AQI: <b>{s.get('aqi_requests',0)}</b>\n"
-           f"📅 پیش‌بینی: <b>{s.get('forecast_requests',0)}</b>\n"
-           f"⚖️ مقایسه: <b>{s.get('compare_requests',0)}</b>\n"
-           f"⭐ علاقه‌مندی: <b>{s.get('favorites_added',0)}</b>\n"
-           f"🔔 اعلان فعال: <b>{s.get('notify_enabled',0)}</b>\n"
-           f"📨 اعلان ارسالی: <b>{s.get('notifications_sent',0)}</b>\n"
-           f"🚀 اجرا: <b>{s.get('bot_starts',0)}</b>")
-    if errs:
-        txt += "\n\n⚠️ <b>خطاهای اخیر:</b>\n"
-        for e in errs: txt += f"<code>{e['error'][:70]}</code>\n"
-    await update.message.reply_text(txt, parse_mode=ParseMode.HTML)
 
 
 async def cmd_mycities(update, ctx):
@@ -1002,7 +1075,7 @@ async def cmd_mycities(update, ctx):
         await update.message.reply_text("📭 خالیه!\n💡 اسم شهر بفرست، بعد ⭐ بزن" if u["lang"]=="fa"
                                         else "📭 Empty!", reply_markup=kb_main(u["lang"])); return
     results = await asyncio.gather(*[fetch_all(f["lat"], f["lon"]) for f in favs], return_exceptions=True)
-    L = ["📍 <b>ذخیره‌شده‌ها:</b>" if u["lang"]=="fa" else "📍 <b>Saved:</b>", ""]
+    L = ["📍 <b>ذخیره‌شده‌ها:</b>  ✨" if u["lang"]=="fa" else "📍 <b>Saved:</b>  ✨", ""]
     for f, r in zip(favs, results):
         try:
             if isinstance(r, Exception) or not r[0]:
@@ -1034,102 +1107,102 @@ async def on_text(update, ctx):
     t = update.message.text.strip()
     lang = u["lang"]
 
-    # --- منو ---
+    # ==================== پنل مدیریت ====================
+    if t in ["🔐 پنل مدیریت", "🔐 Admin Panel"]:
+        if is_admin(u["user_id"]):
+            # قبلاً وارد شده → مستقیم پنل
+            txt, rows = build_admin_panel(u)
+            await update.message.reply_text(txt, parse_mode=ParseMode.HTML,
+                                            reply_markup=InlineKeyboardMarkup(rows))
+            return
+        # درخواست رمز
+        save_user(u["user_id"], pending_action="admin_pass")
+        await update.message.reply_text(
+            "🔐 <b>ورود به پنل مدیریت</b>\n\n"
+            "لطفاً رمز عبور را وارد کنید:\n"
+            "<i>(برای انصراف /start رو بزن)</i>"
+            if lang == "fa" else
+            "🔐 <b>Admin Panel Login</b>\n\n"
+            "Please enter password:\n<i>(cancel with /start)</i>",
+            parse_mode=ParseMode.HTML)
+        return
+
+    # ==================== منو ====================
     if t in ["🎛️ منو","🎛️ Menu"]:
-        s = get_user(u["user_id"])
-        nst = "🔔 روشن" if s.get("notify_enabled") else "🔕 خاموش"
-        if lang == "fa":
-            txt = (f"🎛️ <b>منو</b>\n\n"
-                   f"🏙️ پیش‌فرض: <b>{s.get('default_city') or 'تنظیم نشده'}</b>\n"
-                   f"🔔 اعلان: <b>{nst}</b>\n⏰ ساعت: <b>{s.get('notify_time','07:00')}</b>\n"
-                   f"🌡️ واحد: <b>{s['unit']}</b>")
-            rows = [
-                [InlineKeyboardButton("🏙️ تغییر شهر پیش‌فرض", callback_data="m:def")],
-                [InlineKeyboardButton("⚖️ مقایسه دو شهر", callback_data="m:cmp")],
-                [InlineKeyboardButton(f"🔔 اعلان ({nst})", callback_data="m:ntf")],
-                [InlineKeyboardButton("⏰ ساعت اعلان", callback_data="m:tim")],
-                [InlineKeyboardButton("🌐 زبان", callback_data="m:lng"),
-                 InlineKeyboardButton("🌡️ واحد", callback_data="m:unt")],
-            ]
-        else:
-            txt = f"🎛️ <b>Menu</b>\n\n🏙️ <b>{s.get('default_city') or 'not set'}</b>\n🔔 <b>{nst}</b>"
-            rows = [
-                [InlineKeyboardButton("🏙️ Set Default", callback_data="m:def")],
-                [InlineKeyboardButton("⚖️ Compare", callback_data="m:cmp")],
-                [InlineKeyboardButton(f"🔔 Notify ({nst})", callback_data="m:ntf")],
-                [InlineKeyboardButton("⏰ Time", callback_data="m:tim")],
-                [InlineKeyboardButton("🌐 Lang", callback_data="m:lng"),
-                 InlineKeyboardButton("🌡️ Unit", callback_data="m:unt")],
-            ]
-        await update.message.reply_text(txt, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(rows))
+        txt, rows = build_menu(u)
+        await update.message.reply_text(txt, parse_mode=ParseMode.HTML,
+                                        reply_markup=InlineKeyboardMarkup(rows))
         return
 
-    # --- شهر پیش‌فرض ---
-    if t in ["🏙️ شهر پیش‌فرض","🏙️ Default"]:
-        save_user(u["user_id"], pending_action="def")
-        await update.message.reply_text("🏙️ اسم شهر رو بنویس:" if lang=="fa" else "🏙️ Type city:"); return
-
-    # --- مقایسه ---
-    if t in ["⚖️ مقایسه","⚖️ Compare"]:
-        save_user(u["user_id"], pending_action="c1", compare_temp=None)
-        await update.message.reply_text("⚖️ <b>شهر اول</b>:" if lang=="fa" else "⚖️ <b>City 1</b>:",
-                                        parse_mode=ParseMode.HTML); return
-
-    # --- اعلان (toggle) ---
-    if t in ["🔔 اعلان","🔔 Notify"]:
-        s = get_user(u["user_id"])
-        if not s.get("default_city"):
-            await update.message.reply_text("⚠️ اول شهر پیش‌فرض تنظیم کن" if lang=="fa"
-                                            else "⚠️ Set default first", reply_markup=kb_main(lang)); return
-        new = 0 if s.get("notify_enabled") else 1
-        save_user(u["user_id"], notify_enabled=new)
-        if new:
-            await update.message.reply_text(
-                f"✅ روشن شد\n⏰ هر روز <b>{s.get('notify_time','07:00')}</b>" if lang=="fa"
-                else f"✅ ON at {s.get('notify_time','07:00')}",
-                parse_mode=ParseMode.HTML, reply_markup=kb_main(lang))
-            stat("notify_enabled")
-        else:
-            await update.message.reply_text("🔕 خاموش شد" if lang=="fa" else "🔕 OFF",
-                                            reply_markup=kb_main(lang))
-        return
-
-    # --- سایر دکمه‌ها ---
+    # ==================== دکمه‌های اصلی ====================
     if t in ["🌤️ آب‌وهوا","🌤️ Weather"]:
         if u.get("default_city"):
             await snd_weather(update.effective_chat, u["user_id"], u["default_city"], u); return
         save_user(u["user_id"], pending_action="w")
         await update.message.reply_text("🏙️ اسم شهر:" if lang=="fa" else "🏙️ City name:"); return
+
     if t in ["🌫️ کیفیت هوا","🌫️ Air Quality"]:
         if u.get("default_city"):
             await snd_aqi(update.effective_chat, u["user_id"], u["default_city"], u); return
         save_user(u["user_id"], pending_action="a")
         await update.message.reply_text("🌫️ اسم شهر:" if lang=="fa" else "🌫️ City:"); return
+
     if t in ["📅 پیش‌بینی","📅 Forecast"]:
         if u.get("default_city"):
             await snd_forecast(update.effective_chat, u["user_id"], u["default_city"], u); return
         save_user(u["user_id"], pending_action="f")
         await update.message.reply_text("📅 اسم شهر:" if lang=="fa" else "📅 City:"); return
+
     if t in ["⭐ علاقه‌مندی‌ها","⭐ Favorites"]:
         await cmd_mycities(update, ctx); return
 
-    # --- pending_action ---
+    # ==================== pending_action ====================
     u2 = get_user(u["user_id"])
     act = u2.get("pending_action")
+
+    # --- رمز ادمین ---
+    if act == "admin_pass":
+        save_user(u["user_id"], pending_action=None)
+        if t == ADMIN_PASSWORD:
+            login_admin(u["user_id"])
+            await update.message.reply_text("✅ رمز درست! ورود موفق  👑")
+            # حذف پیام رمز برای امنیت
+            try:
+                await update.message.delete()
+            except Exception: pass
+            # نمایش پنل
+            u3 = get_user(u["user_id"])
+            txt, rows = build_admin_panel(u3)
+            await update.message.reply_text(txt, parse_mode=ParseMode.HTML,
+                                            reply_markup=InlineKeyboardMarkup(rows))
+        else:
+            await update.message.reply_text(
+                "❌ رمز اشتباه است" if lang == "fa" else "❌ Wrong password")
+            try:
+                await update.message.delete()
+            except Exception: pass
+        return
+
     if act:
         save_user(u["user_id"], pending_action=None)
         if act == "def":
             c = await geocode(t, lang)
-            if not c: await update.message.reply_text("❌ پیدا نشد"); return
+            if not c:
+                await update.message.reply_text("❌ پیدا نشد"); return
             save_user(u["user_id"], default_city=c["name"])
+            u3 = get_user(u["user_id"])
+            txt, rows = build_menu(u3)
             await update.message.reply_text(
-                f"✅ <b>{c['name']}</b> پیش‌فرض شد" if lang=="fa" else f"✅ Default: <b>{c['name']}</b>",
-                parse_mode=ParseMode.HTML, reply_markup=kb_main(lang)); return
+                f"✅ <b>{c['name']}</b> پیش‌فرض شد  ✨\n\n{txt}",
+                parse_mode=ParseMode.HTML,
+                reply_markup=InlineKeyboardMarkup(rows))
+            return
         if act == "c1":
             save_user(u["user_id"], compare_temp=t, pending_action="c2")
-            await update.message.reply_text(f"✅ {t}\n\n⚖️ <b>شهر دوم</b>:" if lang=="fa"
-                                            else f"✅ {t}\n\n⚖️ <b>City 2</b>:",
-                                            parse_mode=ParseMode.HTML); return
+            await update.message.reply_text(
+                f"✅ {t}\n\n⚖️ <b>شهر دوم</b>:" if lang=="fa"
+                else f"✅ {t}\n\n⚖️ <b>City 2</b>:",
+                parse_mode=ParseMode.HTML); return
         if act == "c2":
             c1 = u2.get("compare_temp")
             save_user(u["user_id"], compare_temp=None)
@@ -1145,59 +1218,154 @@ async def on_text(update, ctx):
 # ==================== Callbacks ====================
 async def on_cb(update, ctx):
     q = update.callback_query
-    await q.answer()
     u = get_user(q.from_user.id, update)
     d = q.data
     lang = u["lang"]
 
+    # ==================== پنل ادمین ====================
+    if d == "a:refresh":
+        if not is_admin(u["user_id"]):
+            await q.answer("⛔", show_alert=True); return
+        await q.answer("🔄 رفرش شد" if lang=="fa" else "🔄 Refreshed")
+        txt, rows = build_admin_panel(u)
+        try:
+            await q.edit_message_text(txt, parse_mode=ParseMode.HTML,
+                                      reply_markup=InlineKeyboardMarkup(rows))
+        except Exception: pass
+        return
+
+    if d == "a:logout":
+        logout_admin(u["user_id"])
+        await q.answer("🚪 خارج شدی" if lang=="fa" else "🚪 Logged out")
+        try:
+            await q.edit_message_text(
+                "🚪 از پنل خارج شدی. برای ورود دوباره، دکمه 🔐 پنل مدیریت رو بزن."
+                if lang == "fa" else
+                "🚪 Logged out. Tap 🔐 Admin Panel to login again.")
+        except Exception: pass
+        return
+
+    # ==================== تغییر زبان ====================
     if d.startswith("lang:"):
         nl = d.split(":")[1]
         save_user(u["user_id"], lang=nl)
-        await q.edit_message_text("✅")
-        await q.message.reply_text("🔽", reply_markup=kb_main(nl)); return
+        await q.answer("✅")
+        u2 = get_user(u["user_id"])
+        txt, rows = build_menu(u2)
+        try:
+            await q.edit_message_text(txt, parse_mode=ParseMode.HTML,
+                                      reply_markup=InlineKeyboardMarkup(rows))
+        except Exception: pass
+        await q.message.reply_text("🔽", reply_markup=kb_main(nl))
+        return
+
+    # ==================== تغییر واحد ====================
     if d.startswith("unit:"):
         un = d.split(":")[1]
         save_user(u["user_id"], unit=un)
-        await q.edit_message_text(f"✅ {un}"); return
-    if d.startswith("theme:"):
-        th = d.split(":")[1]
-        save_user(u["user_id"], theme=th)
-        await q.edit_message_text(f"✅ {th}"); return
+        await q.answer(f"✅ {un}")
+        u2 = get_user(u["user_id"])
+        txt, rows = build_menu(u2)
+        try:
+            await q.edit_message_text(txt, parse_mode=ParseMode.HTML,
+                                      reply_markup=InlineKeyboardMarkup(rows))
+        except Exception: pass
+        return
 
+    # ==================== منو: شهر پیش‌فرض ====================
     if d == "m:def":
         save_user(u["user_id"], pending_action="def")
-        await q.message.reply_text("🏙️ اسم شهر:" if lang=="fa" else "🏙️ City:"); return
+        await q.answer()
+        await q.message.reply_text("🏙️ اسم شهر جدید رو بنویس:" if lang=="fa"
+                                   else "🏙️ Type new city name:")
+        return
+
+    # ==================== منو: مقایسه ====================
     if d == "m:cmp":
         save_user(u["user_id"], pending_action="c1", compare_temp=None)
-        await q.message.reply_text("⚖️ <b>شهر اول</b>:" if lang=="fa" else "⚖️ <b>City 1</b>:",
-                                   parse_mode=ParseMode.HTML); return
+        await q.answer()
+        await q.message.reply_text(
+            "⚖️ اسم <b>شهر اول</b> رو بنویس:" if lang=="fa"
+            else "⚖️ Type <b>city 1</b>:", parse_mode=ParseMode.HTML)
+        return
+
+    # ==================== منو: toggle اعلان ====================
     if d == "m:ntf":
         s = get_user(u["user_id"])
         if not s.get("default_city"):
-            await q.answer("⚠️ اول پیش‌فرض", show_alert=True); return
+            await q.answer("⚠️ اول شهر پیش‌فرض رو تنظیم کن" if lang=="fa"
+                           else "⚠️ Set default first", show_alert=True)
+            return
         new = 0 if s.get("notify_enabled") else 1
         save_user(u["user_id"], notify_enabled=new)
-        await q.answer("✅ روشن" if new else "🔕 خاموش", show_alert=False)
-        await q.message.reply_text("✅ اعلان روشن شد" if new else "🔕 خاموش شد",
-                                   reply_markup=kb_main(lang)); return
+        if new: stat("notify_enabled")
+        u2 = get_user(u["user_id"])
+        txt, rows = build_menu(u2)
+        try:
+            await q.edit_message_text(txt, parse_mode=ParseMode.HTML,
+                                      reply_markup=InlineKeyboardMarkup(rows))
+        except Exception: pass
+        await q.answer("✅ روشن شد" if new else "🔕 خاموش شد", show_alert=False)
+        return
+
+    # ==================== منو: ساعت اعلان ====================
     if d == "m:tim":
+        await q.answer()
         times = ["06:00","07:00","08:00","09:00","12:00","15:00","18:00","21:00"]
-        rows = [[InlineKeyboardButton(tt, callback_data=f"st:{tt}") for tt in times[i:i+4]] for i in range(0,len(times),4)]
-        await q.edit_message_text("⏰ ساعت:" if lang=="fa" else "⏰ Time:",
-                                  reply_markup=InlineKeyboardMarkup(rows)); return
+        rows = [[InlineKeyboardButton(tt, callback_data=f"st:{tt}")
+                 for tt in times[i:i+4]] for i in range(0,len(times),4)]
+        rows.append([InlineKeyboardButton(
+            "🔙 بازگشت به منو" if lang=="fa" else "🔙 Back to Menu",
+            callback_data="m:home")])
+        await q.edit_message_text("⏰ ساعت اعلان:" if lang=="fa" else "⏰ Notify time:",
+                                  reply_markup=InlineKeyboardMarkup(rows))
+        return
+
+    # ==================== ساعت انتخاب شد ====================
     if d.startswith("st:"):
         tt = d.split(":")[1] + ":00"
         save_user(u["user_id"], notify_time=tt)
-        await q.edit_message_text(f"✅ {tt}"); return
-    if d == "m:lng":
-        kbb = [[InlineKeyboardButton("🇮🇷 فارسی", callback_data="lang:fa"),
-                InlineKeyboardButton("🇬🇧 English", callback_data="lang:en")]]
-        await q.edit_message_text("🌐 زبان:", reply_markup=InlineKeyboardMarkup(kbb)); return
-    if d == "m:unt":
-        kbb = [[InlineKeyboardButton("°C", callback_data="unit:C"),
-                InlineKeyboardButton("°F", callback_data="unit:F")]]
-        await q.edit_message_text("🌡️ واحد:", reply_markup=InlineKeyboardMarkup(kbb)); return
+        await q.answer(f"✅ {tt}")
+        u2 = get_user(u["user_id"])
+        txt, rows = build_menu(u2)
+        try:
+            await q.edit_message_text(txt, parse_mode=ParseMode.HTML,
+                                      reply_markup=InlineKeyboardMarkup(rows))
+        except Exception: pass
+        return
 
+    # ==================== برگشت به منو ====================
+    if d == "m:home":
+        await q.answer()
+        u2 = get_user(u["user_id"])
+        txt, rows = build_menu(u2)
+        try:
+            await q.edit_message_text(txt, parse_mode=ParseMode.HTML,
+                                      reply_markup=InlineKeyboardMarkup(rows))
+        except Exception: pass
+        return
+
+    # ==================== منو: زبان ====================
+    if d == "m:lng":
+        await q.answer()
+        rows = [[InlineKeyboardButton("🇮🇷 فارسی", callback_data="lang:fa"),
+                 InlineKeyboardButton("🇬🇧 English", callback_data="lang:en")],
+                [InlineKeyboardButton("🔙 بازگشت" if lang=="fa" else "🔙 Back",
+                                      callback_data="m:home")]]
+        await q.edit_message_text("🌐 زبان / Language:", reply_markup=InlineKeyboardMarkup(rows))
+        return
+
+    # ==================== منو: واحد ====================
+    if d == "m:unt":
+        await q.answer()
+        rows = [[InlineKeyboardButton("🌡️ Celsius °C", callback_data="unit:C"),
+                 InlineKeyboardButton("🌡️ Fahrenheit °F", callback_data="unit:F")],
+                [InlineKeyboardButton("🔙 بازگشت" if lang=="fa" else "🔙 Back",
+                                      callback_data="m:home")]]
+        await q.edit_message_text("🌡️ واحد / Unit:", reply_markup=InlineKeyboardMarkup(rows))
+        return
+
+    # ==================== علاقه‌مندی ====================
     parts = d.split(":")
     act = parts[0]
     if act in ("fadd","frm") and len(parts) >= 4:
@@ -1206,11 +1374,14 @@ async def on_cb(update, ctx):
             add_fav(u["user_id"], cn, la, lo)
             kb = [[InlineKeyboardButton("🗑️ حذف" if lang=="fa" else "🗑️ Remove",
                                         callback_data=f"frm:{la}:{lo}:{cn}")]]
+            await q.answer(f"⭐ {cn}")
         else:
             rm_fav(u["user_id"], la, lo)
             kb = [[InlineKeyboardButton("⭐ ذخیره" if lang=="fa" else "⭐ Save",
                                         callback_data=f"fadd:{la}:{lo}:{cn}")]]
-        try: await q.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(kb))
+            await q.answer(f"🗑️ {cn}")
+        try:
+            await q.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(kb))
         except Exception: pass
 
 
@@ -1229,7 +1400,7 @@ async def notify_job(ctx):
             if not w: continue
             c = w["current"]; ic = WMO.get(c["weather_code"], {"ic":"❓"})["ic"]
             cname = (city.get("name_fa") or city["name"]) if lg=="fa" else city["name"]
-            L = [f"☀️ <b>{'صبح بخیر!' if lg=='fa' else 'Good morning!'}</b>", "",
+            L = [f"☀️ <b>{'صبح بخیر!' if lg=='fa' else 'Good morning!'}</b>  ✨", "",
                  f"{ic} <b>{cname}</b>", f"🌡️ <b>{fmt_t(c['temperature_2m'],un)}</b>",
                  f"📝 {WMO.get(c['weather_code'],{}).get('fa' if lg=='fa' else 'en','?')}", ""]
             tips = smart_tips(w, a, lg)
@@ -1267,7 +1438,6 @@ def main():
     app.add_handler(CommandHandler("default", cmd_default))
     app.add_handler(CommandHandler("notify", cmd_notify))
     app.add_handler(CommandHandler("settime", cmd_settime))
-    app.add_handler(CommandHandler("stats", cmd_stats))
     app.add_handler(CommandHandler("mycities", cmd_mycities))
     app.add_handler(CallbackQueryHandler(on_cb))
     app.add_handler(MessageHandler(filters.LOCATION, on_location))
