@@ -36,7 +36,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ============================================================
-#  لیست شهرهای ایرانی (۱۵۰+ شهر)
+#  لیست شهرهای ایرانی
 # ============================================================
 IRAN_CITIES = [
     # ==================== تهران و حومه ====================
@@ -54,7 +54,6 @@ IRAN_CITIES = [
     {"name": "Firuzkuh", "name_fa": "فیروزکوه", "lat": 35.7567, "lon": 52.7731, "admin": "Tehran"},
     {"name": "Lavasan", "name_fa": "لواسان", "lat": 35.8231, "lon": 51.6361, "admin": "Tehran"},
     {"name": "Rudehen", "name_fa": "رودهن", "lat": 35.7347, "lon": 51.9103, "admin": "Tehran"},
-    {"name": "Shahr-e Qods", "name_fa": "شهرقدس", "lat": 35.7167, "lon": 51.1167, "admin": "Tehran"},
 
     # ==================== خراسان رضوی ====================
     {"name": "Mashhad", "name_fa": "مشهد", "lat": 36.2605, "lon": 59.6168, "admin": "Razavi Khorasan"},
@@ -100,7 +99,6 @@ IRAN_CITIES = [
     {"name": "Sepidan", "name_fa": "سپیدان", "lat": 30.2333, "lon": 51.9833, "admin": "Fars"},
     {"name": "Eqlid", "name_fa": "اقلید", "lat": 30.8978, "lon": 52.6867, "admin": "Fars"},
     {"name": "Estahban", "name_fa": "استهبان", "lat": 29.1278, "lon": 54.0417, "admin": "Fars"},
-    {"name": "Zarqan", "name_fa": "زرقان", "lat": 29.7711, "lon": 52.7233, "admin": "Fars"},
 
     # ==================== آذربایجان شرقی ====================
     {"name": "Tabriz", "name_fa": "تبریز", "lat": 38.0962, "lon": 46.2738, "admin": "East Azerbaijan"},
@@ -115,7 +113,6 @@ IRAN_CITIES = [
     {"name": "Shabestar", "name_fa": "شبستر", "lat": 38.1784, "lon": 45.7002, "admin": "East Azerbaijan"},
     {"name": "Jolfa", "name_fa": "جلفا", "lat": 38.9376, "lon": 45.6252, "admin": "East Azerbaijan"},
     {"name": "Sardrud", "name_fa": "سردرود", "lat": 38.0314, "lon": 46.1475, "admin": "East Azerbaijan"},
-    {"name": "Hadishahr", "name_fa": "هادیشهر", "lat": 38.8475, "lon": 45.6622, "admin": "East Azerbaijan"},
     {"name": "Ajab Shir", "name_fa": "عجب‌شیر", "lat": 37.4828, "lon": 45.8936, "admin": "East Azerbaijan"},
 
     # ==================== آذربایجان غربی ====================
@@ -131,7 +128,6 @@ IRAN_CITIES = [
     {"name": "Shahin Dezh", "name_fa": "شاهین‌دژ", "lat": 36.6769, "lon": 46.5667, "admin": "West Azerbaijan"},
     {"name": "Takab", "name_fa": "تکاب", "lat": 36.4008, "lon": 47.1125, "admin": "West Azerbaijan"},
     {"name": "Maku", "name_fa": "ماکو", "lat": 39.2956, "lon": 44.5117, "admin": "West Azerbaijan"},
-    {"name": "Chaldoran", "name_fa": "چالدران", "lat": 39.0642, "lon": 44.3833, "admin": "West Azerbaijan"},
 
     # ==================== خوزستان ====================
     {"name": "Ahvaz", "name_fa": "اهواز", "lat": 31.3167, "lon": 48.6844, "admin": "Khuzestan"},
@@ -149,7 +145,6 @@ IRAN_CITIES = [
     {"name": "Ramhormoz", "name_fa": "رامهرمز", "lat": 31.2792, "lon": 49.6022, "admin": "Khuzestan"},
     {"name": "Susangerd", "name_fa": "سوسنگرد", "lat": 31.5619, "lon": 48.1819, "admin": "Khuzestan"},
     {"name": "Hendijan", "name_fa": "هندیجان", "lat": 30.2342, "lon": 49.7139, "admin": "Khuzestan"},
-    {"name": "Baghmolek", "name_fa": "باغ‌ملک", "lat": 31.5258, "lon": 49.8831, "admin": "Khuzestan"},
     {"name": "Dehdez", "name_fa": "دهدز", "lat": 31.7083, "lon": 50.2856, "admin": "Khuzestan"},
 
     # ==================== گیلان ====================
@@ -180,7 +175,6 @@ IRAN_CITIES = [
     {"name": "Babolsar", "name_fa": "بابلسر", "lat": 36.7025, "lon": 52.6500, "admin": "Mazandaran"},
     {"name": "Fereydunkenar", "name_fa": "فریدونکنار", "lat": 36.6856, "lon": 52.5164, "admin": "Mazandaran"},
     {"name": "Juybar", "name_fa": "جویبار", "lat": 36.6419, "lon": 52.9122, "admin": "Mazandaran"},
-    {"name": "Savadkuh", "name_fa": "سوادکوه", "lat": 36.1900, "lon": 52.8600, "admin": "Mazandaran"},
     {"name": "Neka", "name_fa": "نکا", "lat": 36.6528, "lon": 53.2961, "admin": "Mazandaran"},
     {"name": "Galugah", "name_fa": "گلوگاه", "lat": 36.7219, "lon": 53.8083, "admin": "Mazandaran"},
 
@@ -278,7 +272,6 @@ IRAN_CITIES = [
     {"name": "Dogonbadan", "name_fa": "دوگنبدان", "lat": 30.3600, "lon": 50.7953, "admin": "Kohgiluyeh"},
     {"name": "Shahr-e Kord", "name_fa": "شهرکرد", "lat": 32.3260, "lon": 50.8644, "admin": "Chaharmahal"},
     {"name": "Borujen", "name_fa": "بروجن", "lat": 31.9667, "lon": 51.2833, "admin": "Chaharmahal"},
-    {"name": "Farokh Shahr", "name_fa": "فرخ‌شهر", "lat": 32.2797, "lon": 50.9711, "admin": "Chaharmahal"},
 ]
 
 PERSIAN_MAP = {c["name_fa"]: c["name"] for c in IRAN_CITIES}
@@ -327,7 +320,12 @@ user_settings = {}
 
 def get_settings(user_id: int) -> dict:
     if user_id not in user_settings:
-        user_settings[user_id] = {"lang": "fa", "unit": "C", "cities": []}
+        user_settings[user_id] = {
+            "lang": "fa",
+            "unit": "C",
+            "cities": [],
+            "pending_action": None  # قصد کاربر: weather / aqi / forecast
+        }
     return user_settings[user_id]
 
 
@@ -335,7 +333,6 @@ def get_settings(user_id: int) -> dict:
 #  کیبورد پایین (Reply Keyboard)
 # ============================================================
 def get_main_keyboard(lang: str) -> ReplyKeyboardMarkup:
-    """ساخت کیبورد پایین بر اساس زبان کاربر"""
     if lang == "fa":
         keyboard = [
             [KeyboardButton("🌤️ آب‌وهوا"), KeyboardButton("🌫️ کیفیت هوا")],
@@ -352,7 +349,7 @@ def get_main_keyboard(lang: str) -> ReplyKeyboardMarkup:
             [KeyboardButton("❓ Help")],
         ]
         placeholder = "Type a city name..."
-    
+
     return ReplyKeyboardMarkup(
         keyboard,
         resize_keyboard=True,
@@ -521,95 +518,10 @@ def build_weather_message(city: dict, weather: dict, aqi: Optional[dict], lang: 
 
 
 # ============================================================
-#  دستورات ربات
+#  توابع ارسال
 # ============================================================
-async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    s = get_settings(user_id)
-    lang = s["lang"]
-
-    if lang == "fa":
-        text = (
-            "🌤️ <b>به ربات آب‌وهوا خوش آمدید!</b>\n\n"
-            "من می‌تونم آب‌وهوا و کیفیت هوای هر شهر دنیا رو بهت بگم.\n\n"
-            "🔹 <b>چطور کار کنم؟</b>\n"
-            "• از دکمه‌های پایین استفاده کن\n"
-            "• یا اسم شهر رو بنویس (فارسی یا انگلیسی)\n"
-            "• یا از دستورها استفاده کن: /weather تهران\n\n"
-            "💡 مثلاً: <code>تهران</code> یا <code>Paris</code>"
-        )
-    else:
-        text = (
-            "🌤️ <b>Welcome to Weather Bot!</b>\n\n"
-            "I can tell you the weather and air quality of any city.\n\n"
-            "🔹 <b>How to use?</b>\n"
-            "• Use the buttons below\n"
-            "• Or type a city name (Persian or English)\n"
-            "• Or use commands: /weather Tehran\n\n"
-            "💡 Example: <code>Tehran</code> or <code>Paris</code>"
-        )
-
-    await update.message.reply_text(
-        text,
-        parse_mode=ParseMode.HTML,
-        reply_markup=get_main_keyboard(lang)
-    )
-
-
-async def settings_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    s = get_settings(user_id)
-    lang = s["lang"]
-
-    if lang == "fa":
-        text = (
-            "⚙️ <b>تنظیمات</b>\n\n"
-            f"🌐 زبان: {'فارسی' if s['lang'] == 'fa' else 'English'}\n"
-            f"🌡️ واحد دما: {s['unit']}\n\n"
-            "👇 برای تغییر، یکی از دکمه‌های زیر رو بزن:"
-        )
-    else:
-        text = (
-            "⚙️ <b>Settings</b>\n\n"
-            f"🌐 Language: {'Persian' if s['lang'] == 'fa' else 'English'}\n"
-            f"🌡️ Temp unit: {s['unit']}\n\n"
-            "👇 Tap one of the buttons below:"
-        )
-
-    inline_keyboard = [
-        [InlineKeyboardButton("🇮🇷 فارسی", callback_data="lang:fa"),
-         InlineKeyboardButton("🇬🇧 English", callback_data="lang:en")],
-        [InlineKeyboardButton("°C", callback_data="unit:C"),
-         InlineKeyboardButton("°F", callback_data="unit:F")],
-    ]
-
-    await update.message.reply_text(
-        text, parse_mode=ParseMode.HTML,
-        reply_markup=get_main_keyboard(lang)
-    )
-
-    await update.message.reply_text(
-        "👇",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard)
-    )
-
-
-async def weather_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    s = get_settings(user_id)
-    args = ctx.args
-
-    if not args:
-        text = "لطفاً نام شهر رو وارد کن. مثال: <code>/weather تهران</code>" if s["lang"] == "fa" \
-            else "Please provide a city name. Example: <code>/weather Tehran</code>"
-        await update.message.reply_text(text, parse_mode=ParseMode.HTML)
-        return
-
-    city_query = " ".join(args)
-    await send_weather(update, city_query, s)
-
-
 async def send_weather(update: Update, city_query: str, s: dict):
+    """ارسال آب‌وهوای کامل + دکمه ذخیره"""
     msg = await update.message.reply_text("⏳ ...")
     try:
         city = await geocode(city_query, s["lang"])
@@ -625,7 +537,31 @@ async def send_weather(update: Update, city_query: str, s: dict):
         )
 
         text = build_weather_message(city, weather, aqi, s["lang"], s["unit"])
-        await msg.edit_text(text, parse_mode=ParseMode.HTML)
+
+        # بررسی اینکه ذخیره شده یا نه
+        city_name = city["name"]
+        is_saved = any(
+            abs(c["lat"] - lat) < 0.01 and abs(c["lon"] - lon) < 0.01
+            for c in s["cities"]
+        )
+
+        lat_str = f"{lat:.4f}"
+        lon_str = f"{lon:.4f}"
+
+        if is_saved:
+            save_btn = "🗑️ حذف از علاقه‌مندی‌ها" if s["lang"] == "fa" else "🗑️ Remove from Favorites"
+            callback = f"fav_remove:{lat_str}:{lon_str}:{city_name}"
+        else:
+            save_btn = "⭐ ذخیره در علاقه‌مندی‌ها" if s["lang"] == "fa" else "⭐ Save to Favorites"
+            callback = f"fav_add:{lat_str}:{lon_str}:{city_name}"
+
+        keyboard = [[InlineKeyboardButton(save_btn, callback_data=callback)]]
+
+        await msg.edit_text(
+            text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
 
     except httpx.HTTPError as e:
         logger.error(f"HTTP error: {e}")
@@ -638,17 +574,8 @@ async def send_weather(update: Update, city_query: str, s: dict):
         await msg.edit_text(err)
 
 
-async def aqi_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    s = get_settings(user_id)
-    args = ctx.args
-
-    if not args:
-        text = "مثال: <code>/aqi تهران</code>" if s["lang"] == "fa" else "Example: <code>/aqi Tehran</code>"
-        await update.message.reply_text(text, parse_mode=ParseMode.HTML)
-        return
-
-    city_query = " ".join(args)
+async def send_aqi(update: Update, city_query: str, s: dict):
+    """ارسال فقط کیفیت هوا"""
     msg = await update.message.reply_text("⏳ ...")
     try:
         city = await geocode(city_query, s["lang"])
@@ -695,17 +622,8 @@ async def aqi_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await msg.edit_text(f"❌ {e}")
 
 
-async def forecast_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    s = get_settings(user_id)
-    args = ctx.args
-
-    if not args:
-        text = "مثال: <code>/forecast تهران</code>" if s["lang"] == "fa" else "Example: <code>/forecast Tehran</code>"
-        await update.message.reply_text(text, parse_mode=ParseMode.HTML)
-        return
-
-    city_query = " ".join(args)
+async def send_forecast(update: Update, city_query: str, s: dict):
+    """ارسال فقط پیش‌بینی ۷ روزه"""
     msg = await update.message.reply_text("⏳ ...")
     try:
         city = await geocode(city_query, s["lang"])
@@ -737,55 +655,131 @@ async def forecast_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await msg.edit_text(f"❌ {e}")
 
 
-async def add_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+# ============================================================
+#  دستورات ربات
+# ============================================================
+async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     s = get_settings(user_id)
-    args = ctx.args
-    if not args:
-        await update.message.reply_text("مثال: /add تهران" if s["lang"] == "fa" else "Example: /add Tehran")
-        return
+    s["pending_action"] = None
+    lang = s["lang"]
 
-    query = " ".join(args)
-    city = await geocode(query, s["lang"])
-    if not city:
-        await update.message.reply_text("❌ شهر پیدا نشد." if s["lang"] == "fa" else "❌ City not found.")
-        return
-
-    entry = {"name": city["name"], "lat": city["latitude"], "lon": city["longitude"]}
-    if any(abs(c["lat"] - entry["lat"]) < 0.01 and abs(c["lon"] - entry["lon"]) < 0.01 for c in s["cities"]):
-        await update.message.reply_text("ℹ️ قبلاً اضافه شده." if s["lang"] == "fa" else "ℹ️ Already added.")
-        return
-
-    s["cities"].append(entry)
-    msg = f"✅ «{city['name']}» اضافه شد." if s["lang"] == "fa" else f"✅ Added «{city['name']}»."
-    await update.message.reply_text(msg)
-
-
-async def remove_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    s = get_settings(user_id)
-    args = ctx.args
-    if not args:
-        await update.message.reply_text("مثال: /remove تهران" if s["lang"] == "fa" else "Example: /remove Tehran")
-        return
-
-    query = " ".join(args).lower()
-    before = len(s["cities"])
-    s["cities"] = [c for c in s["cities"] if query not in c["name"].lower()]
-    if len(s["cities"]) == before:
-        await update.message.reply_text("❌ پیدا نشد." if s["lang"] == "fa" else "❌ Not found.")
+    if lang == "fa":
+        text = (
+            "🌤️ <b>به ربات آب‌وهوا خوش آمدید!</b>\n\n"
+            "من می‌تونم آب‌وهوا و کیفیت هوای هر شهر دنیا رو بهت بگم.\n\n"
+            "🔹 <b>چطور کار کنم؟</b>\n"
+            "• از دکمه‌های پایین استفاده کن\n"
+            "• یا اسم شهر رو بنویس (فارسی یا انگلیسی)\n\n"
+            "💡 مثلاً: <code>تهران</code> یا <code>Paris</code>"
+        )
     else:
-        await update.message.reply_text("✅ حذف شد." if s["lang"] == "fa" else "✅ Removed.")
+        text = (
+            "🌤️ <b>Welcome to Weather Bot!</b>\n\n"
+            "I can tell you the weather and air quality of any city.\n\n"
+            "🔹 <b>How to use?</b>\n"
+            "• Use the buttons below\n"
+            "• Or type a city name (Persian or English)\n\n"
+            "💡 Example: <code>Tehran</code> or <code>Paris</code>"
+        )
+
+    await update.message.reply_text(
+        text,
+        parse_mode=ParseMode.HTML,
+        reply_markup=get_main_keyboard(lang)
+    )
+
+
+async def settings_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    s = get_settings(user_id)
+    s["pending_action"] = None
+    lang = s["lang"]
+
+    if lang == "fa":
+        text = (
+            "⚙️ <b>تنظیمات</b>\n\n"
+            f"🌐 زبان: {'فارسی' if s['lang'] == 'fa' else 'English'}\n"
+            f"🌡️ واحد دما: {s['unit']}\n\n"
+            "👇 برای تغییر، یکی از دکمه‌های زیر رو بزن:"
+        )
+    else:
+        text = (
+            "⚙️ <b>Settings</b>\n\n"
+            f"🌐 Language: {'Persian' if s['lang'] == 'fa' else 'English'}\n"
+            f"🌡️ Temp unit: {s['unit']}\n\n"
+            "👇 Tap one of the buttons below:"
+        )
+
+    inline_keyboard = [
+        [InlineKeyboardButton("🇮🇷 فارسی", callback_data="lang:fa"),
+         InlineKeyboardButton("🇬🇧 English", callback_data="lang:en")],
+        [InlineKeyboardButton("°C", callback_data="unit:C"),
+         InlineKeyboardButton("°F", callback_data="unit:F")],
+    ]
+
+    await update.message.reply_text(
+        text, parse_mode=ParseMode.HTML,
+        reply_markup=get_main_keyboard(lang)
+    )
+
+    await update.message.reply_text(
+        "👇",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard)
+    )
+
+
+async def weather_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    s = get_settings(user_id)
+    args = ctx.args
+
+    if not args:
+        text = "لطفاً نام شهر رو وارد کن. مثال: <code>/weather تهران</code>" if s["lang"] == "fa" \
+            else "Please provide a city name. Example: <code>/weather Tehran</code>"
+        await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+        return
+
+    await send_weather(update, " ".join(args), s)
+
+
+async def aqi_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    s = get_settings(user_id)
+    args = ctx.args
+
+    if not args:
+        text = "مثال: <code>/aqi تهران</code>" if s["lang"] == "fa" else "Example: <code>/aqi Tehran</code>"
+        await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+        return
+
+    await send_aqi(update, " ".join(args), s)
+
+
+async def forecast_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    s = get_settings(user_id)
+    args = ctx.args
+
+    if not args:
+        text = "مثال: <code>/forecast تهران</code>" if s["lang"] == "fa" else "Example: <code>/forecast Tehran</code>"
+        await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+        return
+
+    await send_forecast(update, " ".join(args), s)
 
 
 async def mycities_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """دستور /mycities — نمایش لیست علاقه‌مندی"""
     user_id = update.effective_user.id
     s = get_settings(user_id)
 
     if not s["cities"]:
         await update.message.reply_text(
-            "📭 لیست خالیه. با /add اضافه کن." if s["lang"] == "fa"
-            else "📭 List is empty. Use /add."
+            "📭 لیستت خالیه!\n\n💡 اسم یه شهر رو بفرست، بعد روی دکمه «⭐ ذخیره» بزن."
+            if s["lang"] == "fa" else
+            "📭 Your list is empty!\n\n💡 Send a city name, then tap «⭐ Save».",
+            reply_markup=get_main_keyboard(s["lang"])
         )
         return
 
@@ -801,13 +795,23 @@ async def mycities_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         except Exception:
             lines.append(f"❓ <b>{c['name']}</b> — ?")
 
-    await update.message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
+    lines.append("")
+    lines.append(f"💡 <i>{'برای حذف: اسم شهر رو بفرست و روی 🗑️ بزن' if s['lang'] == 'fa' else 'To remove: send city name and tap 🗑️'}</i>")
+
+    await update.message.reply_text(
+        "\n".join(lines),
+        parse_mode=ParseMode.HTML,
+        reply_markup=get_main_keyboard(s["lang"])
+    )
 
 
+# ============================================================
+#  پردازش موقعیت مکانی
+# ============================================================
 async def handle_location(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """پردازش موقعیت مکانی کاربر"""
     user_id = update.effective_user.id
     s = get_settings(user_id)
+    s["pending_action"] = None
     loc = update.message.location
 
     if not loc:
@@ -832,13 +836,15 @@ async def handle_location(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await msg.edit_text(f"❌ {e}")
 
 
+# ============================================================
+#  پردازش متن (دکمه‌ها و اسم شهر)
+# ============================================================
 async def handle_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """تشخیص دکمه‌های کیبورد از اسم شهر"""
     user_id = update.effective_user.id
     s = get_settings(user_id)
     text = update.message.text.strip()
 
-    # ---- تشخیص دکمه‌های کیبورد ----
+    # ---- دکمه‌ها ----
     weather_btns = ["🌤️ آب‌وهوا", "🌤️ Weather"]
     aqi_btns = ["🌫️ کیفیت هوا", "🌫️ Air Quality"]
     forecast_btns = ["📅 پیش‌بینی", "📅 Forecast"]
@@ -847,54 +853,39 @@ async def handle_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     settings_btns = ["⚙️ تنظیمات", "⚙️ Settings"]
     help_btns = ["❓ راهنما", "❓ Help"]
 
-    # ---- دکمه آب‌وهوا ----
+    # ---- آب‌وهوا ----
     if text in weather_btns:
+        s["pending_action"] = "weather"
         msg = "🏙️ اسم شهر رو بنویس (مثلاً: تهران)" if s["lang"] == "fa" \
             else "🏙️ Type the city name (e.g., Tehran)"
         await update.message.reply_text(msg, reply_markup=get_main_keyboard(s["lang"]))
         return
 
-    # ---- دکمه کیفیت هوا ----
+    # ---- کیفیت هوا ----
     if text in aqi_btns:
+        s["pending_action"] = "aqi"
         msg = "🌫️ اسم شهر رو بنویس تا کیفیت هواش رو بگم" if s["lang"] == "fa" \
             else "🌫️ Type the city name for air quality"
         await update.message.reply_text(msg, reply_markup=get_main_keyboard(s["lang"]))
         return
 
-    # ---- دکمه پیش‌بینی ----
+    # ---- پیش‌بینی ----
     if text in forecast_btns:
+        s["pending_action"] = "forecast"
         msg = "📅 اسم شهر رو بنویس تا پیش‌بینی ۷ روزه بدم" if s["lang"] == "fa" \
             else "📅 Type the city name for 7-day forecast"
         await update.message.reply_text(msg, reply_markup=get_main_keyboard(s["lang"]))
         return
 
-    # ---- دکمه علاقه‌مندی‌ها ----
+    # ---- علاقه‌مندی‌ها ----
     if text in fav_btns:
-        if not s["cities"]:
-            msg = "📭 لیستت خالیه. با دستور /add شهر اضافه کن." if s["lang"] == "fa" \
-                else "📭 Your list is empty. Use /add to add cities."
-            await update.message.reply_text(msg, reply_markup=get_main_keyboard(s["lang"]))
-            return
-        header = "📍 <b>شهرهای ذخیره‌شده:</b>\n\n" if s["lang"] == "fa" else "📍 <b>Saved cities:</b>\n\n"
-        lines = [header]
-        for c in s["cities"]:
-            try:
-                weather = await fetch_weather(c["lat"], c["lon"])
-                temp = fmt_temp(weather["current"]["temperature_2m"], s["unit"])
-                code = weather["current"]["weather_code"]
-                icon = WMO_DESC.get(code, {"icon": "❓"})["icon"]
-                lines.append(f"{icon} <b>{c['name']}</b> — {temp}")
-            except Exception:
-                lines.append(f"❓ <b>{c['name']}</b> — ?")
-        await update.message.reply_text(
-            "\n".join(lines),
-            parse_mode=ParseMode.HTML,
-            reply_markup=get_main_keyboard(s["lang"])
-        )
+        s["pending_action"] = None
+        await mycities_cmd(update, ctx)
         return
 
-    # ---- دکمه موقعیت من ----
+    # ---- موقعیت من ----
     if text in loc_btns:
+        s["pending_action"] = None
         msg = (
             "📍 برای استفاده از موقعیتت:\n\n"
             "1. آیکن 📎 (گیره) رو بزن\n"
@@ -911,20 +902,33 @@ async def handle_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(msg, reply_markup=get_main_keyboard(s["lang"]))
         return
 
-    # ---- دکمه تنظیمات ----
+    # ---- تنظیمات ----
     if text in settings_btns:
         await settings_cmd(update, ctx)
         return
 
-    # ---- دکمه راهنما ----
+    # ---- راهنما ----
     if text in help_btns:
         await start(update, ctx)
         return
 
-    # ---- اگه دکمه نبود → اسم شهر ----
-    await send_weather(update, text, s)
+    # ============================================================
+    #  اگه دکمه نبود → اسم شهر
+    # ============================================================
+    action = s.get("pending_action")
+    s["pending_action"] = None
+
+    if action == "aqi":
+        await send_aqi(update, text, s)
+    elif action == "forecast":
+        await send_forecast(update, text, s)
+    else:
+        await send_weather(update, text, s)
 
 
+# ============================================================
+#  پردازش دکمه‌های شیشه‌ای
+# ============================================================
 async def button_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -932,20 +936,83 @@ async def button_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     s = get_settings(user_id)
     data = query.data
 
+    # ---- تغییر زبان ----
     if data.startswith("lang:"):
         s["lang"] = data.split(":")[1]
         msg = "✅ زبان تغییر کرد." if s["lang"] == "fa" else "✅ Language changed."
         await query.edit_message_text(msg)
-        await query.message.reply_text(
-            "🔽",
-            reply_markup=get_main_keyboard(s["lang"])
-        )
+        await query.message.reply_text("🔽", reply_markup=get_main_keyboard(s["lang"]))
         return
 
+    # ---- تغییر واحد دما ----
     if data.startswith("unit:"):
         s["unit"] = data.split(":")[1]
         msg = f"✅ واحد: {s['unit']}" if s["lang"] == "fa" else f"✅ Unit: {s['unit']}"
         await query.edit_message_text(msg)
+        return
+
+    # ---- علاقه‌مندی‌ها ----
+    parts = data.split(":")
+    action = parts[0]
+
+    # ---- ذخیره ----
+    if action == "fav_add" and len(parts) >= 4:
+        lat = float(parts[1])
+        lon = float(parts[2])
+        city_name = parts[3]
+
+        if any(abs(c["lat"] - lat) < 0.01 and abs(c["lon"] - lon) < 0.01 for c in s["cities"]):
+            msg = f"ℹ️ «{city_name}» قبلاً ذخیره شده" if s["lang"] == "fa" \
+                else f"ℹ️ «{city_name}» already saved"
+        else:
+            s["cities"].append({"name": city_name, "lat": lat, "lon": lon})
+            msg = f"✅ «{city_name}» ذخیره شد!" if s["lang"] == "fa" \
+                else f"✅ «{city_name}» saved!"
+
+            # آپدیت دکمه به «حذف»
+            new_keyboard = [[
+                InlineKeyboardButton(
+                    "🗑️ حذف از علاقه‌مندی‌ها" if s["lang"] == "fa" else "🗑️ Remove from Favorites",
+                    callback_data=f"fav_remove:{lat}:{lon}:{city_name}"
+                )
+            ]]
+            try:
+                await query.edit_message_reply_markup(
+                    reply_markup=InlineKeyboardMarkup(new_keyboard)
+                )
+            except Exception:
+                pass
+
+        await query.answer(msg, show_alert=True)
+        return
+
+    # ---- حذف ----
+    if action == "fav_remove" and len(parts) >= 4:
+        lat = float(parts[1])
+        lon = float(parts[2])
+        city_name = parts[3]
+
+        s["cities"] = [
+            c for c in s["cities"]
+            if not (abs(c["lat"] - lat) < 0.01 and abs(c["lon"] - lon) < 0.01)
+        ]
+        msg = f"🗑️ «{city_name}» حذف شد" if s["lang"] == "fa" else f"🗑️ «{city_name}» removed"
+
+        # آپدیت دکمه به «ذخیره»
+        new_keyboard = [[
+            InlineKeyboardButton(
+                "⭐ ذخیره در علاقه‌مندی‌ها" if s["lang"] == "fa" else "⭐ Save to Favorites",
+                callback_data=f"fav_add:{lat}:{lon}:{city_name}"
+            )
+        ]]
+        try:
+            await query.edit_message_reply_markup(
+                reply_markup=InlineKeyboardMarkup(new_keyboard)
+            )
+        except Exception:
+            pass
+
+        await query.answer(msg, show_alert=True)
         return
 
 
@@ -959,20 +1026,22 @@ def main():
 
     app = Application.builder().token(BOT_TOKEN).build()
 
+    # دستورات
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", start))
     app.add_handler(CommandHandler("settings", settings_cmd))
     app.add_handler(CommandHandler("weather", weather_cmd))
     app.add_handler(CommandHandler("aqi", aqi_cmd))
     app.add_handler(CommandHandler("forecast", forecast_cmd))
-    app.add_handler(CommandHandler("add", add_cmd))
-    app.add_handler(CommandHandler("remove", remove_cmd))
     app.add_handler(CommandHandler("mycities", mycities_cmd))
+
+    # دکمه‌های شیشه‌ای
     app.add_handler(CallbackQueryHandler(button_callback))
 
-    # ✅ موقعیت مکانی
+    # موقعیت مکانی
     app.add_handler(MessageHandler(filters.LOCATION, handle_location))
-    # ✅ متن (شامل دکمه‌های کیبورد)
+
+    # متن و دکمه‌های پایین
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
     print("🤖 ربات در حال اجراست... Ctrl+C برای توقف")
