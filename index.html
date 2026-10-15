@@ -27,6 +27,7 @@
             --border: #334155;
             --radius: 16px;
             --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+            --shadow-sm: 0 4px 12px -3px rgba(0, 0, 0, 0.3);
             --aqi-good: #22c55e;
             --aqi-fair: #a3e635;
             --aqi-moderate: #eab308;
@@ -50,11 +51,55 @@
             --text-muted: #64748b;
             --border: #e2e8f0;
             --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+            --shadow-sm: 0 4px 12px -3px rgba(0, 0, 0, 0.06);
             --glass-bg: rgba(255, 255, 255, 0.7);
             --glass-border: rgba(0, 0, 0, 0.08);
             --nav-bg: rgba(255, 255, 255, 0.9);
             --nav-border: rgba(0, 0, 0, 0.08);
             --cookie-bg: #ffffff;
+        }
+
+        body[data-accent="blue"] { --accent: #38bdf8; }
+        body[data-accent="green"] { --accent: #22c55e; }
+        body[data-accent="purple"] { --accent: #a855f7; }
+        body[data-accent="pink"] { --accent: #ec4899; }
+        body[data-accent="orange"] { --accent: #f97316; }
+        body[data-accent="red"] { --accent: #ef4444; }
+        body[data-accent="teal"] { --accent: #14b8a6; }
+        body[data-accent="yellow"] { --accent: #eab308; }
+
+        body[data-density="compact"] .card {
+            padding: 0.9rem;
+            gap: 0.5rem;
+        }
+
+        body[data-density="compact"] .aqi-card {
+            padding: 0.85rem 0.9rem;
+        }
+
+        body[data-density="comfortable"] .card {
+            padding: 1.6rem;
+            gap: 1rem;
+        }
+
+        body[data-density="comfortable"] .aqi-card {
+            padding: 1.4rem 1.5rem;
+        }
+
+        body[data-font="small"] { font-size: 14px; }
+        body[data-font="large"] { font-size: 18px; }
+        body[data-font="xl"] { font-size: 20px; }
+
+        body[data-3d="true"] .card {
+            transform-style: preserve-3d;
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            body[data-3d="true"] .card:hover {
+                transform: rotateX(2deg) rotateY(-3deg) translate3d(0, -2px, 10px);
+                box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+            }
         }
 
         [data-glass="true"] {
@@ -143,25 +188,33 @@
             position: absolute;
             border-radius: 50%;
             animation-play-state: var(--anim-state, running);
+            transform: translateZ(0);
+            backface-visibility: hidden;
         }
 
         .orb-1 {
-            width: 480px; height: 480px;
-            top: -120px; left: -120px;
+            width: 480px;
+            height: 480px;
+            top: -120px;
+            left: -120px;
             background: radial-gradient(circle, rgba(56, 189, 248, 0.22), rgba(56, 189, 248, 0) 70%);
             animation: orbFloat1 24s ease-in-out infinite;
         }
 
         .orb-2 {
-            width: 560px; height: 560px;
-            bottom: -160px; right: -140px;
+            width: 560px;
+            height: 560px;
+            bottom: -160px;
+            right: -140px;
             background: radial-gradient(circle, rgba(139, 92, 246, 0.18), rgba(139, 92, 246, 0) 70%);
             animation: orbFloat2 30s ease-in-out infinite;
         }
 
         .orb-3 {
-            width: 360px; height: 360px;
-            top: 42%; left: 45%;
+            width: 360px;
+            height: 360px;
+            top: 42%;
+            left: 45%;
             background: radial-gradient(circle, rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0) 70%);
             animation: orbFloat3 22s ease-in-out infinite;
         }
@@ -170,10 +223,12 @@
             0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
             50% { transform: translate3d(90px, 60px, 0) scale(1.08); }
         }
+
         @keyframes orbFloat2 {
             0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
             50% { transform: translate3d(-70px, -90px, 0) scale(1.05); }
         }
+
         @keyframes orbFloat3 {
             0%, 100% { transform: translate3d(-50%, -50%, 0) scale(1); }
             50% { transform: translate3d(calc(-50% - 40px), calc(-50% + 55px), 0) scale(1.1); }
@@ -182,9 +237,11 @@
         [data-theme="light"] .orb-1 {
             background: radial-gradient(circle, rgba(56, 189, 248, 0.12), rgba(56, 189, 248, 0) 70%);
         }
+
         [data-theme="light"] .orb-2 {
             background: radial-gradient(circle, rgba(139, 92, 246, 0.10), rgba(139, 92, 246, 0) 70%);
         }
+
         [data-theme="light"] .orb-3 {
             background: radial-gradient(circle, rgba(34, 197, 94, 0.08), rgba(34, 197, 94, 0) 70%);
         }
@@ -221,7 +278,10 @@
             position: relative;
         }
 
-        .title { flex: 1; min-width: 180px; }
+        .title {
+            flex: 1;
+            min-width: 180px;
+        }
 
         .title h1 {
             font-size: clamp(1rem, 2.8vw, 1.35rem);
@@ -243,7 +303,8 @@
 
         .live-dot {
             display: inline-block;
-            width: 7px; height: 7px;
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
             background: var(--accent);
             vertical-align: middle;
@@ -268,7 +329,12 @@
             100% { transform: scale(2); opacity: 0; }
         }
 
-        .actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
 
         .status {
             font-size: clamp(0.68rem, 2vw, 0.8rem);
@@ -282,7 +348,8 @@
             background: var(--accent);
             color: #0f172a;
             border: none;
-            width: 42px; height: 42px;
+            width: 42px;
+            height: 42px;
             min-width: 42px;
             border-radius: 50%;
             font-size: 1.15rem;
@@ -292,15 +359,24 @@
             transition: transform 0.2s, background 0.2s;
         }
 
-        .icon-btn:active { transform: scale(0.95); }
-
-        @media (hover: hover) {
-            .icon-btn:hover { background: #7dd3fc; transform: scale(1.05); }
+        .icon-btn:active {
+            transform: scale(0.95);
         }
 
-        .icon-btn.spinning { animation: spin 1s linear infinite; }
+        @media (hover: hover) {
+            .icon-btn:hover {
+                background: #7dd3fc;
+                transform: scale(1.05);
+            }
+        }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .icon-btn.spinning {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
 
         #refreshBtn {
             animation: refreshBreath 4s ease-in-out infinite;
@@ -312,13 +388,29 @@
             50% { box-shadow: 0 0 0 6px rgba(56, 189, 248, 0); }
         }
 
-        .tab-content { flex: 1; position: relative; min-height: 0; }
+        .tab-content {
+            flex: 1;
+            position: relative;
+            min-height: 0;
+        }
 
-        .tab-panel { display: none; }
-        .tab-panel.active { display: block; }
+        .tab-panel {
+            display: none;
+        }
 
-        .search-wrapper { position: relative; margin-bottom: 1rem; }
-        .search-box { display: flex; gap: 0.5rem; }
+        .tab-panel.active {
+            display: block;
+        }
+
+        .search-wrapper {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 0.5rem;
+        }
 
         .search-box input {
             flex: 1;
@@ -356,13 +448,20 @@
             transition: background 0.2s;
         }
 
-        .search-box button:not(:disabled):hover { background: #7dd3fc; }
-        .search-box button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .search-box button:not(:disabled):hover {
+            background: #7dd3fc;
+        }
+
+        .search-box button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
 
         .suggestions {
             position: absolute;
             top: calc(100% + 6px);
-            left: 0; right: 0;
+            left: 0;
+            right: 0;
             background: #1e293b;
             border: 1px solid #334155;
             border-radius: 12px;
@@ -377,10 +476,11 @@
             overscroll-behavior: contain;
             color: #f1f5f9;
             touch-action: pan-y;
-            will-change: scroll-position;
         }
 
-        .suggestions.visible { display: block; }
+        .suggestions.visible {
+            display: block;
+        }
 
         .suggestion-item {
             display: flex;
@@ -399,10 +499,23 @@
         }
 
         .suggestion-item:hover,
-        .suggestion-item.active { background: rgba(56, 189, 248, 0.18); }
+        .suggestion-item.active {
+            background: rgba(56, 189, 248, 0.18);
+        }
 
-        .suggestion-left { display: flex; align-items: center; gap: 0.6rem; min-width: 0; flex: 1; }
-        .suggestion-flag { font-size: 1.1rem; flex-shrink: 0; }
+        .suggestion-left {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .suggestion-flag {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
         .suggestion-name {
             font-weight: 500;
             color: #f1f5f9;
@@ -410,6 +523,7 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
+
         .suggestion-admin {
             font-size: 0.75rem;
             color: #94a3b8;
@@ -418,6 +532,7 @@
             white-space: nowrap;
             margin-top: 0.1rem;
         }
+
         .suggestion-country {
             font-size: 0.7rem;
             color: #94a3b8;
@@ -457,9 +572,11 @@
             position: relative;
             min-width: 0;
             overflow: hidden;
-            transition: transform 0.25s, border-color 0.25s;
+            transition: transform 0.25s;
             scroll-margin-top: 90px;
-            will-change: auto;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            contain: layout style;
         }
 
         @keyframes fadeIn {
@@ -468,20 +585,27 @@
         }
 
         @media (hover: hover) {
-            .card:hover {
-                transform: translateY(-2px);
+            body[data-3d="false"] .card:hover {
+                transform: translate3d(0, -2px, 0);
                 border-color: rgba(56, 189, 248, 0.35);
+                will-change: transform;
             }
         }
 
-        .card.no-anim { animation: none; }
+        .card.no-anim {
+            animation: none;
+        }
 
-        .card.is-favorite { border-color: rgba(250, 204, 21, 0.25); }
+        .card.is-favorite {
+            border-color: rgba(250, 204, 21, 0.25);
+        }
 
         .card.is-favorite::after {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0;
+            top: 0;
+            left: 0;
+            right: 0;
             height: 2px;
             background: linear-gradient(90deg, transparent, rgba(250, 204, 21, 0.6), transparent);
         }
@@ -493,6 +617,11 @@
             gap: 0.5rem;
             padding-right: 4rem;
             min-height: 32px;
+        }
+
+        [dir="rtl"] .card-header {
+            padding-right: 0;
+            padding-left: 4rem;
         }
 
         .city-name {
@@ -527,7 +656,8 @@
             position: absolute;
             top: 0.55rem;
             right: 2.4rem;
-            width: 28px; height: 28px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             background: rgba(148, 163, 184, 0.15);
             border: 1px solid rgba(148, 163, 184, 0.25);
@@ -543,6 +673,11 @@
             z-index: 3;
         }
 
+        [dir="rtl"] .favorite-city-btn {
+            right: auto;
+            left: 2.4rem;
+        }
+
         .favorite-city-btn:hover {
             background: rgba(250, 204, 21, 0.2);
             color: #facc15;
@@ -555,18 +690,26 @@
             color: #facc15;
         }
 
-        .card:hover .favorite-city-btn { opacity: 1; }
-        .favorite-city-btn.active { opacity: 1; }
+        .card:hover .favorite-city-btn {
+            opacity: 1;
+        }
+
+        .favorite-city-btn.active {
+            opacity: 1;
+        }
 
         @media (hover: none) {
-            .favorite-city-btn { opacity: 1; }
+            .favorite-city-btn {
+                opacity: 1;
+            }
         }
 
         .remove-city-btn {
             position: absolute;
             top: 0.55rem;
             right: 0.55rem;
-            width: 28px; height: 28px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             background: rgba(239, 68, 68, 0.15);
             border: 1px solid rgba(239, 68, 68, 0.3);
@@ -583,7 +726,14 @@
             z-index: 3;
         }
 
-        .card:hover .remove-city-btn { opacity: 1; }
+        [dir="rtl"] .remove-city-btn {
+            right: auto;
+            left: 0.55rem;
+        }
+
+        .card:hover .remove-city-btn {
+            opacity: 1;
+        }
 
         .remove-city-btn:hover {
             background: rgba(239, 68, 68, 0.3);
@@ -591,10 +741,17 @@
         }
 
         @media (hover: none) {
-            .remove-city-btn { opacity: 1; }
+            .remove-city-btn {
+                opacity: 1;
+            }
         }
 
-        .aqi-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .aqi-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
 
         .aqi-badge {
             display: inline-flex;
@@ -608,7 +765,10 @@
             white-space: nowrap;
         }
 
-        .aqi-label { font-size: clamp(0.6rem, 1.5vw, 0.7rem); color: var(--text-muted); }
+        .aqi-label {
+            font-size: clamp(0.6rem, 1.5vw, 0.7rem);
+            color: var(--text-muted);
+        }
 
         .details {
             display: grid;
@@ -622,7 +782,12 @@
             line-height: 1.5;
         }
 
-        .detail-item { display: flex; align-items: center; gap: 0.3rem; min-width: 0; }
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            min-width: 0;
+        }
 
         .forecast-row {
             display: grid;
@@ -649,19 +814,27 @@
             color: var(--text-muted);
             font-weight: 500;
         }
-        .forecast-day .day-icon { font-size: clamp(1rem, 2vw, 1.25rem); }
+
+        .forecast-day .day-icon {
+            font-size: clamp(1rem, 2vw, 1.25rem);
+        }
+
         .forecast-day .day-temp {
             font-size: clamp(0.62rem, 1.4vw, 0.74rem);
             font-weight: 700;
             color: var(--accent);
         }
+
         .forecast-day .day-temp .min {
             color: var(--text-muted);
             font-weight: 500;
             font-size: 0.9em;
         }
 
-        .error-card { border-color: #ef4444; }
+        .error-card {
+            border-color: #ef4444;
+        }
+
         .error-card .temp-main {
             color: #ef4444;
             font-size: clamp(0.95rem, 2.5vw, 1.15rem);
@@ -690,7 +863,10 @@
             margin-bottom: 1rem;
         }
 
-        .banner.visible { display: block; }
+        .banner.visible {
+            display: block;
+        }
+
         .banner.error {
             background: #450a0a;
             color: #fca5a5;
@@ -711,7 +887,10 @@
             margin-top: 1rem;
         }
 
-        .weather-disclaimer .disclaimer-icon { flex-shrink: 0; opacity: 0.9; }
+        .weather-disclaimer .disclaimer-icon {
+            flex-shrink: 0;
+            opacity: 0.9;
+        }
 
         .footer {
             text-align: center;
@@ -761,7 +940,9 @@
             unicode-bidi: isolate;
         }
 
-        [data-theme="light"] #countdown .cd-digit { background: rgba(56, 189, 248, 0.15); }
+        [data-theme="light"] #countdown .cd-digit {
+            background: rgba(56, 189, 248, 0.15);
+        }
 
         #countdown .cd-digit>span {
             position: absolute;
@@ -771,7 +952,9 @@
             justify-content: center;
         }
 
-        #countdown .cd-digit>span.flipping { animation: digitRoll 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+        #countdown .cd-digit>span.flipping {
+            animation: digitRoll 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
         @keyframes digitRoll {
             0% { transform: translateY(0); opacity: 1; }
@@ -804,7 +987,15 @@
             min-width: 0;
             position: relative;
             overflow: hidden;
-            transition: transform 0.25s, border-color 0.25s;
+            transition: transform 0.25s;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            contain: layout style;
+        }
+
+        body[data-aqi-tint="true"] .aqi-card {
+            background: linear-gradient(135deg, color-mix(in srgb, var(--aqi-color) 12%, var(--card-bg)) 0%, var(--card-bg) 100%);
+            border-color: color-mix(in srgb, var(--aqi-color) 25%, var(--border));
         }
 
         [data-glass="true"] .aqi-card {
@@ -814,7 +1005,7 @@
 
         @media (hover: hover) {
             .aqi-card:hover {
-                transform: translateY(-3px);
+                transform: translate3d(0, -3px, 0);
                 border-color: rgba(56, 189, 248, 0.35);
             }
         }
@@ -822,14 +1013,16 @@
         .aqi-card::before {
             content: '';
             position: absolute;
-            left: 0; top: 0; bottom: 0;
+            left: 0;
+            top: 0;
+            bottom: 0;
             width: 4px;
             background: var(--aqi-color, var(--text-muted));
             border-radius: 18px 0 0 18px;
             transition: background 0.3s;
         }
 
-        body[dir="rtl"] .aqi-card::before {
+        [dir="rtl"] .aqi-card::before {
             left: auto;
             right: 0;
             border-radius: 0 18px 18px 0;
@@ -842,7 +1035,7 @@
             padding-left: 0.5rem;
         }
 
-        body[dir="rtl"] .aqi-card-inner {
+        [dir="rtl"] .aqi-card-inner {
             padding-left: 0;
             padding-right: 0.5rem;
         }
@@ -862,6 +1055,10 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            flex-wrap: wrap;
         }
 
         .aqi-card-level {
@@ -876,7 +1073,12 @@
             align-self: flex-start;
         }
 
-        .aqi-pollutants { display: flex; gap: 0.4rem; margin-top: 0.2rem; flex-wrap: wrap; }
+        .aqi-pollutants {
+            display: flex;
+            gap: 0.4rem;
+            margin-top: 0.2rem;
+            flex-wrap: wrap;
+        }
 
         .aqi-pollutant-chip {
             display: inline-flex;
@@ -892,10 +1094,110 @@
             white-space: nowrap;
         }
 
-        .aqi-pollutant-chip b { color: var(--text); font-weight: 700; }
+        .aqi-pollutant-chip b {
+            color: var(--text);
+            font-weight: 700;
+        }
+
         .aqi-pollutant-chip.dominant {
             background: rgba(56, 189, 248, 0.12);
             border-color: rgba(56, 189, 248, 0.3);
+        }
+
+        .aqi-pollutants-extended {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.4rem;
+            margin-top: 0.5rem;
+            padding-top: 0.55rem;
+            border-top: 1px dashed var(--border);
+            width: 100%;
+        }
+
+        .aqi-pollutant-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.35rem 0.25rem;
+            border-radius: 8px;
+            background: rgba(148, 163, 184, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            text-align: center;
+            min-width: 0;
+        }
+
+        .aqi-pollutant-item .p-label {
+            font-size: 0.58rem;
+            color: var(--text-muted);
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+        }
+
+        .aqi-pollutant-item .p-value {
+            font-size: 0.75rem;
+            color: var(--text);
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            margin-top: 0.1rem;
+            white-space: nowrap;
+        }
+
+        .aqi-pollutant-item.high {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.25);
+        }
+
+        .aqi-pollutant-item.moderate {
+            background: rgba(234, 179, 8, 0.12);
+            border-color: rgba(234, 179, 8, 0.25);
+        }
+
+        .aqi-trend {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.15rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: 6px;
+            font-size: 0.62rem;
+            font-weight: 800;
+            margin-left: 0.3rem;
+            letter-spacing: 0.02em;
+        }
+
+        [dir="rtl"] .aqi-trend {
+            margin-left: 0;
+            margin-right: 0.3rem;
+        }
+
+        .aqi-trend.up {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .aqi-trend.down {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .aqi-trend.stable {
+            background: rgba(148, 163, 184, 0.15);
+            color: var(--text-muted);
+        }
+
+        .aqi-station-info {
+            font-size: 0.62rem;
+            color: var(--text-muted);
+            margin-top: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            opacity: 0.85;
+        }
+
+        .aqi-station-info b {
+            color: var(--text);
+            font-weight: 700;
         }
 
         .aqi-advice {
@@ -921,6 +1223,7 @@
             flex-shrink: 0;
             border-radius: 50%;
             isolation: isolate;
+            transform: translateZ(0);
         }
 
         .aqi-ring::before {
@@ -970,13 +1273,11 @@
 
         @keyframes aqiRingPulse {
             0%, 100% {
-                filter: drop-shadow(0 0 2px var(--aqi-color, transparent))
-                        drop-shadow(0 0 4px var(--aqi-color, transparent));
+                filter: drop-shadow(0 0 2px var(--aqi-color, transparent)) drop-shadow(0 0 4px var(--aqi-color, transparent));
                 opacity: 1;
             }
             50% {
-                filter: drop-shadow(0 0 8px var(--aqi-color, transparent))
-                        drop-shadow(0 0 18px var(--aqi-color, transparent));
+                filter: drop-shadow(0 0 8px var(--aqi-color, transparent)) drop-shadow(0 0 18px var(--aqi-color, transparent));
                 opacity: 0.8;
             }
         }
@@ -1028,10 +1329,16 @@
         @media (prefers-reduced-motion: reduce) {
             .aqi-ring::before,
             .aqi-ring .ring-fill,
-            .aqi-ring-value .num { animation: none; }
+            .aqi-ring-value .num {
+                animation: none;
+            }
         }
 
-        .settings-container { display: flex; flex-direction: column; gap: 1rem; }
+        .settings-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
 
         .settings-section {
             background: var(--card-bg);
@@ -1063,8 +1370,14 @@
             border-bottom: 1px solid var(--border);
         }
 
-        .setting-row:last-child { border-bottom: none; padding-bottom: 0; }
-        .setting-row:first-child { padding-top: 0; }
+        .setting-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .setting-row:first-child {
+            padding-top: 0;
+        }
 
         .setting-label {
             display: flex;
@@ -1094,7 +1407,12 @@
             cursor: pointer;
         }
 
-        .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute;
+        }
 
         .toggle-slider {
             position: absolute;
@@ -1107,19 +1425,32 @@
         .toggle-slider::before {
             content: '';
             position: absolute;
-            height: 22px; width: 22px;
-            left: 3px; top: 3px;
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            top: 3px;
             background: #ffffff;
             border-radius: 50%;
             transition: transform 0.25s;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
-        .toggle input:checked+.toggle-slider { background: var(--accent); }
-        .toggle input:checked+.toggle-slider::before { transform: translateX(20px); }
+        .toggle input:checked+.toggle-slider {
+            background: var(--accent);
+        }
 
-        body[dir="rtl"] .toggle-slider::before { left: auto; right: 3px; }
-        body[dir="rtl"] .toggle input:checked+.toggle-slider::before { transform: translateX(-20px); }
+        .toggle input:checked+.toggle-slider::before {
+            transform: translateX(20px);
+        }
+
+        [dir="rtl"] .toggle-slider::before {
+            left: auto;
+            right: 3px;
+        }
+
+        [dir="rtl"] .toggle input:checked+.toggle-slider::before {
+            transform: translateX(-20px);
+        }
 
         .slider-wrapper {
             flex: 1;
@@ -1143,7 +1474,8 @@
         .slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 18px; height: 18px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
             background: var(--accent);
             cursor: pointer;
@@ -1151,7 +1483,8 @@
         }
 
         .slider::-moz-range-thumb {
-            width: 18px; height: 18px;
+            width: 18px;
+            height: 18px;
             border: none;
             border-radius: 50%;
             background: var(--accent);
@@ -1180,10 +1513,17 @@
             cursor: pointer;
             min-width: 100px;
             outline: none;
+            max-width: 55%;
         }
 
-        .select:focus { border-color: var(--accent); }
-        .select option { background: var(--card-bg); color: var(--text); }
+        .select:focus {
+            border-color: var(--accent);
+        }
+
+        .select option {
+            background: var(--card-bg);
+            color: var(--text);
+        }
 
         .setting-btn {
             background: rgba(56, 189, 248, 0.12);
@@ -1198,7 +1538,55 @@
             white-space: nowrap;
         }
 
-        .setting-btn:hover { background: rgba(56, 189, 248, 0.2); }
+        .setting-btn:hover {
+            background: rgba(56, 189, 248, 0.2);
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            padding: 0.4rem 0 0.7rem;
+        }
+
+        .color-swatch {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+            position: relative;
+            padding: 0;
+            outline: none;
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.15);
+        }
+
+        .color-swatch.active {
+            border-color: var(--text);
+            box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px currentColor;
+        }
+
+        .color-swatch::after {
+            content: '✓';
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            font-size: 0.9rem;
+            color: #fff;
+            font-weight: 900;
+            opacity: 0;
+            transition: opacity 0.2s;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        .color-swatch.active::after {
+            opacity: 1;
+        }
 
         .bottom-nav {
             position: fixed;
@@ -1219,9 +1607,11 @@
 
         .nav-pill {
             position: absolute;
-            top: 0; left: 0;
-            width: 0; height: 0;
-            background: rgba(56, 189, 248, 0.18);
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 0;
+            background: color-mix(in srgb, var(--accent) 18%, transparent);
             border-radius: 22px;
             pointer-events: none;
             z-index: 0;
@@ -1232,7 +1622,9 @@
                 height 0.4s cubic-bezier(0.34, 1.4, 0.64, 1);
         }
 
-        .nav-pill.no-anim { transition: none !important; }
+        .nav-pill.no-anim {
+            transition: none !important;
+        }
 
         .nav-item {
             position: relative;
@@ -1255,10 +1647,18 @@
             min-width: 70px;
         }
 
-        .nav-item.active { color: var(--accent); }
-        .nav-item:active { transform: scale(0.95); }
+        .nav-item.active {
+            color: var(--accent);
+        }
 
-        .nav-icon { font-size: 1.3rem; line-height: 1; }
+        .nav-item:active {
+            transform: scale(0.95);
+        }
+
+        .nav-icon {
+            font-size: 1.3rem;
+            line-height: 1;
+        }
 
         .nav-label {
             font-size: 0.62rem;
@@ -1282,8 +1682,15 @@
             cursor: pointer;
         }
 
-        .welcome-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-        .welcome-screen.gone { display: none; }
+        .welcome-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .welcome-screen.gone {
+            display: none;
+        }
 
         .welcome-content {
             position: relative;
@@ -1365,7 +1772,8 @@
 
         .welcome-loader-fill {
             position: absolute;
-            top: 0; left: 0;
+            top: 0;
+            left: 0;
             height: 100%;
             width: 0%;
             background: linear-gradient(90deg, #38bdf8, #22d3ee, #7dd3fc);
@@ -1381,7 +1789,9 @@
 
         .cookie-banner {
             position: fixed;
-            bottom: 0; left: 0; right: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
             background: var(--cookie-bg);
             border-top: 1px solid var(--border);
             box-shadow: 0 -10px 30px -5px rgba(0, 0, 0, 0.5);
@@ -1393,7 +1803,10 @@
             display: none;
         }
 
-        .cookie-banner.visible { display: block; transform: translateY(0); }
+        .cookie-banner.visible {
+            display: block;
+            transform: translateY(0);
+        }
 
         .cookie-content {
             max-width: 1200px;
@@ -1404,12 +1817,33 @@
             gap: 1rem;
         }
 
-        .cookie-icon { font-size: 1.8rem; flex-shrink: 0; }
-        .cookie-text { flex: 1; min-width: 200px; }
-        .cookie-text strong { display: block; margin-bottom: 0.35rem; font-size: 0.95rem; }
-        .cookie-text p { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+        .cookie-icon {
+            font-size: 1.8rem;
+            flex-shrink: 0;
+        }
 
-        .cookie-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+        .cookie-text {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .cookie-text strong {
+            display: block;
+            margin-bottom: 0.35rem;
+            font-size: 0.95rem;
+        }
+
+        .cookie-text p {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .cookie-actions {
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
 
         .cookie-btn {
             border: none;
@@ -1423,14 +1857,17 @@
             white-space: nowrap;
         }
 
-        .cookie-btn-accept { background: var(--accent); color: #0f172a; }
+        .cookie-btn-accept {
+            background: var(--accent);
+            color: #0f172a;
+        }
+
         .cookie-btn-reject {
             background: transparent;
             color: var(--text-muted);
             border: 1px solid var(--border);
         }
 
-        /* THEME SWITCH — From Uiverse.io by Galahhad */
         .theme-switch {
             --toggle-size: 10px;
             --container-width: 5.625em;
@@ -1574,15 +2011,15 @@
             transition: var(--transition);
         }
 
-        .theme-switch__checkbox:checked + .theme-switch__container {
+        .theme-switch__checkbox:checked+.theme-switch__container {
             background-color: var(--container-night-bg);
         }
 
-        .theme-switch__checkbox:checked + .theme-switch__container .theme-switch__circle-container {
+        .theme-switch__checkbox:checked+.theme-switch__container .theme-switch__circle-container {
             left: calc(100% - var(--circle-container-offset) - var(--circle-container-diameter));
         }
 
-        .theme-switch__checkbox:checked + .theme-switch__container .theme-switch__circle-container:hover {
+        .theme-switch__checkbox:checked+.theme-switch__container .theme-switch__circle-container:hover {
             left: calc(100% - var(--circle-container-offset) - var(--circle-container-diameter) - 0.187em);
         }
 
@@ -1590,21 +2027,23 @@
             left: calc(var(--circle-container-offset) + 0.187em);
         }
 
-        .theme-switch__checkbox:checked + .theme-switch__container .theme-switch__moon {
+        .theme-switch__checkbox:checked+.theme-switch__container .theme-switch__moon {
             transform: translate(0);
         }
 
-        .theme-switch__checkbox:checked + .theme-switch__container .theme-switch__clouds {
+        .theme-switch__checkbox:checked+.theme-switch__container .theme-switch__clouds {
             bottom: -4.062em;
         }
 
-        .theme-switch__checkbox:checked + .theme-switch__container .theme-switch__stars-container {
+        .theme-switch__checkbox:checked+.theme-switch__container .theme-switch__stars-container {
             top: 50%;
             transform: translateY(-50%);
         }
 
         @media (max-width: 480px) {
-            .theme-switch { --toggle-size: 9px; }
+            .theme-switch {
+                --toggle-size: 9px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1613,25 +2052,81 @@
                 padding-top: calc(0.65rem + env(safe-area-inset-top));
                 padding-bottom: calc(110px + env(safe-area-inset-bottom));
             }
-            .header { padding: 0.75rem 0.85rem; gap: 0.4rem; }
-            .title h1 { font-size: 0.95rem; }
-            .sub { font-size: 0.65rem; }
-            .icon-btn { width: 38px; height: 38px; min-width: 38px; font-size: 1rem; }
-            .card { padding: 1rem; box-shadow: 0 4px 12px -3px rgba(0, 0, 0, 0.3); }
-            .cards { grid-template-columns: 1fr; gap: 1rem; }
-            .suggestions { max-height: 55vh; }
-            .nav-item { padding: 0.5rem 0.85rem; min-width: 62px; }
-            .nav-icon { font-size: 1.2rem; }
-            .nav-label { font-size: 0.58rem; }
-            .bottom-nav { padding: 0.35rem; }
-            .aqi-list { grid-template-columns: 1fr; }
-            .aqi-ring { width: 72px; height: 72px; }
-            .aqi-ring-value .num { font-size: 1.25rem; }
-            .ambient-orb { display: none; }
+
+            .header {
+                padding: 0.75rem 0.85rem;
+                gap: 0.4rem;
+            }
+
+            .title h1 {
+                font-size: 0.95rem;
+            }
+
+            .sub {
+                font-size: 0.65rem;
+            }
+
+            .icon-btn {
+                width: 38px;
+                height: 38px;
+                min-width: 38px;
+                font-size: 1rem;
+            }
+
+            .card {
+                padding: 1rem;
+                box-shadow: var(--shadow-sm);
+            }
+
+            .cards {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .suggestions {
+                max-height: 55vh;
+            }
+
+            .nav-item {
+                padding: 0.5rem 0.85rem;
+                min-width: 62px;
+            }
+
+            .nav-icon {
+                font-size: 1.2rem;
+            }
+
+            .nav-label {
+                font-size: 0.58rem;
+            }
+
+            .bottom-nav {
+                padding: 0.35rem;
+            }
+
+            .aqi-list {
+                grid-template-columns: 1fr;
+            }
+
+            .aqi-ring {
+                width: 72px;
+                height: 72px;
+            }
+
+            .aqi-ring-value .num {
+                font-size: 1.25rem;
+            }
+
+            .ambient-orb {
+                display: none;
+            }
+
+            .aqi-pollutants-extended {
+                grid-template-columns: repeat(3, 1fr);
+            }
         }
 
         @media (max-width: 600px) {
-            .ambient-orb { opacity: 0.5; }
             .orb-1 { width: 300px; height: 300px; }
             .orb-2 { width: 340px; height: 340px; }
             .orb-3 { width: 240px; height: 240px; }
@@ -1643,31 +2138,124 @@
                 animation-iteration-count: 1 !important;
                 transition-duration: 0.01ms !important;
             }
-            .ambient-bg { display: none; }
+            .ambient-bg {
+                display: none;
+            }
         }
 
-        /* CITY ADD/REMOVE — Random Animation Pack */
-        @keyframes cityAddPop { 0% { opacity: 0; transform: scale(0.3) rotate(-12deg); } 55% { opacity: 1; transform: scale(1.15) rotate(4deg); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
-        @keyframes cityAddSlideRight { 0% { opacity: 0; transform: translateX(120px) scale(0.85); } 100% { opacity: 1; transform: translateX(0) scale(1); } }
-        @keyframes cityAddSlideLeft { 0% { opacity: 0; transform: translateX(-120px) scale(0.85); } 100% { opacity: 1; transform: translateX(0) scale(1); } }
-        @keyframes cityAddFlip { 0% { opacity: 0; transform: perspective(600px) rotateY(90deg) scale(0.7); } 60% { opacity: 1; transform: perspective(600px) rotateY(-15deg) scale(1.05); } 100% { opacity: 1; transform: perspective(600px) rotateY(0) scale(1); } }
-        @keyframes cityAddDropIn { 0% { opacity: 0; transform: translateY(-80px) scale(0.7); } 60% { opacity: 1; transform: translateY(10px) scale(1.08); } 80% { transform: translateY(-4px) scale(0.98); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-        @keyframes cityAddZoomBlur { 0% { opacity: 0; filter: blur(12px); transform: scale(1.4); } 60% { opacity: 1; filter: blur(2px); transform: scale(0.96); } 100% { opacity: 1; filter: blur(0); transform: scale(1); } }
-        @keyframes cityAddRotateIn { 0% { opacity: 0; transform: rotate(-180deg) scale(0.2); } 100% { opacity: 1; transform: rotate(0) scale(1); } }
-        @keyframes cityAddBounceUp { 0% { opacity: 0; transform: translateY(100px) scale(0.5); } 40% { opacity: 1; transform: translateY(-25px) scale(1.1); } 70% { transform: translateY(8px) scale(0.95); } 90% { transform: translateY(-3px) scale(1.02); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-        @keyframes cityAddSkew { 0% { opacity: 0; transform: skewX(35deg) translateX(-60px); } 60% { opacity: 1; transform: skewX(-8deg) translateX(6px); } 100% { opacity: 1; transform: skewX(0) translateX(0); } }
-        @keyframes cityAddElastic { 0% { opacity: 0; transform: scale(0.1) rotate(30deg); } 40% { opacity: 1; transform: scale(1.25) rotate(-10deg); } 60% { transform: scale(0.9) rotate(5deg); } 80% { transform: scale(1.06) rotate(-2deg); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
+        @keyframes cityAddPop {
+            0% { opacity: 0; transform: scale(0.3) rotate(-12deg); }
+            55% { opacity: 1; transform: scale(1.15) rotate(4deg); }
+            100% { opacity: 1; transform: scale(1) rotate(0); }
+        }
 
-        @keyframes cityRemoveShrink { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0); } }
-        @keyframes cityRemoveSlideRight { 0% { opacity: 1; transform: translateX(0) rotate(0); } 100% { opacity: 0; transform: translateX(180px) rotate(20deg); } }
-        @keyframes cityRemoveSlideLeft { 0% { opacity: 1; transform: translateX(0) rotate(0); } 100% { opacity: 0; transform: translateX(-180px) rotate(-20deg); } }
-        @keyframes cityRemoveFlip { 0% { opacity: 1; transform: perspective(600px) rotateY(0); } 100% { opacity: 0; transform: perspective(600px) rotateY(90deg); } }
-        @keyframes cityRemoveFlyAway { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-200px) scale(0.4) rotate(-25deg); } }
-        @keyframes cityRemoveDropDown { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(200px) scale(0.5); } }
-        @keyframes cityRemoveZoomBlur { 0% { opacity: 1; filter: blur(0); transform: scale(1); } 100% { opacity: 0; filter: blur(15px); transform: scale(1.5); } }
-        @keyframes cityRemoveExplode { 0% { opacity: 1; transform: scale(1) rotate(0); } 30% { opacity: 1; transform: scale(1.15) rotate(-5deg); } 100% { opacity: 0; transform: scale(0.2) rotate(30deg); filter: blur(8px); } }
-        @keyframes cityRemoveFadePulse { 0% { opacity: 1; transform: scale(1); } 30% { opacity: 1; transform: scale(1.08); } 100% { opacity: 0; transform: scale(0.85); } }
-        @keyframes cityRemoveSpinAway { 0% { opacity: 1; transform: rotate(0) scale(1); } 100% { opacity: 0; transform: rotate(360deg) scale(0.2); } }
+        @keyframes cityAddSlideRight {
+            0% { opacity: 0; transform: translateX(120px) scale(0.85); }
+            100% { opacity: 1; transform: translateX(0) scale(1); }
+        }
+
+        @keyframes cityAddSlideLeft {
+            0% { opacity: 0; transform: translateX(-120px) scale(0.85); }
+            100% { opacity: 1; transform: translateX(0) scale(1); }
+        }
+
+        @keyframes cityAddFlip {
+            0% { opacity: 0; transform: perspective(600px) rotateY(90deg) scale(0.7); }
+            60% { opacity: 1; transform: perspective(600px) rotateY(-15deg) scale(1.05); }
+            100% { opacity: 1; transform: perspective(600px) rotateY(0) scale(1); }
+        }
+
+        @keyframes cityAddDropIn {
+            0% { opacity: 0; transform: translateY(-80px) scale(0.7); }
+            60% { opacity: 1; transform: translateY(10px) scale(1.08); }
+            80% { transform: translateY(-4px) scale(0.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes cityAddZoomBlur {
+            0% { opacity: 0; filter: blur(12px); transform: scale(1.4); }
+            60% { opacity: 1; filter: blur(2px); transform: scale(0.96); }
+            100% { opacity: 1; filter: blur(0); transform: scale(1); }
+        }
+
+        @keyframes cityAddRotateIn {
+            0% { opacity: 0; transform: rotate(-180deg) scale(0.2); }
+            100% { opacity: 1; transform: rotate(0) scale(1); }
+        }
+
+        @keyframes cityAddBounceUp {
+            0% { opacity: 0; transform: translateY(100px) scale(0.5); }
+            40% { opacity: 1; transform: translateY(-25px) scale(1.1); }
+            70% { transform: translateY(8px) scale(0.95); }
+            90% { transform: translateY(-3px) scale(1.02); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes cityAddSkew {
+            0% { opacity: 0; transform: skewX(35deg) translateX(-60px); }
+            60% { opacity: 1; transform: skewX(-8deg) translateX(6px); }
+            100% { opacity: 1; transform: skewX(0) translateX(0); }
+        }
+
+        @keyframes cityAddElastic {
+            0% { opacity: 0; transform: scale(0.1) rotate(30deg); }
+            40% { opacity: 1; transform: scale(1.25) rotate(-10deg); }
+            60% { transform: scale(0.9) rotate(5deg); }
+            80% { transform: scale(1.06) rotate(-2deg); }
+            100% { opacity: 1; transform: scale(1) rotate(0); }
+        }
+
+        @keyframes cityRemoveShrink {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0); }
+        }
+
+        @keyframes cityRemoveSlideRight {
+            0% { opacity: 1; transform: translateX(0) rotate(0); }
+            100% { opacity: 0; transform: translateX(180px) rotate(20deg); }
+        }
+
+        @keyframes cityRemoveSlideLeft {
+            0% { opacity: 1; transform: translateX(0) rotate(0); }
+            100% { opacity: 0; transform: translateX(-180px) rotate(-20deg); }
+        }
+
+        @keyframes cityRemoveFlip {
+            0% { opacity: 1; transform: perspective(600px) rotateY(0); }
+            100% { opacity: 0; transform: perspective(600px) rotateY(90deg); }
+        }
+
+        @keyframes cityRemoveFlyAway {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-200px) scale(0.4) rotate(-25deg); }
+        }
+
+        @keyframes cityRemoveDropDown {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(200px) scale(0.5); }
+        }
+
+        @keyframes cityRemoveZoomBlur {
+            0% { opacity: 1; filter: blur(0); transform: scale(1); }
+            100% { opacity: 0; filter: blur(15px); transform: scale(1.5); }
+        }
+
+        @keyframes cityRemoveExplode {
+            0% { opacity: 1; transform: scale(1) rotate(0); }
+            30% { opacity: 1; transform: scale(1.15) rotate(-5deg); }
+            100% { opacity: 0; transform: scale(0.2) rotate(30deg); filter: blur(8px); }
+        }
+
+        @keyframes cityRemoveFadePulse {
+            0% { opacity: 1; transform: scale(1); }
+            30% { opacity: 1; transform: scale(1.08); }
+            100% { opacity: 0; transform: scale(0.85); }
+        }
+
+        @keyframes cityRemoveSpinAway {
+            0% { opacity: 1; transform: rotate(0) scale(1); }
+            100% { opacity: 0; transform: rotate(360deg) scale(0.2); }
+        }
 
         .city-add-pop { animation: cityAddPop 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
         .city-add-slide-r { animation: cityAddSlideRight 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
@@ -1733,14 +2321,15 @@
                     <span class="live-dot" aria-hidden="true"></span>
                     <span id="statusText" data-i18n="loading">Loading…</span>
                 </span>
-                <!-- ✅ New theme switch (From Uiverse.io by Galahhad) -->
                 <label class="theme-switch" title="Toggle theme" aria-label="Toggle theme">
                     <input type="checkbox" class="theme-switch__checkbox" id="themeSwitch">
                     <div class="theme-switch__container">
                         <div class="theme-switch__clouds"></div>
                         <div class="theme-switch__stars-container">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 55" fill="none">
-                                <path fill-rule="evenodd" clip-rule="evenodd" d="M135.831 3.00688C135.055 3.85027 134.111 4.29946 133 4.35447C134.111 4.40947 135.055 4.85867 135.831 5.71123C136.607 6.55462 136.996 7.56303 136.996 8.72727C136.996 7.95722 137.172 7.25134 137.525 6.59129C137.886 5.93124 138.372 5.39954 138.98 5.00535C139.598 4.60199 140.268 4.39114 141 4.35447C139.88 4.2903 138.936 3.85027 138.16 3.00688C137.384 2.16348 136.996 1.16425 136.996 0C136.996 1.16425 136.607 2.16348 135.831 3.00688ZM31 23.3545C32.1114 23.2995 33.0551 22.8503 33.8313 22.0069C34.6075 21.1635 34.9956 20.1642 34.9956 19C34.9956 20.1642 35.3837 21.1635 36.1599 22.0069C36.9361 22.8503 37.8798 23.2903 39 23.3545C38.2679 23.3911 37.5976 23.602 36.9802 24.0053C36.3716 24.3995 35.8864 24.9312 35.5248 25.5913C35.172 26.2513 34.9956 26.9572 34.9956 27.7273C34.9956 26.563 34.6075 25.5546 33.8313 24.7112C33.0551 23.8587 32.1114 23.4095 31 23.3545ZM0 36.3545C1.11136 36.2995 2.05513 35.8503 2.83131 35.0069C3.6075 34.1635 3.99559 33.1642 3.99559 32C3.99559 33.1642 4.38368 34.1635 5.15987 35.0069C5.93605 35.8503 6.87982 36.2903 8 36.3545C7.26792 36.3911 6.59757 36.602 5.98015 37.0053C5.37155 37.3995 4.88644 37.9312 4.52481 38.5913C4.172 39.2513 3.99559 39.9572 3.99559 40.7273C3.99559 39.563 3.6075 38.5546 2.83131 37.7112C2.05513 36.8587 1.11136 36.4095 0 36.3545ZM56.8313 24.0069C56.0551 24.8503 55.1114 25.2995 54 25.3545C55.1114 25.4095 56.0551 25.8587 56.8313 26.7112C57.6075 27.5546 57.9956 28.563 57.9956 29.7273C57.9956 28.9572 58.172 28.2513 58.5248 27.5913C58.8864 26.9312 59.3716 26.3995 59.9802 26.0053C60.5976 25.602 61.2679 25.3911 62 25.3545C60.8798 25.2903 59.9361 24.8503 59.1599 24.0069C58.3837 23.1635 57.9956 22.1642 57.9956 21C57.9956 22.1642 57.6075 23.1635 56.8313 24.0069ZM81 25.3545C82.1114 25.2995 83.0551 24.8503 83.8313 24.0069C84.6075 23.1635 84.9956 22.1642 84.9956 21C84.9956 22.1642 85.3837 23.1635 86.1599 24.0069C86.9361 24.8503 87.8798 25.2903 89 25.3545C88.2679 25.3911 87.5976 25.602 86.9802 26.0053C86.3716 26.3995 85.8864 26.9312 85.5248 27.5913C85.172 28.2513 84.9956 28.9572 84.9956 29.7273C84.9956 28.563 84.6075 27.5546 83.8313 26.7112C83.0551 25.8587 82.1114 25.4095 81 25.3545ZM136 36.3545C137.111 36.2995 138.055 35.8503 138.831 35.0069C139.607 34.1635 139.996 33.1642 139.996 32C139.996 33.1642 140.384 34.1635 141.16 35.0069C141.936 35.8503 142.88 36.2903 144 36.3545C143.268 36.3911 142.598 36.602 141.98 37.0053C141.372 37.3995 140.886 37.9312 140.525 38.5913C140.172 39.2513 139.996 39.9572 139.996 40.7273C139.996 39.563 139.607 38.5546 138.831 37.7112C138.055 36.8587 137.111 36.4095 136 36.3545ZM101.831 49.0069C101.055 49.8503 100.111 50.2995 99 50.3545C100.111 50.4095 101.055 50.8587 101.831 51.7112C102.607 52.5546 102.996 53.563 102.996 54.7273C102.996 53.9572 103.172 53.2513 103.525 52.5913C103.886 51.9312 104.372 51.3995 104.98 51.0053C105.598 50.602 106.268 50.3911 107 50.3545C105.88 50.2903 104.936 49.8503 104.16 49.0069C103.384 48.1635 102.996 47.1642 102.996 46C102.996 47.1642 102.607 48.1635 101.831 49.0069Z" fill="currentColor"></path>
+                                <path fill-rule="evenodd" clip-rule="evenodd"
+                                    d="M135.831 3.00688C135.055 3.85027 134.111 4.29946 133 4.35447C134.111 4.40947 135.055 4.85867 135.831 5.71123C136.607 6.55462 136.996 7.56303 136.996 8.72727C136.996 7.95722 137.172 7.25134 137.525 6.59129C137.886 5.93124 138.372 5.39954 138.98 5.00535C139.598 4.60199 140.268 4.39114 141 4.35447C139.88 4.2903 138.936 3.85027 138.16 3.00688C137.384 2.16348 136.996 1.16425 136.996 0C136.996 1.16425 136.607 2.16348 135.831 3.00688ZM31 23.3545C32.1114 23.2995 33.0551 22.8503 33.8313 22.0069C34.6075 21.1635 34.9956 20.1642 34.9956 19C34.9956 20.1642 35.3837 21.1635 36.1599 22.0069C36.9361 22.8503 37.8798 23.2903 39 23.3545C38.2679 23.3911 37.5976 23.602 36.9802 24.0053C36.3716 24.3995 35.8864 24.9312 35.5248 25.5913C35.172 26.2513 34.9956 26.9572 34.9956 27.7273C34.9956 26.563 34.6075 25.5546 33.8313 24.7112C33.0551 23.8587 32.1114 23.4095 31 23.3545ZM0 36.3545C1.11136 36.2995 2.05513 35.8503 2.83131 35.0069C3.6075 34.1635 3.99559 33.1642 3.99559 32C3.99559 33.1642 4.38368 34.1635 5.15987 35.0069C5.93605 35.8503 6.87982 36.2903 8 36.3545C7.26792 36.3911 6.59757 36.602 5.98015 37.0053C5.37155 37.3995 4.88644 37.9312 4.52481 38.5913C4.172 39.2513 3.99559 39.9572 3.99559 40.7273C3.99559 39.563 3.6075 38.5546 2.83131 37.7112C2.05513 36.8587 1.11136 36.4095 0 36.3545ZM56.8313 24.0069C56.0551 24.8503 55.1114 25.2995 54 25.3545C55.1114 25.4095 56.0551 25.8587 56.8313 26.7112C57.6075 27.5546 57.9956 28.563 57.9956 29.7273C57.9956 28.9572 58.172 28.2513 58.5248 27.5913C58.8864 26.9312 59.3716 26.3995 59.9802 26.0053C60.5976 25.602 61.2679 25.3911 62 25.3545C60.8798 25.2903 59.9361 24.8503 59.1599 24.0069C58.3837 23.1635 57.9956 22.1642 57.9956 21C57.9956 22.1642 57.6075 23.1635 56.8313 24.0069ZM81 25.3545C82.1114 25.2995 83.0551 24.8503 83.8313 24.0069C84.6075 23.1635 84.9956 22.1642 84.9956 21C84.9956 22.1642 85.3837 23.1635 86.1599 24.0069C86.9361 24.8503 87.8798 25.2903 89 25.3545C88.2679 25.3911 87.5976 25.602 86.9802 26.0053C86.3716 26.3995 85.8864 26.9312 85.5248 27.5913C85.172 28.2513 84.9956 28.9572 84.9956 29.7273C84.9956 28.563 84.6075 27.5546 83.8313 26.7112C83.0551 25.8587 82.1114 25.4095 81 25.3545ZM136 36.3545C137.111 36.2995 138.055 35.8503 138.831 35.0069C139.607 34.1635 139.996 33.1642 139.996 32C139.996 33.1642 140.384 34.1635 141.16 35.0069C141.936 35.8503 142.88 36.2903 144 36.3545C143.268 36.3911 142.598 36.602 141.98 37.0053C141.372 37.3995 140.886 37.9312 140.525 38.5913C140.172 39.2513 139.996 39.9572 139.996 40.7273C139.996 39.563 139.607 38.5546 138.831 37.7112C138.055 36.8587 137.111 36.4095 136 36.3545ZM101.831 49.0069C101.055 49.8503 100.111 50.2995 99 50.3545C100.111 50.4095 101.055 50.8587 101.831 51.7112C102.607 52.5546 102.996 53.563 102.996 54.7273C102.996 53.9572 103.172 53.2513 103.525 52.5913C103.886 51.9312 104.372 51.3995 104.98 51.0053C105.598 50.602 106.268 50.3911 107 50.3545C105.88 50.2903 104.936 49.8503 104.16 49.0069C103.384 48.1635 102.996 47.1642 102.996 46C102.996 47.1642 102.607 48.1635 101.831 49.0069Z"
+                                    fill="currentColor"></path>
                             </svg>
                         </div>
                         <div class="theme-switch__circle-container">
@@ -1787,7 +2376,7 @@
 
                 <div class="footer">
                     <div id="countdown" dir="ltr">
-                        <span class="cd-label" data-i18n=":Next">Next</span>
+                        <span class="cd-label" data-i18n="next">Next</span>
                         <span class="cd-digit" data-digit="h0"><span>0</span></span>
                         <span class="cd-digit" data-digit="h1"><span>0</span></span>
                         <span class="cd-sep">:</span>
@@ -1825,6 +2414,67 @@
                                 <option value="light" data-i18n="theme_light">Light</option>
                                 <option value="auto" data-i18n="theme_auto">Auto</option>
                             </select>
+                        </div>
+
+                        <div class="setting-row" style="border-bottom: none; padding-bottom: 0;">
+                            <div class="setting-label">
+                                <div class="setting-label-main" data-i18n="accent_color">Accent Color</div>
+                                <div class="setting-label-desc" data-i18n="accent_color_desc">Pick your theme color</div>
+                            </div>
+                        </div>
+                        <div class="color-picker" id="accent-picker">
+                            <button class="color-swatch active" data-accent="blue"
+                                style="background:#38bdf8;color:#38bdf8" aria-label="Blue"></button>
+                            <button class="color-swatch" data-accent="green" style="background:#22c55e;color:#22c55e"
+                                aria-label="Green"></button>
+                            <button class="color-swatch" data-accent="purple" style="background:#a855f7;color:#a855f7"
+                                aria-label="Purple"></button>
+                            <button class="color-swatch" data-accent="pink" style="background:#ec4899;color:#ec4899"
+                                aria-label="Pink"></button>
+                            <button class="color-swatch" data-accent="orange" style="background:#f97316;color:#f97316"
+                                aria-label="Orange"></button>
+                            <button class="color-swatch" data-accent="red" style="background:#ef4444;color:#ef4444"
+                                aria-label="Red"></button>
+                            <button class="color-swatch" data-accent="teal" style="background:#14b8a6;color:#14b8a6"
+                                aria-label="Teal"></button>
+                            <button class="color-swatch" data-accent="yellow" style="background:#eab308;color:#eab308"
+                                aria-label="Yellow"></button>
+                        </div>
+
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                <div class="setting-label-main" data-i18n="card_density">Card Density</div>
+                                <div class="setting-label-desc" data-i18n="card_density_desc">Spacing between elements</div>
+                            </div>
+                            <select class="select" id="setting-density">
+                                <option value="compact" data-i18n="density_compact">Compact</option>
+                                <option value="normal" selected data-i18n="density_normal">Normal</option>
+                                <option value="comfortable" data-i18n="density_comfortable">Comfortable</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                <div class="setting-label-main" data-i18n="font_size">Font Size</div>
+                                <div class="setting-label-desc" data-i18n="font_size_desc">Base text size</div>
+                            </div>
+                            <select class="select" id="setting-font">
+                                <option value="small" data-i18n="font_small">Small</option>
+                                <option value="normal" selected data-i18n="font_normal">Normal</option>
+                                <option value="large" data-i18n="font_large">Large</option>
+                                <option value="xl" data-i18n="font_xl">Extra Large</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                <div class="setting-label-main" data-i18n="card_3d">3D Card Effect</div>
+                                <div class="setting-label-desc" data-i18n="card_3d_desc">Tilt cards on hover</div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="setting-3d">
+                                <span class="toggle-slider"></span>
+                            </label>
                         </div>
 
                         <div class="setting-row">
@@ -1873,6 +2523,92 @@
                                 <option value="en">English</option>
                                 <option value="fa">فارسی</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-section-title">📍 <span data-i18n="location_data">Location & Data</span></div>
+
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                <div class="setting-label-main" data-i18n="default_city">Default City</div>
+                                <div class="setting-label-desc" data-i18n="default_city_desc">Auto-scroll to this city on load</div>
+                            </div>
+                            <select class="select" id="setting-default-city">
+                                <option value="">None</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                <div class="setting-label-main" data-i18n="data_source">Data Source</div>
+                                <div class="setting-label-desc" data-i18n="data_source_desc">Preferred weather provider</div>
+                            </div>
+                            <select class="select" id="setting-source">
+                                <option value="auto" selected data-i18n="source_auto">Auto (Smart)</option>
+                                <option value="openmeteo" data-i18n="source_openmeteo">Open-Meteo only</option>
+                                <option value="wttr" data-i18n="source_wttr">wttr.in only</option>
+                                <option value="both" data-i18n="source_both">Both (merge)</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                <div class="setting-label-main" data-i18n="haptic_feedback">Haptic Feedback</div>
+                                <div class="setting-label-desc" data-i18n="haptic_feedback_desc">Vibrate on actions (mobile)</div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="setting-haptic" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-section-title">🌫️ <span data-i18n="air_quality">Air Quality</span></div>
+
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                <div class="setting-label-main" data-i18n="aqi_scale">AQI Scale</div>
+                                <div class="setting-label-desc" data-i18n="aqi_scale_desc">Which standard to use</div>
+                            </div>
+                            <select class="select" id="setting-aqi-scale">
+                                <option value="eu" selected data-i18n="aqi_eu">European</option>
+                                <option value="us" data-i18n="aqi_us">US AQI</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                <div class="setting-label-main" data-i18n="aqi_tint">Color-tint Cards</div>
+                                <div class="setting-label-desc" data-i18n="aqi_tint_desc">Tint AQI cards based on level</div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="setting-aqi-tint">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                <div class="setting-label-main" data-i18n="extended_pollutants">Extended Pollutants</div>
+                                <div class="setting-label-desc" data-i18n="extended_pollutants_desc">Show O₃, NO₂, SO₂, CO, PM1</div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="setting-extended-pollutants" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                <div class="setting-label-main" data-i18n="aqi_trend_setting">AQI Trend</div>
+                                <div class="setting-label-desc" data-i18n="aqi_trend_setting_desc">Show if AQI is improving or worsening</div>
+                            </div>
+                            <label class="toggle">
+                                <input type="checkbox" id="setting-aqi-trend" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
                         </div>
                     </div>
 
@@ -2028,6 +2764,59 @@
         if (DEBUG) _log('%c🔧 DEBUG mode active', 'color:#38bdf8;font-weight:bold');
 
         // ============================================================
+        //  HAPTIC HELPER
+        // ============================================================
+        function haptic(pattern) {
+            if (!settings.haptic) return;
+            try {
+                if (navigator.vibrate) navigator.vibrate(pattern);
+            } catch (e) { }
+        }
+
+        // ============================================================
+        //  AQI HISTORY (for trend)
+        // ============================================================
+        const AQI_HISTORY_KEY = 'iran_weather_aqi_history';
+        function loadAQIHistory() {
+            try {
+                const raw = storeGet(AQI_HISTORY_KEY);
+                return raw ? JSON.parse(raw) : {};
+            } catch (e) { return {}; }
+        }
+        function saveAQIHistory(history) {
+            try { storeSet(AQI_HISTORY_KEY, JSON.stringify(history), 30); } catch (e) { }
+        }
+        function updateAQIHistory(city, currentAQI) {
+            if (currentAQI == null) return;
+            const history = loadAQIHistory();
+            const entry = history[city] || { prev: null, prevTs: 0 };
+            const now = Date.now();
+            if (!entry.prevTs || (now - entry.prevTs) > 30 * 60 * 1000) {
+                entry.prev = entry.current ?? null;
+                entry.prevTs = entry.currentTs ?? 0;
+                entry.current = currentAQI;
+                entry.currentTs = now;
+                history[city] = entry;
+                saveAQIHistory(history);
+            } else {
+                entry.current = currentAQI;
+                entry.currentTs = now;
+                history[city] = entry;
+                saveAQIHistory(history);
+            }
+        }
+        function getAQITrend(city, currentAQI) {
+            if (currentAQI == null) return 'stable';
+            const history = loadAQIHistory();
+            const entry = history[city];
+            if (!entry || entry.prev == null || currentAQI == null) return 'stable';
+            const diff = currentAQI - entry.prev;
+            if (diff > 5) return 'up';
+            if (diff < -5) return 'down';
+            return 'stable';
+        }
+
+        // ============================================================
         //  UNIFIED CORE
         // ============================================================
         const Core = (() => {
@@ -2102,7 +2891,6 @@
                             state.perfDowngraded = true;
                             document.body.setAttribute('data-perf', 'lite');
                             state.repairs.push({ type: 'perf-downgrade', reason: `FPS dropped to ${fps}`, time: Date.now() });
-                            if (DEBUG) _log('[Core] Downgraded to lite (FPS:', fps, ')');
                         }
                     } else if (fps > 50 && state.lowFpsStreak > 0) {
                         state.lowFpsStreak = Math.max(0, state.lowFpsStreak - 1);
@@ -2168,7 +2956,6 @@
                 if (state.errors.length > 30) state.errors.shift();
                 if (state.errors.length > 10) state.health = 'critical';
                 else if (state.errors.length > 3) state.health = 'degraded';
-                if (DEBUG) _warn('[Core] Error:', err.message);
             }
             window.addEventListener('error', (e) => {
                 recordError({ type: 'runtime', message: e.message || 'Unknown', line: e.lineno || 0, time: Date.now() });
@@ -2199,18 +2986,8 @@
                 shouldReduceAnim: () => state.perfDowngraded || state.fps < 30,
                 diagnose: () => {
                     _log('=== Core Diagnostics ===');
-                    _log('Device:', {
-                        formFactor: device.formFactor,
-                        class: device.cls,
-                        cores: device.cores,
-                        score: device.score
-                    });
-                    _log('State:', {
-                        health: state.health,
-                        fps: state.fps,
-                        online: state.online,
-                        perfDowngraded: state.perfDowngraded
-                    });
+                    _log('Device:', { formFactor: device.formFactor, class: device.cls, cores: device.cores, score: device.score });
+                    _log('State:', { health: state.health, fps: state.fps, online: state.online, perfDowngraded: state.perfDowngraded });
                     _log('Network:', state.network);
                     _log('Battery:', state.battery);
                     _log('Source Health:', JSON.parse(JSON.stringify(state.sourceHealth)));
@@ -2342,7 +3119,28 @@
                 good: 'Good', fair: 'Fair', moderate: 'Moderate', poor: 'Poor', very_poor: 'Very Poor', hazardous: 'Hazardous',
                 aqi: 'AQI', dew_point: 'Dew Point',
                 fetching_city: 'Fetching…', city_not_found: 'City not found. Try another name.',
-                pin: 'Pin', unpin: 'Unpin'
+                pin: 'Pin', unpin: 'Unpin',
+                accent_color: 'Accent Color', accent_color_desc: 'Pick your theme color',
+                card_density: 'Card Density', card_density_desc: 'Spacing between elements',
+                density_compact: 'Compact', density_normal: 'Normal', density_comfortable: 'Comfortable',
+                font_size: 'Font Size', font_size_desc: 'Base text size',
+                font_small: 'Small', font_normal: 'Normal', font_large: 'Large', font_xl: 'Extra Large',
+                card_3d: '3D Card Effect', card_3d_desc: 'Tilt cards on hover',
+                location_data: 'Location & Data',
+                default_city: 'Default City', default_city_desc: 'Auto-scroll to this city on load',
+                none: 'None',
+                data_source: 'Data Source', data_source_desc: 'Preferred weather provider',
+                source_auto: 'Auto (Smart)', source_openmeteo: 'Open-Meteo only',
+                source_wttr: 'wttr.in only', source_both: 'Both (merge)',
+                haptic_feedback: 'Haptic Feedback', haptic_feedback_desc: 'Vibrate on actions (mobile)',
+                air_quality: 'Air Quality',
+                aqi_scale: 'AQI Scale', aqi_scale_desc: 'Which standard to use',
+                aqi_eu: 'European', aqi_us: 'US AQI',
+                aqi_tint: 'Color-tint Cards', aqi_tint_desc: 'Tint AQI cards based on level',
+                extended_pollutants: 'Extended Pollutants', extended_pollutants_desc: 'Show O₃, NO₂, SO₂, CO, PM1',
+                aqi_trend_setting: 'AQI Trend', aqi_trend_setting_desc: 'Show if AQI is improving or worsening',
+                trend_rising: 'Rising', trend_falling: 'Falling', trend_stable: 'Stable',
+                unhealthy_sensitive: 'Unhealthy (Sensitive)', unhealthy: 'Unhealthy', very_unhealthy: 'Very Unhealthy'
             },
             fa: {
                 app_title: 'آب‌وهوا و کیفیت هوا', auto_refresh: 'رفرش خودکار هر', hour: 'ساعت',
@@ -2374,7 +3172,28 @@
                 good: 'خوب', fair: 'قابل قبول', moderate: 'متوسط', poor: 'ضعیف', very_poor: 'خیلی ضعیف', hazardous: 'خطرناک',
                 aqi: 'شاخص', dew_point: 'شبنم',
                 fetching_city: 'در حال دریافت…', city_not_found: 'شهر پیدا نشد. نام دیگری امتحان کنید.',
-                pin: 'پین', unpin: 'برداشتن پین'
+                pin: 'پین', unpin: 'برداشتن پین',
+                accent_color: 'رنگ اصلی', accent_color_desc: 'رنگ تم خود را انتخاب کنید',
+                card_density: 'تراکم کارت', card_density_desc: 'فاصله بین عناصر',
+                density_compact: 'فشرده', density_normal: 'معمولی', density_comfortable: 'راحت',
+                font_size: 'اندازه فونت', font_size_desc: 'اندازه متن پایه',
+                font_small: 'کوچک', font_normal: 'معمولی', font_large: 'بزرگ', font_xl: 'خیلی بزرگ',
+                card_3d: 'افکت سه‌بعدی کارت', card_3d_desc: 'کج شدن کارت هنگام هاور',
+                location_data: 'موقعیت و داده',
+                default_city: 'شهر پیش‌فرض', default_city_desc: 'هنگام باز شدن، به این شهر اسکرول کن',
+                none: 'هیچ‌کدام',
+                data_source: 'منبع داده', data_source_desc: 'سرویس آب‌وهوای ترجیحی',
+                source_auto: 'خودکار (هوشمند)', source_openmeteo: 'فقط Open-Meteo',
+                source_wttr: 'فقط wttr.in', source_both: 'هر دو (ادغام)',
+                haptic_feedback: 'بازخورد لمسی', haptic_feedback_desc: 'لرزش هنگام اقدامات (موبایل)',
+                air_quality: 'کیفیت هوا',
+                aqi_scale: 'مقیاس AQI', aqi_scale_desc: 'کدام استاندارد استفاده شود',
+                aqi_eu: 'اروپایی', aqi_us: 'آمریکایی',
+                aqi_tint: 'رنگ‌آمیزی کارت', aqi_tint_desc: 'کارت‌های AQI را بر اساس سطح رنگ کن',
+                extended_pollutants: 'آلاینده‌های گسترده', extended_pollutants_desc: 'نمایش O₃، NO₂، SO₂، CO، PM1',
+                aqi_trend_setting: 'روند AQI', aqi_trend_setting_desc: 'نمایش بهبود یا بدتر شدن کیفیت هوا',
+                trend_rising: 'صعودی', trend_falling: 'نزولی', trend_stable: 'ثابت',
+                unhealthy_sensitive: 'ناسالم (گروه‌های حساس)', unhealthy: 'ناسالم', very_unhealthy: 'خیلی ناسالم'
             }
         };
 
@@ -2414,22 +3233,37 @@
         function applyTranslations() {
             if (lastAppliedLang === currentLang) return;
             lastAppliedLang = currentLang;
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                const txt = t(key);
-                if (txt) el.textContent = txt;
+
+            const dir = currentLang === 'fa' ? 'rtl' : 'ltr';
+
+            if (document.documentElement.dir !== dir) {
+                document.documentElement.dir = dir;
+                document.documentElement.lang = currentLang;
+            }
+            if (document.body.hasAttribute('dir')) {
+                document.body.removeAttribute('dir');
+            }
+
+            requestAnimationFrame(() => {
+                const i18nEls = document.querySelectorAll('[data-i18n]');
+                for (let i = 0; i < i18nEls.length; i++) {
+                    const el = i18nEls[i];
+                    const key = el.getAttribute('data-i18n');
+                    const txt = t(key);
+                    if (txt && el.textContent !== txt) el.textContent = txt;
+                }
+                const phEls = document.querySelectorAll('[data-i18n-placeholder]');
+                for (let i = 0; i < phEls.length; i++) {
+                    const el = phEls[i];
+                    const key = el.getAttribute('data-i18n-placeholder');
+                    const txt = t(key);
+                    if (txt && el.placeholder !== txt) el.placeholder = txt;
+                }
+                updateLastUpdateLabel();
+                const st = statusTextEl?.dataset.statusKey;
+                if (st) statusTextEl.textContent = t(st);
+                updateNavPill(false);
             });
-            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-                const key = el.getAttribute('data-i18n-placeholder');
-                const txt = t(key);
-                if (txt) el.placeholder = txt;
-            });
-            document.documentElement.lang = currentLang;
-            document.body.dir = currentLang === 'fa' ? 'rtl' : 'ltr';
-            document.documentElement.dir = currentLang === 'fa' ? 'rtl' : 'ltr';
-            updateLastUpdateLabel();
-            const st = statusTextEl?.dataset.statusKey;
-            if (st) statusTextEl.textContent = t(st);
         }
 
         // ============================================================
@@ -2439,7 +3273,10 @@
         const DEFAULT_SETTINGS = {
             theme: 'dark', glass: false, glassIntensity: 65, blurIntensity: 12,
             language: 'en', tempUnit: 'C', windUnit: 'kmh',
-            refreshInterval: 1, backgroundRefresh: false, ambientAnim: true
+            refreshInterval: 1, backgroundRefresh: false, ambientAnim: true,
+            accent: 'blue', density: 'normal', fontSize: 'normal', card3d: false,
+            defaultCity: '', dataSource: 'auto', haptic: true,
+            aqiScale: 'eu', aqiTint: false, extendedPollutants: true, showAqiTrend: true
         };
 
         let settings = { ...DEFAULT_SETTINGS };
@@ -2474,6 +3311,12 @@
             try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { }
         }
 
+        let saveSettingsTimer = null;
+        function saveSettingsDebounced() {
+            clearTimeout(saveSettingsTimer);
+            saveSettingsTimer = setTimeout(saveSettings, 300);
+        }
+
         function applyTheme(theme) {
             let actualTheme = theme;
             if (theme === 'auto') {
@@ -2487,6 +3330,7 @@
                 document.body.removeAttribute('data-theme');
             }
             updateThemeIcon();
+            if (settings.glass) applyGlass();
         }
 
         function updateThemeIcon() {
@@ -2516,13 +3360,61 @@
             if (ambient) ambient.style.display = settings.ambientAnim ? '' : 'none';
         }
 
+        function applyAccent() {
+            document.body.setAttribute('data-accent', settings.accent || 'blue');
+            document.querySelectorAll('.color-swatch').forEach(sw => {
+                sw.classList.toggle('active', sw.dataset.accent === settings.accent);
+            });
+        }
+
+        function applyDensity() {
+            document.body.setAttribute('data-density', settings.density || 'normal');
+        }
+
+        function applyFontSize() {
+            document.body.setAttribute('data-font', settings.fontSize || 'normal');
+        }
+
+        function apply3DEffect() {
+            document.body.setAttribute('data-3d', settings.card3d ? 'true' : 'false');
+        }
+
+        function applyAQITint() {
+            document.body.setAttribute('data-aqi-tint', settings.aqiTint ? 'true' : 'false');
+        }
+
+        function applyDefaultCityDropdown() {
+            const sel = document.getElementById('setting-default-city');
+            if (!sel) return;
+            const current = settings.defaultCity || '';
+            sel.innerHTML = `<option value="">${t('none')}</option>`;
+            cities.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.name;
+                opt.textContent = c.name;
+                sel.appendChild(opt);
+            });
+            if (current && cities.some(c => c.name === current)) {
+                sel.value = current;
+            } else {
+                settings.defaultCity = '';
+                sel.value = '';
+            }
+        }
+
         function applySettings() {
             applyTheme(settings.theme);
             applyGlass();
             applyAnimationSettings();
+            applyAccent();
+            applyDensity();
+            applyFontSize();
+            apply3DEffect();
+            applyAQITint();
             currentLang = settings.language;
             lastAppliedLang = null;
             applyTranslations();
+
             const el = id => document.getElementById(id);
             if (el('setting-theme')) el('setting-theme').value = settings.theme;
             if (el('setting-glass')) el('setting-glass').checked = settings.glass;
@@ -2534,8 +3426,19 @@
             if (el('setting-refresh-interval')) el('setting-refresh-interval').value = String(settings.refreshInterval);
             if (el('setting-background-refresh')) el('setting-background-refresh').checked = settings.backgroundRefresh;
             if (el('setting-ambient')) el('setting-ambient').checked = settings.ambientAnim;
+            if (el('setting-density')) el('setting-density').value = settings.density;
+            if (el('setting-font')) el('setting-font').value = settings.fontSize;
+            if (el('setting-3d')) el('setting-3d').checked = settings.card3d;
+            if (el('setting-source')) el('setting-source').value = settings.dataSource;
+            if (el('setting-haptic')) el('setting-haptic').checked = settings.haptic;
+            if (el('setting-aqi-scale')) el('setting-aqi-scale').value = settings.aqiScale;
+            if (el('setting-aqi-tint')) el('setting-aqi-tint').checked = settings.aqiTint;
+            if (el('setting-extended-pollutants')) el('setting-extended-pollutants').checked = settings.extendedPollutants;
+            if (el('setting-aqi-trend')) el('setting-aqi-trend').checked = settings.showAqiTrend;
             if (el('glass-intensity-value')) el('glass-intensity-value').textContent = settings.glassIntensity + '%';
             if (el('blur-intensity-value')) el('blur-intensity-value').textContent = settings.blurIntensity + 'px';
+
+            applyDefaultCityDropdown();
         }
 
         function initSettingsListeners() {
@@ -2548,19 +3451,26 @@
             document.getElementById('setting-glass-intensity').addEventListener('input', (e) => {
                 settings.glassIntensity = parseInt(e.target.value);
                 document.getElementById('glass-intensity-value').textContent = settings.glassIntensity + '%';
-                saveSettings(); applyGlass();
+                saveSettingsDebounced();
+                applyGlass();
             });
             document.getElementById('setting-blur-intensity').addEventListener('input', (e) => {
                 settings.blurIntensity = parseInt(e.target.value);
                 document.getElementById('blur-intensity-value').textContent = settings.blurIntensity + 'px';
-                saveSettings(); applyGlass();
+                saveSettingsDebounced();
+                applyGlass();
             });
             document.getElementById('setting-language').addEventListener('change', (e) => {
-                settings.language = e.target.value; currentLang = settings.language; saveSettings();
+                settings.language = e.target.value;
+                currentLang = settings.language;
+                saveSettings();
                 lastAppliedLang = null;
                 applyTranslations();
-                if (weatherCache) renderCards(weatherCache);
-                renderAQIList();
+                requestAnimationFrame(() => {
+                    if (weatherCache && weatherCache.length > 0) renderCards(weatherCache);
+                    renderAQIList();
+                    applyDefaultCityDropdown();
+                });
             });
             document.getElementById('setting-temp-unit').addEventListener('change', (e) => {
                 settings.tempUnit = e.target.value; saveSettings();
@@ -2580,6 +3490,50 @@
             });
             document.getElementById('setting-ambient').addEventListener('change', (e) => {
                 settings.ambientAnim = e.target.checked; saveSettings(); applyAnimationSettings();
+            });
+
+            document.querySelectorAll('.color-swatch').forEach(sw => {
+                sw.addEventListener('click', () => {
+                    settings.accent = sw.dataset.accent;
+                    saveSettings();
+                    applyAccent();
+                    haptic(15);
+                });
+            });
+
+            document.getElementById('setting-density').addEventListener('change', (e) => {
+                settings.density = e.target.value; saveSettings(); applyDensity();
+            });
+            document.getElementById('setting-font').addEventListener('change', (e) => {
+                settings.fontSize = e.target.value; saveSettings(); applyFontSize();
+            });
+            document.getElementById('setting-3d').addEventListener('change', (e) => {
+                settings.card3d = e.target.checked; saveSettings(); apply3DEffect();
+            });
+            document.getElementById('setting-default-city').addEventListener('change', (e) => {
+                settings.defaultCity = e.target.value; saveSettings();
+            });
+            document.getElementById('setting-source').addEventListener('change', (e) => {
+                settings.dataSource = e.target.value; saveSettings();
+            });
+            document.getElementById('setting-haptic').addEventListener('change', (e) => {
+                settings.haptic = e.target.checked; saveSettings();
+                if (settings.haptic) haptic(20);
+            });
+            document.getElementById('setting-aqi-scale').addEventListener('change', (e) => {
+                settings.aqiScale = e.target.value; saveSettings();
+                renderAQIList();
+            });
+            document.getElementById('setting-aqi-tint').addEventListener('change', (e) => {
+                settings.aqiTint = e.target.checked; saveSettings(); applyAQITint();
+            });
+            document.getElementById('setting-extended-pollutants').addEventListener('change', (e) => {
+                settings.extendedPollutants = e.target.checked; saveSettings();
+                renderAQIList();
+            });
+            document.getElementById('setting-aqi-trend').addEventListener('change', (e) => {
+                settings.showAqiTrend = e.target.checked; saveSettings();
+                renderAQIList();
             });
         }
 
@@ -2615,6 +3569,7 @@
             updateNavPill(true);
             try { history.replaceState(null, '', '#' + tabName); } catch (e) { }
             if (tabName === 'air') renderAQIList();
+            haptic(8);
         }
 
         function initTabListeners() {
@@ -2655,9 +3610,7 @@
 
         const DEFAULT_CITIES = [{ name: 'Tehran', lat: 35.6892, lon: 51.3890 }];
 
-        // ✅ Expanded Iran cities list with new major centers and small towns
         const IRAN_CITIES = [
-            // --- Original 42 cities ---
             { name: 'Tehran', name_fa: 'تهران', lat: 35.6892, lon: 51.3890, admin: 'Tehran', country: 'Iran', country_code: 'IR' },
             { name: 'Mashhad', name_fa: 'مشهد', lat: 36.2605, lon: 59.6168, admin: 'Razavi Khorasan', country: 'Iran', country_code: 'IR' },
             { name: 'Isfahan', name_fa: 'اصفهان', lat: 32.6546, lon: 51.6680, admin: 'Isfahan', country: 'Iran', country_code: 'IR' },
@@ -2700,8 +3653,6 @@
             { name: 'Behbahan', name_fa: 'بهبهان', lat: 30.5959, lon: 50.2417, admin: 'Khuzestan', country: 'Iran', country_code: 'IR' },
             { name: 'Sardasht', name_fa: 'سردشت', lat: 36.1580, lon: 45.4752, admin: 'West Azerbaijan', country: 'Iran', country_code: 'IR' },
             { name: 'Bam', name_fa: 'بم', lat: 29.1060, lon: 58.3570, admin: 'Kerman', country: 'Iran', country_code: 'IR' },
-
-            // --- NEW: Major city centers (province capitals) ---
             { name: 'Osku', name_fa: 'اسکو', lat: 37.9161, lon: 46.1245, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
             { name: 'Ahar', name_fa: 'اهر', lat: 38.4775, lon: 47.0662, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
             { name: 'Azarshahr', name_fa: 'آذرشهر', lat: 37.7585, lon: 45.9794, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
@@ -2721,8 +3672,6 @@
             { name: 'Khomeynishahr', name_fa: 'خمینی‌شهر', lat: 32.7000, lon: 51.5167, admin: 'Isfahan', country: 'Iran', country_code: 'IR' },
             { name: 'Shahin Shahr', name_fa: 'شاهین‌شهر', lat: 32.8667, lon: 51.5500, admin: 'Isfahan', country: 'Iran', country_code: 'IR' },
             { name: 'Shahreza', name_fa: 'شهرضا', lat: 32.0000, lon: 51.8667, admin: 'Isfahan', country: 'Iran', country_code: 'IR' },
-
-            // --- NEW: Additional smaller towns & secondary cities ---
             { name: 'Bostan Abad', name_fa: 'بستان‌آباد', lat: 34.8878, lon: 46.0804, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
             { name: 'Bonab', name_fa: 'بناب', lat: 38.4283, lon: 45.9087, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
             { name: 'Ilkhchi', name_fa: 'ایلخچی', lat: 37.9389, lon: 45.9800, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
@@ -2860,6 +3809,7 @@
         let lastFetchTimestamp = 0;
         let lastUpdateTime = '';
         let isCachedData = false;
+        let initialScrollDone = false;
 
         function loadCities() {
             if (!hasConsent()) return [...DEFAULT_CITIES];
@@ -3003,6 +3953,7 @@
                 applyTheme(settings.theme);
                 const ts = document.getElementById('setting-theme');
                 if (ts) ts.value = settings.theme;
+                haptic(15);
             });
         }
 
@@ -3013,6 +3964,15 @@
         }
 
         function getAQICat(aqi) {
+            const scale = settings.aqiScale || 'eu';
+            if (scale === 'us') {
+                if (aqi <= 50) return { label: t('good'), color: 'var(--aqi-good)', icon: '🟢', advice: '', adviceIcon: '✅' };
+                if (aqi <= 100) return { label: t('moderate'), color: 'var(--aqi-moderate)', icon: '🟡', advice: '', adviceIcon: '⚠️' };
+                if (aqi <= 150) return { label: t('unhealthy_sensitive'), color: 'var(--aqi-poor)', icon: '🟠', advice: '', adviceIcon: '😷' };
+                if (aqi <= 200) return { label: t('unhealthy'), color: 'var(--aqi-very-poor)', icon: '🔴', advice: '', adviceIcon: '🚫' };
+                if (aqi <= 300) return { label: t('very_unhealthy'), color: 'var(--aqi-hazardous)', icon: '🟣', advice: '', adviceIcon: '🆘' };
+                return { label: t('hazardous'), color: '#7f1d1d', icon: '⚫', advice: '', adviceIcon: '☠️' };
+            }
             if (aqi <= 20) return { label: t('good'), color: 'var(--aqi-good)', icon: '🟢', advice: currentLang === 'fa' ? 'هوا عالیه! برای فعالیت بیرون مناسب است' : 'Ideal for outdoor activities', adviceIcon: '✅' };
             if (aqi <= 40) return { label: t('fair'), color: 'var(--aqi-fair)', icon: '🟡', advice: currentLang === 'fa' ? 'کیفیت هوا قابل قبوله' : 'Air quality is acceptable', adviceIcon: '👍' };
             if (aqi <= 60) return { label: t('moderate'), color: 'var(--aqi-moderate)', icon: '🟠', advice: currentLang === 'fa' ? 'گروه‌های حساس باید احتیاط کنند' : 'Sensitive groups should take care', adviceIcon: '⚠️' };
@@ -3165,10 +4125,11 @@
             const newCity = { name: r.name, lat, lon };
             cities.push(newCity);
             saveCities();
+            haptic([10, 30, 10]);
             await addSingleCity(newCity);
         }
 
-        function scrollToCard(card, cityName) {
+        function scrollToCard(card) {
             if (!Core.device.isMobile) return;
             if (!card) return;
             requestAnimationFrame(() => {
@@ -3185,6 +4146,18 @@
                     }
                 }, 100);
             });
+        }
+
+        function scrollToDefaultCity() {
+            if (initialScrollDone) return;
+            if (!settings.defaultCity) return;
+            initialScrollDone = true;
+            setTimeout(() => {
+                const target = cardsEl.querySelector(`.card[data-city="${CSS.escape(settings.defaultCity)}"]`);
+                if (target) {
+                    try { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { }
+                }
+            }, 800);
         }
 
         async function addSingleCity(city) {
@@ -3236,10 +4209,8 @@
                     setTimeout(() => newCard.classList.remove(anim), 1200);
                 }
 
-                if (newCard) {
-                    scrollToCard(newCard, city.name);
-                }
-
+                if (newCard) scrollToCard(newCard);
+                applyDefaultCityDropdown();
                 renderAQIList();
             } catch (err) {
                 tempCard.remove();
@@ -3248,7 +4219,7 @@
                 errCard.classList.add(anim);
                 cardsEl.appendChild(errCard);
                 setTimeout(() => errCard.classList.remove(anim), 1200);
-                scrollToCard(errCard, city.name);
+                scrollToCard(errCard);
             }
         }
 
@@ -3369,14 +4340,12 @@
                 if (Core.state.network.effectiveType === '2g' || Core.state.network.effectiveType === '3g') return 2;
                 return 3;
             },
-
             add(fn, label = 'task') {
                 return new Promise((resolve, reject) => {
                     this.items.push({ fn, resolve, reject, label });
                     this.process();
                 });
             },
-
             async process() {
                 if (this.processing) return;
                 this.processing = true;
@@ -3418,23 +4387,46 @@
         }
 
         async function fetchWeatherFromBestSource(citiesList) {
-            if (!Core.isSourceSkipped('weather:openmeteo')) {
+            const pref = settings.dataSource || 'auto';
+            const tryOM = pref === 'auto' || pref === 'openmeteo' || pref === 'both';
+            const tryWttr = pref === 'wttr' || pref === 'both' || (pref === 'auto' && !tryOM);
+
+            if (tryOM && !Core.isSourceSkipped('weather:openmeteo')) {
                 try {
                     const results = await omQueue.add(() => fetchBatch(citiesList), 'weather-batch');
                     const ok = results.filter(r => r.weather && r.weather.current).length;
-                    if (ok > 0) { Core.markHealthy('weather:openmeteo'); cachePut('weather-data', results).catch(() => { }); return results; }
-                    Core.markUnhealthy('weather:openmeteo');
+                    if (ok > 0) {
+                        Core.markHealthy('weather:openmeteo');
+                        cachePut('weather-data', results).catch(() => { });
+                        if (pref === 'openmeteo' || pref === 'auto') return results;
+                    } else {
+                        Core.markUnhealthy('weather:openmeteo');
+                    }
                 } catch (err) { Core.markUnhealthy('weather:openmeteo'); }
             }
-            if (document.hidden) return citiesList.map(city => ({ city, weather: null }));
-            if (!Core.isSourceSkipped('weather:wttr')) {
+
+            if (tryWttr && !Core.isSourceSkipped('weather:wttr')) {
                 try {
                     const results = await Promise.all(citiesList.map(city => fetchFromWttrIn(city)));
                     const ok = results.filter(r => r.weather && r.weather.current).length;
-                    if (ok > 0) { Core.markHealthy('weather:wttr'); return results; }
+                    if (ok > 0) {
+                        Core.markHealthy('weather:wttr');
+                        if (pref === 'both' && tryOM) {
+                            const omResults = await Promise.allSettled(citiesList.map(async city => {
+                                const r = await fetchBatch([city]);
+                                return r[0];
+                            }));
+                            return citiesList.map((city, i) => {
+                                const omR = omResults[i].status === 'fulfilled' ? omResults[i].value : null;
+                                return (omR?.weather?.current) ? omR : results[i];
+                            });
+                        }
+                        return results;
+                    }
                     Core.markUnhealthy('weather:wttr');
                 } catch (err) { Core.markUnhealthy('weather:wttr'); }
             }
+
             return citiesList.map(city => ({ city, weather: null }));
         }
 
@@ -3469,7 +4461,11 @@
         async function fetchAQIBatch(citiesList) {
             const latParam = citiesList.map(c => c.lat).join(',');
             const lonParam = citiesList.map(c => c.lon).join(',');
-            const aqiUrl = `${AQI_API}?latitude=${latParam}&longitude=${lonParam}&current=european_aqi,pm2_5,pm10&timezone=auto`;
+            const params = [
+                'current=european_aqi,us_aqi,pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,dust',
+                'timezone=auto'
+            ].join('&');
+            const aqiUrl = `${AQI_API}?latitude=${latParam}&longitude=${lonParam}&${params}`;
             const res = await fetchWithTimeout(aqiUrl);
             if (res.status === 429) throw new Error('Rate limit');
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -3477,11 +4473,21 @@
             const arr = Array.isArray(json) ? json : [json];
             return citiesList.map((_, i) => {
                 const cur = arr[i]?.current;
-                if (!cur || cur.european_aqi == null) return null;
+                if (!cur) return null;
+                const euAqi = cur.european_aqi;
+                const usAqi = cur.us_aqi;
+                if (euAqi == null && usAqi == null) return null;
                 return {
-                    aqi: cur.european_aqi,
-                    pm25: cur.pm2_5 != null ? Math.round(cur.pm2_5) : null,
-                    pm10: cur.pm10 != null ? Math.round(cur.pm10) : null
+                    aqi: settings.aqiScale === 'us' ? usAqi : euAqi,
+                    euAqi: euAqi,
+                    usAqi: usAqi,
+                    pm25: cur.pm2_5 != null ? Math.round(cur.pm2_5 * 10) / 10 : null,
+                    pm10: cur.pm10 != null ? Math.round(cur.pm10 * 10) / 10 : null,
+                    o3: cur.ozone != null ? Math.round(cur.ozone) : null,
+                    no2: cur.nitrogen_dioxide != null ? Math.round(cur.nitrogen_dioxide) : null,
+                    so2: cur.sulphur_dioxide != null ? Math.round(cur.sulphur_dioxide) : null,
+                    co: cur.carbon_monoxide != null ? Math.round(cur.carbon_monoxide) : null,
+                    dust: cur.dust != null ? Math.round(cur.dust * 10) / 10 : null
                 };
             });
         }
@@ -3550,30 +4556,17 @@
         function tempSymbol() { return settings.tempUnit === 'F' ? '°F' : '°C'; }
         function windSymbol() { return settings.windUnit === 'mph' ? 'mph' : settings.windUnit === 'ms' ? 'm/s' : 'km/h'; }
 
-        const ADD_ANIMATIONS = [
-            'city-add-pop', 'city-add-slide-r', 'city-add-slide-l',
-            'city-add-flip', 'city-add-drop', 'city-add-blur',
-            'city-add-rotate', 'city-add-bounce', 'city-add-skew', 'city-add-elastic'
-        ];
-        const REMOVE_ANIMATIONS = [
-            'city-remove-shrink', 'city-remove-slide-r', 'city-remove-slide-l',
-            'city-remove-flip', 'city-remove-fly', 'city-remove-drop',
-            'city-remove-blur', 'city-remove-explode', 'city-remove-pulse', 'city-remove-spin'
-        ];
+        const ADD_ANIMATIONS = ['city-add-pop', 'city-add-slide-r', 'city-add-slide-l', 'city-add-flip', 'city-add-drop', 'city-add-blur', 'city-add-rotate', 'city-add-bounce', 'city-add-skew', 'city-add-elastic'];
+        const REMOVE_ANIMATIONS = ['city-remove-shrink', 'city-remove-slide-r', 'city-remove-slide-l', 'city-remove-flip', 'city-remove-fly', 'city-remove-drop', 'city-remove-blur', 'city-remove-explode', 'city-remove-pulse', 'city-remove-spin'];
 
-        function getRandomAddAnim() {
-            if (Core.shouldReduceAnim()) return 'no-anim';
-            return ADD_ANIMATIONS[Math.floor(Math.random() * ADD_ANIMATIONS.length)];
-        }
-        function getRandomRemoveAnim() {
-            if (Core.shouldReduceAnim()) return 'city-remove-shrink';
-            return REMOVE_ANIMATIONS[Math.floor(Math.random() * REMOVE_ANIMATIONS.length)];
-        }
+        function getRandomAddAnim() { if (Core.shouldReduceAnim()) return 'no-anim'; return ADD_ANIMATIONS[Math.floor(Math.random() * ADD_ANIMATIONS.length)]; }
+        function getRandomRemoveAnim() { if (Core.shouldReduceAnim()) return 'city-remove-shrink'; return REMOVE_ANIMATIONS[Math.floor(Math.random() * REMOVE_ANIMATIONS.length)]; }
 
         function createCard(item) {
             const { city, weather, aqi } = item;
             const card = document.createElement('div');
             card.className = 'card';
+            card.dataset.city = city.name;
 
             const favBtn = document.createElement('button');
             favBtn.className = 'favorite-city-btn' + (isFavorite(city.name) ? ' active' : '');
@@ -3587,10 +4580,10 @@
                 favBtn.textContent = nowFav ? '★' : '☆';
                 favBtn.title = nowFav ? t('unpin') : t('pin');
                 card.classList.toggle('is-favorite', nowFav);
+                haptic(15);
                 if (weatherCache) renderCards(weatherCache);
             });
             card.appendChild(favBtn);
-
             if (isFavorite(city.name)) card.classList.add('is-favorite');
 
             const removeBtn = document.createElement('button');
@@ -3694,21 +4687,85 @@
             return card;
         }
 
+        // ✅ FLIP-based removeCity for smooth re-layout
         function removeCity(name, cardEl) {
             cities = cities.filter(c => c.name !== name);
             favorites = favorites.filter(n => n !== name);
             saveCities();
             saveFavorites();
+            haptic([20, 40, 20]);
             if (weatherCache) {
                 weatherCache = weatherCache.filter(r => r.city.name !== name);
                 saveWeatherCacheToStorage(weatherCache);
             }
-            if (cardEl) {
-                const anim = getRandomRemoveAnim();
-                cardEl.classList.add(anim);
-                setTimeout(() => cardEl.remove(), 900);
+
+            if (!cardEl) {
+                applyDefaultCityDropdown();
+                renderAQIList();
+                return;
             }
-            renderAQIList();
+
+            // FLIP step 1: capture positions of all sibling cards BEFORE removal
+            const siblings = [];
+            cardsEl.querySelectorAll('.card').forEach(el => {
+                if (el !== cardEl) {
+                    siblings.push({ el, rect: el.getBoundingClientRect() });
+                }
+            });
+
+            const anim = getRandomRemoveAnim();
+            cardEl.classList.add(anim);
+            cardEl.style.zIndex = '2';
+
+            let handled = false;
+            const finishRemoval = () => {
+                if (handled) return;
+                handled = true;
+                cardEl.removeEventListener('animationend', finishRemoval);
+
+                cardEl.remove();
+                void cardsEl.offsetWidth;
+
+                // FLIP step 2-4: after DOM update, animate siblings from old to new
+                requestAnimationFrame(() => {
+                    siblings.forEach(({ el, rect: oldRect }) => {
+                        const newRect = el.getBoundingClientRect();
+                        const dx = oldRect.left - newRect.left;
+                        const dy = oldRect.top - newRect.top;
+
+                        if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+                            el.style.transition = 'none';
+                            el.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+                            el.style.willChange = 'transform';
+                            el.style.pointerEvents = 'none';
+
+                            requestAnimationFrame(() => {
+                                el.style.transition = 'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)';
+                                el.style.transform = '';
+
+                                const cleanup = () => {
+                                    el.style.transition = '';
+                                    el.style.transform = '';
+                                    el.style.willChange = '';
+                                    el.style.pointerEvents = '';
+                                    el.removeEventListener('transitionend', cleanup);
+                                };
+                                el.addEventListener('transitionend', cleanup, { once: true });
+                                setTimeout(cleanup, 700);
+                            });
+                        }
+                    });
+
+                    applyDefaultCityDropdown();
+                    renderAQIList();
+                });
+            };
+
+            cardEl.addEventListener('animationend', finishRemoval);
+
+            setTimeout(() => {
+                if (!handled && cardEl.parentNode) finishRemoval();
+            }, 1200);
         }
 
         function renderCards(results) {
@@ -3752,6 +4809,7 @@
             isFirstLoad = false;
             lastAddedCityName = null;
             renderAQIList();
+            scrollToDefaultCity();
         }
 
         function renderAQIList() {
@@ -3784,8 +4842,16 @@
 
                 const aqiData = normalizeAqiData(item.aqi);
                 const aqiValue = aqiData?.aqi ?? null;
+
+                if (aqiValue != null) updateAQIHistory(city.name, aqiValue);
+
                 const pm25 = aqiData?.pm25 ?? null;
                 const pm10 = aqiData?.pm10 ?? null;
+                const o3 = aqiData?.o3 ?? null;
+                const no2 = aqiData?.no2 ?? null;
+                const so2 = aqiData?.so2 ?? null;
+                const co = aqiData?.co ?? null;
+                const dust = aqiData?.dust ?? null;
 
                 const cat = aqiValue != null ? getAQICat(aqiValue) : {
                     label: '—', color: 'var(--text-muted)', icon: '❓',
@@ -3793,7 +4859,15 @@
                     adviceIcon: 'ℹ️'
                 };
 
-                const sig = `${aqiValue ?? 'n'}|${pm25 ?? 'n'}|${pm10 ?? 'n'}|${cat.label}|${city.name}`;
+                let trendHTML = '';
+                if (settings.showAqiTrend && aqiValue != null) {
+                    const trend = getAQITrend(city.name, aqiValue);
+                    if (trend === 'up') trendHTML = `<span class="aqi-trend up">▲ ${t('trend_rising')}</span>`;
+                    else if (trend === 'down') trendHTML = `<span class="aqi-trend down">▼ ${t('trend_falling')}</span>`;
+                    else trendHTML = `<span class="aqi-trend stable">● ${t('trend_stable')}</span>`;
+                }
+
+                const sig = `${aqiValue ?? 'n'}|${pm25 ?? 'n'}|${pm10 ?? 'n'}|${o3 ?? 'n'}|${no2 ?? 'n'}|${so2 ?? 'n'}|${co ?? 'n'}|${dust ?? 'n'}|${cat.label}|${city.name}|${settings.aqiScale}|${settings.extendedPollutants}|${settings.showAqiTrend}|${currentLang}`;
                 if (oldCard && oldCard.dataset.sig === sig) {
                     fragment.appendChild(oldCard);
                     usedNames.add(city.name);
@@ -3831,20 +4905,46 @@
                     pollutantsHTML += '</div>';
                 }
 
+                let extendedHTML = '';
+                if (settings.extendedPollutants) {
+                    const items = [];
+                    if (o3 != null) items.push({ label: 'O₃', value: o3, unit: 'µg/m³', high: o3 > 100 });
+                    if (no2 != null) items.push({ label: 'NO₂', value: no2, unit: 'µg/m³', high: no2 > 40 });
+                    if (so2 != null) items.push({ label: 'SO₂', value: so2, unit: 'µg/m³', high: so2 > 20 });
+                    if (co != null) items.push({ label: 'CO', value: co, unit: 'µg/m³', high: co > 4000 });
+                    if (dust != null) items.push({ label: 'Dust', value: dust, unit: 'µg/m³', high: dust > 50 });
+                    if (pm25 != null) items.push({ label: 'PM2.5', value: pm25, unit: 'µg/m³', high: pm25 > 25 });
+                    if (pm10 != null) items.push({ label: 'PM10', value: pm10, unit: 'µg/m³', high: pm10 > 50 });
+                    if (items.length > 0) {
+                        extendedHTML = `<div class="aqi-pollutants-extended">`;
+                        items.slice(0, 8).forEach(it => {
+                            extendedHTML += `
+                                <div class="aqi-pollutant-item ${it.high ? 'high' : ''}" title="${it.unit}">
+                                    <span class="p-label">${it.label}</span>
+                                    <span class="p-value">${it.value}</span>
+                                </div>`;
+                        });
+                        extendedHTML += `</div>`;
+                    }
+                }
+
                 card.innerHTML = `
                     <div class="aqi-card-inner">
                         <div class="aqi-card-info">
                             <div class="aqi-card-city">
                                 <span>${city.name}</span>
+                                ${trendHTML}
                             </div>
                             <span class="aqi-card-level" style="background:${cat.color}">
                                 ${cat.icon} ${cat.label}
                             </span>
                             ${pollutantsHTML}
+                            ${extendedHTML}
+                            ${cat.advice ? `
                             <div class="aqi-advice">
                                 <span class="advice-icon">${cat.adviceIcon}</span>
                                 <span>${cat.advice}</span>
-                            </div>
+                            </div>` : ''}
                         </div>
                         <div class="aqi-ring">
                             <svg viewBox="0 0 80 80">
@@ -3856,7 +4956,7 @@
                             </svg>
                             <div class="aqi-ring-value">
                                 <span class="num">${aqiValue ?? '—'}</span>
-                                <span class="lbl">AQI</span>
+                                <span class="lbl">${settings.aqiScale === 'us' ? 'US AQI' : 'AQI'}</span>
                             </div>
                         </div>
                     </div>
@@ -4051,9 +5151,6 @@
             stopRefreshInterval();
         });
 
-        // ============================================================
-        //  HEALTH MONITOR
-        // ============================================================
         setInterval(() => {
             if (document.hidden) return;
 
@@ -4093,9 +5190,6 @@
             } catch (e) { }
         }, 3000);
 
-        // ============================================================
-        //  INIT
-        // ============================================================
         async function init() {
             loadSettings();
             loadFavorites();
@@ -4134,10 +5228,9 @@
                 Core.diagnose();
                 _log('Cities:', cities.length);
                 _log('Favorites:', favorites);
-                _log('Queue:', omQueue.items.length, 'active:', omQueue.active);
                 _log('Settings:', settings);
+                _log('AQI History:', loadAQIHistory());
                 _log('Last fetch:', lastFetchTimestamp ? new Date(lastFetchTimestamp).toLocaleString() : 'never');
-                _log('Fetch count:', Core.state.fetchCount, 'Cache hits:', Core.state.cacheHits);
             };
 
             if (DEBUG) _log('%c✅ Core initialised', 'color:#22c55e;font-weight:bold');
