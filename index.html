@@ -2746,19 +2746,19 @@
         'use strict';
 
         // ============================================================
-        // 🔑 MASTER SWITCH — Dev Mode Toggle
+        // 🔑 DEV MODE LOGIC
         // ============================================================
-        const DEV_KEYS = {
-            local: false,
-            url: new URLSearchParams(location.search).get('dev') === '1',
-            hotkey: false
-        };
+        // • ?dev=1 in URL    → dev mode ON for this page load only
+        // • Ctrl+Shift+D     → toggle (current page only)
+        // • Cmd+Shift+D      → same on Mac
+        // • Refresh / close  → dev mode resets automatically
+        // • No localStorage  → nothing persists between sessions
+        // ============================================================
 
-        try {
-            if (localStorage.getItem('__dev__') === '1') DEV_KEYS.local = true;
-        } catch(e) {}
+        const urlDev = new URLSearchParams(location.search).get('dev') === '1';
+        let devMode = urlDev;
 
-        let devMode = DEV_KEYS.local || DEV_KEYS.url || DEV_KEYS.hotkey;
+        function isDev() { return devMode; }
 
         // ============================================================
         // Console banner
@@ -2772,53 +2772,43 @@
         console.log('%c© All rights reserved.', infoStyle);
 
         // ============================================================
-        // Hotkey: Ctrl+Shift+D toggles dev mode
+        // Hotkey: Ctrl+Shift+D (Cmd+Shift+D on Mac)
+        // Toggles dev mode for THIS page only — refresh resets it
         // ============================================================
         document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
                 e.preventDefault();
                 devMode = !devMode;
-                try {
-                    if (devMode) localStorage.setItem('__dev__', '1');
-                    else localStorage.removeItem('__dev__');
-                } catch(err) {}
                 console.log(
-                    `%c${devMode ? '🔓 Dev mode ENABLED' : '🔒 Dev mode DISABLED'}`,
+                    `%c${devMode ? '🔓 Dev mode ENABLED (resets on refresh)' : '🔒 Dev mode DISABLED'}`,
                     `color:${devMode ? '#22c55e' : '#ef4444'};font-size:16px;font-weight:bold`
                 );
                 return false;
             }
         }, true);
 
-        function isDev() {
-            if (devMode) return true;
-            try { return localStorage.getItem('__dev__') === '1'; } catch(e) { return false; }
-        }
-
+        // ============================================================
         // 1. Disable right-click
+        // ============================================================
         document.addEventListener('contextmenu', function(e) {
             if (isDev()) return;
             e.preventDefault();
             return false;
         });
 
+        // ============================================================
         // 2. Block DevTools shortcuts
+        // ============================================================
         document.addEventListener('keydown', function(e) {
             if (isDev()) return;
 
+            // F12
             if (e.key === 'F12' || e.keyCode === 123) {
                 e.preventDefault();
                 return false;
             }
-            if (e.ctrlKey && e.shiftKey && ['I','J','C','i','j','c'].includes(e.key)) {
-                e.preventDefault();
-                return false;
-            }
-            if ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) {
-                e.preventDefault();
-                return false;
-            }
-            if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+            // Ctrl+Shift+I / J / C  (Cmd+Option+I / J / C on Mac)
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I','J','C','i','j','c'].includes(e.key)) {
                 e.preventDefault();
                 return false;
             }
@@ -2826,9 +2816,21 @@
                 e.preventDefault();
                 return false;
             }
+            // Ctrl+U / Cmd+U (view source)
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) {
+                e.preventDefault();
+                return false;
+            }
+            // Ctrl+S / Cmd+S (save page)
+            if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+                e.preventDefault();
+                return false;
+            }
         }, true);
 
+        // ============================================================
         // 3. Prevent text selection (except inputs)
+        // ============================================================
         document.addEventListener('selectstart', function(e) {
             if (isDev()) return;
             const t = e.target;
@@ -2836,7 +2838,9 @@
             e.preventDefault();
         });
 
+        // ============================================================
         // 4. Prevent copy (except inputs)
+        // ============================================================
         document.addEventListener('copy', function(e) {
             if (isDev()) return;
             const t = e.target;
@@ -2844,7 +2848,9 @@
             e.preventDefault();
         });
 
+        // ============================================================
         // 5. Prevent image drag
+        // ============================================================
         document.addEventListener('dragstart', function(e) {
             if (isDev()) return;
             if (e.target && e.target.tagName === 'IMG') {
@@ -2852,14 +2858,18 @@
             }
         });
 
+        // ============================================================
         // 6. Prevent iframe embedding
+        // ============================================================
         try {
             if (window.self !== window.top) {
                 window.top.location = window.self.location;
             }
         } catch(e) {}
 
-        // 7. Console clearing when DevTools opens
+        // ============================================================
+        // 7. Console clearing when DevTools opens (only when NOT dev mode)
+        // ============================================================
         let lastClear = 0;
         setInterval(function() {
             if (isDev()) return;
@@ -2880,7 +2890,9 @@
             }
         }, 3000);
 
+        // ============================================================
         // 8. Mobile long-press prevention
+        // ============================================================
         document.addEventListener('touchstart', function(e) {
             if (isDev()) return;
             if (e.target && e.target.tagName === 'IMG') {
@@ -2888,14 +2900,13 @@
             }
         }, { passive: false });
 
+        // ============================================================
         // Console reminder
-        if (new URLSearchParams(location.search).get('dev') === '1') {
-            console.log('%c🔓 DEV MODE ACTIVE (via URL)', 'color:#22c55e;font-size:14px;font-weight:bold');
-        } else if (DEV_KEYS.local) {
-            console.log('%c🔓 DEV MODE ACTIVE (via localStorage)', 'color:#22c55e;font-size:14px;font-weight:bold');
-            console.log('%cTo disable: localStorage.removeItem("__dev__")', 'color:#94a3b8;font-size:11px');
+        // ============================================================
+        if (urlDev) {
+            console.log('%c🔓 DEV MODE ACTIVE (via URL — remove ?dev=1 to lock)', 'color:#22c55e;font-size:14px;font-weight:bold');
         } else {
-            console.log('%c🔒 Protection active. Press Ctrl+Shift+D to toggle dev mode.', 'color:#64748b;font-size:11px');
+            console.log('%c🔒 Protection active. Press Ctrl+Shift+D (Cmd+Shift+D on Mac) to toggle for this page.', 'color:#64748b;font-size:11px');
         }
 
     })();
