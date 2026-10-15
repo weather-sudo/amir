@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ربات هوشمند آب‌وهوا — نسخه نهایی"""
+"""ربات آب‌وهوا — نسخه سریع نهایی"""
 
 import os, logging, asyncio, time, sqlite3, re
 from datetime import datetime
@@ -159,46 +159,38 @@ async def get_http():
     global _http
     if _http is None or _http.is_closed:
         _http = httpx.AsyncClient(
-            timeout=httpx.Timeout(8.0, connect=4.0),
-            limits=httpx.Limits(max_keepalive_connections=20, max_connections=40),
-            headers={"User-Agent": "WeatherBot/5.0"},
+            timeout=httpx.Timeout(6.0, connect=3.0),
+            limits=httpx.Limits(max_keepalive_connections=50, max_connections=100),
+            headers={"User-Agent": "WeatherBot/7.0"},
         )
     return _http
 
 _geo_cache, _geo_t = {}, {}
-_w_cache = {}
+_wx_cache = {}
+_aqi_cache = {}
 GEO_TTL = 86400
-WX_TTL = 1800
+WX_TTL = 900
+AQI_TTL = 900
 
 def _cget(cache, tc, key, ttl):
     if key in cache and time.time() - tc.get(key, 0) < ttl: return cache[key]
     cache.pop(key, None); tc.pop(key, None); return None
 
-
-# ==================== safe_edit — جلوگیری از خطای "Message can't be edited" ====================
+# ==================== safe_edit ====================
 async def safe_edit(msg, text, **kwargs):
-    """اگه edit نشد، پیام جدید می‌فرسته"""
     try:
         await msg.edit_text(text, **kwargs)
         return msg
     except Exception as e:
-        err_str = str(e).lower()
-        # اگه پیام یکسانه، کاری نکن
-        if "message is not modified" in err_str:
-            return msg
-        # در بقیه موارد، پیام جدید بفرست
-        logger.info(f"edit failed ({e}), sending new message")
+        err = str(e).lower()
+        if "message is not modified" in err: return msg
         try:
-            chat_id = msg.chat_id
-            new_msg = await msg.get_bot().send_message(chat_id=chat_id, text=text, **kwargs)
-            return new_msg
-        except Exception as e2:
-            # اگه HTML مشکل داشت، plain بفرست
+            return await msg.get_bot().send_message(chat_id=msg.chat_id, text=text, **kwargs)
+        except Exception:
             try:
                 plain = re.sub(r'<[^>]+>', '', text)
                 return await msg.get_bot().send_message(chat_id=msg.chat_id, text=plain[:4000])
             except Exception: return msg
-
 
 # ==================== شهرها ====================
 IRAN = [
@@ -236,7 +228,6 @@ IRAN = [
     ("Sarab","سراب",36.3175,47.5648),("Azarshahr","آذرشهر",37.7585,45.9794),
     ("Osku","اسکو",37.9161,46.1245),("Shabestar","شبستر",38.1784,45.7002),
     ("Jolfa","جلفا",38.9376,45.6252),("Sardrud","سردرود",38.0314,46.1475),
-    ("Bostanabad","بستان‌آباد",37.8500,46.8333),("Malekan","ملکان",37.1333,46.1000),
     ("Urmia","ارومیه",37.5553,45.0725),("Khoy","خوی",38.5500,44.9500),
     ("Mahabad","مهاباد",36.7639,45.7222),("Bukan","بوکان",36.5210,46.2100),
     ("Miandoab","میاندوآب",36.9667,46.1000),("Salmas","سلماس",38.1972,44.7683),
@@ -258,8 +249,6 @@ IRAN = [
     ("Sowme'eh Sara","صومعه‌سرا",37.3114,49.3206),("Rudbar","رودبار",36.8236,49.4278),
     ("Astara","آستارا",38.4222,48.8722),("Masal","ماسال",37.3631,49.1325),
     ("Rezvanshahr","رضوانشهر",37.5514,49.1372),("Amlash","املش",37.1000,50.1833),
-    ("Khomam","خمام",37.4000,49.6333),("Chaboksar","چابکسر",36.9667,50.5667),
-    ("Manjil","منجیل",36.7442,49.4019),("Lowshan","لوشان",36.6333,49.5167),
     ("Sari","ساری",36.5633,53.0601),("Babol","بابل",36.5513,52.6789),
     ("Amol","آمل",36.4696,52.3506),("Qaem Shahr","قائم‌شهر",36.4633,52.8600),
     ("Behshahr","بهشهر",36.6925,53.5522),("Chalus","چالوس",36.6550,51.4200),
@@ -327,7 +316,6 @@ for name_en, name_fa, lat, lon in IRAN:
     CITY_INDEX[name_fa.replace("‌", "")] = entry
     CITY_INDEX[name_fa.replace("ي", "ی").replace("ك", "ک")] = entry
 
-# ==================== ترجمه ====================
 WMO = {
     0: {"fa":"آسمان صاف","en":"Clear","ic":"☀️"},1: {"fa":"تقریباً صاف","en":"Mainly clear","ic":"🌤️"},
     2: {"fa":"نیمه ابری","en":"Partly cloudy","ic":"⛅"},3: {"fa":"ابری","en":"Overcast","ic":"☁️"},
@@ -366,7 +354,7 @@ def uv_lvl(uv, lang):
 
 def aqi_i(v, lang):
     levels = [
-        (20,{"lbl":"خوب" if lang=="fa" else "Good","ic":"🟢","ad":"هوا پاکه 😎" if lang=="fa" else "Air is clean 😎"}),
+        (20,{"lbl":"خوب" if lang=="fa" else "Good","ic":"🟢","ad":"هوا پاکه 😎" if lang=="fa" else "Air clean 😎"}),
         (40,{"lbl":"قابل قبول" if lang=="fa" else "Fair","ic":"🟡","ad":"کیفیت قابل قبوله" if lang=="fa" else "Acceptable"}),
         (60,{"lbl":"متوسط" if lang=="fa" else "Moderate","ic":"🟠","ad":"گروه‌های حساس احتیاط کنن" if lang=="fa" else "Sensitive groups be careful"}),
         (80,{"lbl":"ضعیف" if lang=="fa" else "Poor","ic":"🔴","ad":"ماسک بزن" if lang=="fa" else "Wear mask"}),
@@ -405,20 +393,18 @@ def smart_tips(w, a, lang):
     rp = w.get("rain_prob", 0)
     if lang == "fa":
         if feels >= 42: t.append("🥵 گرمای شدید! آب زیاد بخور")
-        elif feels >= 32: t.append("☀️ هوا گرمه، ضدآفتاب بزن")
+        elif feels >= 32: t.append("☀️ ضدآفتاب بزن")
         elif feels <= 0: t.append("🥶 سرده! لباس گرم بپوش")
         elif feels <= 10: t.append("🧥 کاپشن بردار")
-        if rp >= 60: t.append(f"☔ احتمال باران {rp}% — چتر یادت نره")
+        if rp >= 60: t.append(f"☔ باران {rp}% — چتر یادت نره")
         if uv >= 6: t.append("🕶️ ضدآفتاب بزن")
-        if a and a.get("european_aqi", 0) >= 60: t.append(f"😷 کیفیت هوا {a['european_aqi']} — ماسک بزن")
+        if a and a.get("european_aqi", 0) >= 60: t.append(f"😷 AQI {a['european_aqi']}")
     else:
-        if feels >= 42: t.append("🥵 Extreme heat! Drink water")
+        if feels >= 42: t.append("🥵 Extreme heat!")
         elif feels >= 32: t.append("☀️ Hot! Sunscreen")
-        elif feels <= 0: t.append("🥶 Freezing! Warm clothes")
-        elif feels <= 10: t.append("🧥 Chilly, take jacket")
-        if rp >= 60: t.append(f"☔ Rain {rp}% — umbrella!")
+        elif feels <= 0: t.append("🥶 Freezing!")
+        if rp >= 60: t.append(f"☔ Rain {rp}%")
         if uv >= 6: t.append("🕶️ Sunscreen")
-        if a and a.get("european_aqi", 0) >= 60: t.append(f"😷 AQI {a['european_aqi']} — mask")
     return t[:3]
 
 # ==================== API ====================
@@ -443,82 +429,95 @@ async def geocode(q, lang="fa"):
     except Exception as e:
         logger.error(f"geocode: {e}"); return None
 
-async def f_weather_openmeteo(la, lo):
-    p = {"latitude": la, "longitude": lo,
-         "current": "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl,visibility,dew_point_2m,uv_index",
-         "daily": "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max",
-         "timezone": "auto", "forecast_days": 7, "past_days": 1}
-    cl = await get_http()
-    r = await cl.get(WEATHER_API, params=p)
-    r.raise_for_status()
-    return r.json()
 
-async def f_aqi_openmeteo(la, lo):
-    p = {"latitude": la, "longitude": lo,
-         "current": "european_aqi,pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,uv_index",
-         "timezone": "auto"}
-    cl = await get_http()
-    r = await cl.get(AQI_API, params=p)
-    r.raise_for_status()
-    return r.json().get("current")
+# ✅ آب‌وهوا فقط
+async def fetch_weather_only(la, lo, city_name=""):
+    k = f"{la:.3f},{lo:.3f}"
+    c = _cget(_wx_cache, {}, k, WX_TTL)
+    if c: return c
+    w = None
+    # اول Open-Meteo (timeout کوتاه)
+    try:
+        p = {"latitude": la, "longitude": lo,
+             "current": "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl,visibility,dew_point_2m,uv_index",
+             "daily": "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max",
+             "timezone": "auto", "forecast_days": 7, "past_days": 1}
+        cl = await get_http()
+        r = await cl.get(WEATHER_API, params=p)
+        r.raise_for_status()
+        w = r.json()
+    except Exception as e:
+        logger.warning(f"OM W failed: {e}"); w = None
+    # fallback wttr.in
+    if not w and city_name:
+        try:
+            cl = await get_http()
+            r = await cl.get(f"{WTTR_API}/{city_name}?format=j1")
+            r.raise_for_status()
+            data = r.json()
+            cur = data.get("current_condition", [{}])[0]
+            days = data.get("weather", [])
+            if cur:
+                w = {
+                    "current": {
+                        "temperature_2m": float(cur.get("temp_C", 0)),
+                        "apparent_temperature": float(cur.get("FeelsLikeC", cur.get("temp_C", 0))),
+                        "relative_humidity_2m": int(cur.get("humidity", 0)),
+                        "weather_code": WWW_TO_WMO.get(int(cur.get("weatherCode", 113)), 0),
+                        "wind_speed_10m": float(cur.get("windspeedKmph", 0)),
+                        "wind_direction_10m": int(cur.get("winddirDegree", 0)),
+                        "pressure_msl": float(cur.get("pressure", 1013)),
+                        "visibility": float(cur.get("visibility", 10)) * 1000,
+                        "dew_point_2m": float(cur.get("DewPointC", 0)),
+                        "uv_index": float(cur.get("uvIndex", 0)),
+                    },
+                    "daily": {
+                        "time": [d.get("date") for d in days],
+                        "weather_code": [WWW_TO_WMO.get(int(d.get("hourly", [{}])[4].get("weatherCode", 113)) if len(d.get("hourly", [])) > 4 else 113, 0) for d in days],
+                        "temperature_2m_max": [float(d.get("maxtempC", 0)) for d in days],
+                        "temperature_2m_min": [float(d.get("mintempC", 0)) for d in days],
+                        "precipitation_probability_max": [int(d.get("hourly", [{}])[4].get("chanceofrain", 0)) if len(d.get("hourly", [])) > 4 else 0 for d in days],
+                        "sunrise": [None] * len(days), "sunset": [None] * len(days),
+                    },
+                    "rain_prob": int(days[0].get("hourly", [{}])[4].get("chanceofrain", 0)) if days and len(days[0].get("hourly", [])) > 4 else 0
+                }
+        except Exception as e:
+            logger.warning(f"wttr failed: {e}"); w = None
+    if w: _wx_cache[k] = {"w": w, "t": time.time()}
+    return w
 
-async def f_weather_wttr(city_name):
+
+# ✅ AQI فقط
+async def fetch_aqi_only(la, lo):
+    k = f"{la:.3f},{lo:.3f}"
+    c = _cget(_aqi_cache, {}, k, AQI_TTL)
+    if c: return c
     try:
         cl = await get_http()
-        url = f"{WTTR_API}/{city_name}?format=j1"
-        r = await cl.get(url)
+        p = {"latitude": la, "longitude": lo,
+             "current": "european_aqi,pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,uv_index",
+             "timezone": "auto"}
+        r = await cl.get(AQI_API, params=p)
         r.raise_for_status()
-        data = r.json()
-        cur = data.get("current_condition", [{}])[0]
-        days = data.get("weather", [])
-        if not cur: return None
-        weather = {
-            "current": {
-                "temperature_2m": float(cur.get("temp_C", 0)),
-                "apparent_temperature": float(cur.get("FeelsLikeC", cur.get("temp_C", 0))),
-                "relative_humidity_2m": int(cur.get("humidity", 0)),
-                "weather_code": WWW_TO_WMO.get(int(cur.get("weatherCode", 113)), 0),
-                "wind_speed_10m": float(cur.get("windspeedKmph", 0)),
-                "wind_direction_10m": int(cur.get("winddirDegree", 0)),
-                "pressure_msl": float(cur.get("pressure", 1013)),
-                "visibility": float(cur.get("visibility", 10)) * 1000,
-                "dew_point_2m": float(cur.get("DewPointC", 0)),
-                "uv_index": float(cur.get("uvIndex", 0)),
-            },
-            "daily": {
-                "time": [d.get("date") for d in days],
-                "weather_code": [WWW_TO_WMO.get(int(d.get("hourly", [{}])[4].get("weatherCode", 113)) if len(d.get("hourly", [])) > 4 else 113, 0) for d in days],
-                "temperature_2m_max": [float(d.get("maxtempC", 0)) for d in days],
-                "temperature_2m_min": [float(d.get("mintempC", 0)) for d in days],
-                "precipitation_probability_max": [int(d.get("hourly", [{}])[4].get("chanceofrain", 0)) if len(d.get("hourly", [])) > 4 else 0 for d in days],
-                "sunrise": [None] * len(days), "sunset": [None] * len(days),
-            },
-            "rain_prob": int(days[0].get("hourly", [{}])[4].get("chanceofrain", 0)) if days and len(days[0].get("hourly", [])) > 4 else 0
-        }
-        return weather
-    except Exception as e:
-        logger.warning(f"wttr failed: {e}"); return None
+        a = r.json().get("current")
+        if a: _aqi_cache[k] = {"a": a, "t": time.time()}
+        return a
+    except Exception: return None
 
-async def fetch_all(la, lo, city_name=""):
-    k = f"{la:.3f},{lo:.3f}"
-    c = _w_cache.get(k)
-    if c and time.time() - c["t"] < WX_TTL: return c["w"], c["a"]
-    w = None; a = None
+
+# ✅ دریافت موازی (سرعت بالا)
+async def fetch_all_parallel(la, lo, city_name=""):
+    """آب‌وهوا و AQI با هم شروع می‌شن، منتظر آب‌وهوا می‌مونه"""
+    wx_task = asyncio.create_task(fetch_weather_only(la, lo, city_name))
+    aqi_task = asyncio.create_task(fetch_aqi_only(la, lo))
+    w = await wx_task
+    a = None
     try:
-        w = await asyncio.wait_for(f_weather_openmeteo(la, lo), timeout=6.0)
-    except Exception as e:
-        logger.warning(f"openmeteo weather failed: {e}"); w = None
-    if not w and city_name:
-        logger.info(f"wttr fallback for {city_name}")
-        try:
-            w = await asyncio.wait_for(f_weather_wttr(city_name), timeout=6.0)
-        except Exception as e: w = None
-    try:
-        a = await asyncio.wait_for(f_aqi_openmeteo(la, lo), timeout=5.0)
-    except Exception as e:
-        logger.info(f"aqi failed: {e}"); a = None
-    if w: _w_cache[k] = {"w": w, "a": a, "t": time.time()}
+        a = await asyncio.wait_for(aqi_task, timeout=2.0)
+    except Exception:
+        a = None
     return w, a
+
 
 # ==================== ساخت پیام ====================
 def build_w(city, w, a, lang, unit):
@@ -610,18 +609,16 @@ async def snd_weather(ctx, chat_id, uid, q, u):
     load = "⏳ در حال دریافت..." if u["lang"]=="fa" else "⏳ Fetching..."
     try:
         msg = await ctx.bot.send_message(chat_id=chat_id, text=load)
-    except Exception as e:
-        logger.error(f"send: {e}"); return
+    except Exception: return
     try:
         city = await geocode(q, u["lang"])
         if not city:
             await safe_edit(msg, "❌ شهر پیدا نشد" if u["lang"]=="fa" else "❌ Not found"); return
         la, lo = city["latitude"], city["longitude"]
-        w, a = await fetch_all(la, lo, city.get("name", q))
+        w, a = await fetch_all_parallel(la, lo, city.get("name", q))
         if not w:
-            err = ("⚠️ سرویس آب‌وهوا فعلاً در دسترس نیست.\n"
-                   "دوباره تلاش کن.") if u["lang"]=="fa" else "⚠️ Weather unavailable. Try again."
-            await safe_edit(msg, err); return
+            await safe_edit(msg, "⚠️ سرویس در دسترس نیست. دوباره تلاش کن." if u["lang"]=="fa"
+                            else "⚠️ Service unavailable."); return
         text = build_w(city, w, a, u["lang"], u["unit"])
         kb = None
         if WEB_APP_URL:
@@ -630,29 +627,27 @@ async def snd_weather(ctx, chat_id, uid, q, u):
         await safe_edit(msg, text, parse_mode=ParseMode.HTML, reply_markup=kb)
         stat("weather_requests")
     except Exception as e:
-        logger.exception("snd_weather")
         log_err(uid, e, "snd_weather")
         try: await safe_edit(msg, f"❌ {str(e)[:80]}")
         except Exception: pass
 
 
 async def snd_aqi(ctx, chat_id, uid, q, u):
-    load = "⏳ در حال دریافت..." if u["lang"]=="fa" else "⏳ Fetching..."
-    msg = await ctx.bot.send_message(chat_id=chat_id, text=load)
+    msg = await ctx.bot.send_message(chat_id=chat_id, text="⏳ ...")
     try:
         city = await geocode(q, u["lang"])
         if not city:
-            await safe_edit(msg, "❌ پیدا نشد"); return
-        _, a = await fetch_all(city["latitude"], city["longitude"], city.get("name",""))
+            await safe_edit(msg, "❌"); return
+        a = await fetch_aqi_only(city["latitude"], city["longitude"])
         if not a or a.get("european_aqi") is None:
-            await safe_edit(msg, "⚠️ داده کیفیت هوا در دسترس نیست" if u["lang"]=="fa" else "⚠️ AQI unavailable"); return
+            await safe_edit(msg, "⚠️ داده AQI در دسترس نیست" if u["lang"]=="fa" else "⚠️ AQI unavailable"); return
         v = a["european_aqi"]; info = aqi_i(v, u["lang"])
         cn = (city.get("name_fa") or city["name"]) if u["lang"]=="fa" else city["name"]
         pollutants = {
             "pm2_5": (a.get("pm2_5"), "PM2.5", "ذرات ریز", "Fine"),
             "pm10": (a.get("pm10"), "PM10", "ذرات معلق", "Coarse"),
-            "no2": (a.get("nitrogen_dioxide"), "NO₂", "دی‌اکسید نیتروژن", "NO2"),
-            "so2": (a.get("sulphur_dioxide"), "SO₂", "دی‌اکسید گوگرد", "SO2"),
+            "no2": (a.get("nitrogen_dioxide"), "NO₂", "نیتروژن", "NO2"),
+            "so2": (a.get("sulphur_dioxide"), "SO₂", "گوگرد", "SO2"),
             "o3": (a.get("ozone"), "O₃", "ازن", "Ozone"),
             "co": (a.get("carbon_monoxide"), "CO", "مونوکسید کربن", "CO"),
         }
@@ -663,21 +658,19 @@ async def snd_aqi(ctx, chat_id, uid, q, u):
             for k,(val,name,desc,_) in pollutants.items():
                 if val is not None:
                     q2 = pol_quality(val, k, "fa")
-                    L.append(f"{pol_lvl(val,k)} <b>{name}</b>: {round(val)} µg/m³ <i>({q2})</i> — {desc}")
+                    L.append(f"{pol_lvl(val,k)} <b>{name}</b>: {round(val)} µg/m³ <i>({q2})</i>")
             uv = a.get("uv_index")
             if uv is not None:
                 lb, ci = uv_lvl(uv, "fa")
                 L.append(""); L.append(f"☀️ UV: {ci} <b>{lb}</b> ({uv:.1f})")
             L.append(""); L.append("💡 " + info["ad"])
         else:
-            L = [f"🌫️ <b>Air Quality — {cn}</b>", "", f"{info['ic']} <b>{info['lbl']}</b>",
-                 f"📊 AQI: <b>{v}</b>", f"<code>{bar(v,100,15)}</code>", "",
-                 "🔬 <b>Pollutants:</b>", ""]
-            for k,(val,name,_,en) in pollutants.items():
+            L = [f"🌫️ <b>AQI — {cn}</b>", "", f"{info['ic']} <b>{info['lbl']}</b>",
+                 f"📊 AQI: <b>{v}</b>", f"<code>{bar(v,100,15)}</code>"]
+            for k,(val,name,_,_) in pollutants.items():
                 if val is not None:
                     q2 = pol_quality(val, k, "en")
                     L.append(f"{pol_lvl(val,k)} <b>{name}</b>: {round(val)} µg/m³ <i>({q2})</i>")
-            L.append(""); L.append("💡 " + info["ad"])
         await safe_edit(msg, "\n".join(L), parse_mode=ParseMode.HTML)
         stat("aqi_requests")
     except Exception as e:
@@ -687,17 +680,15 @@ async def snd_aqi(ctx, chat_id, uid, q, u):
 
 
 async def snd_forecast(ctx, chat_id, uid, q, u):
-    load = "⏳ در حال دریافت..." if u["lang"]=="fa" else "⏳ Fetching..."
-    msg = await ctx.bot.send_message(chat_id=chat_id, text=load)
+    msg = await ctx.bot.send_message(chat_id=chat_id, text="⏳ ...")
     try:
         city = await geocode(q, u["lang"])
-        if not city:
-            await safe_edit(msg, "❌ پیدا نشد"); return
-        w, _ = await fetch_all(city["latitude"], city["longitude"], city.get("name",""))
-        if not w: await safe_edit(msg, "⚠️ خطا"); return
+        if not city: await safe_edit(msg, "❌"); return
+        w = await fetch_weather_only(city["latitude"], city["longitude"], city.get("name",""))
+        if not w: await safe_edit(msg, "⚠️"); return
         d = w.get("daily", {})
         cn = (city.get("name_fa") or city["name"]) if u["lang"]=="fa" else city["name"]
-        if not d.get("time"): await safe_edit(msg, "⚠️ داده موجود نیست"); return
+        if not d.get("time"): await safe_edit(msg, "⚠️"); return
         L = [f"📅 <b>{'پیش‌بینی' if u['lang']=='fa' else 'Forecast'} — {cn}</b>", ""]
         days = ["دوشنبه","سه‌شنبه","چهارشنبه","پنج‌شنبه","جمعه","شنبه","یکشنبه"]
         for i in range(1, min(8, len(d["time"]))):
@@ -721,18 +712,17 @@ async def snd_compare(ctx, chat_id, uid, cities, u):
                                    else "Example: /compare Tehran Mashhad"); return
     msg = await ctx.bot.send_message(chat_id=chat_id, text="⏳ ...")
     try:
-        c1 = await geocode(cities[0], u["lang"]); c2 = await geocode(cities[1], u["lang"])
+        c1, c2 = await asyncio.gather(geocode(cities[0], u["lang"]), geocode(cities[1], u["lang"]))
         if not c1 or not c2:
-            await safe_edit(msg, "❌ پیدا نشد"); return
-        (w1, a1), (w2, a2) = await asyncio.gather(
-            fetch_all(c1["latitude"], c1["longitude"], c1.get("name","")),
-            fetch_all(c2["latitude"], c2["longitude"], c2.get("name","")))
-        if not w1 or not w2:
-            await safe_edit(msg, "⚠️ خطا"); return
+            await safe_edit(msg, "❌"); return
+        (w1, _), (w2, _) = await asyncio.gather(
+            fetch_all_parallel(c1["latitude"], c1["longitude"], c1.get("name","")),
+            fetch_all_parallel(c2["latitude"], c2["longitude"], c2.get("name","")))
+        if not w1 or not w2: await safe_edit(msg, "⚠️"); return
         def nm(c): return (c.get("name_fa") or c["name"]) if u["lang"]=="fa" else c["name"]
         t1 = w1["current"]["temperature_2m"]; t2 = w2["current"]["temperature_2m"]
         diff = t1 - t2
-        L = [f"⚖️ <b>{'مقایسه' if u['lang']=='fa' else 'Compare'}</b>", "",
+        L = [f"⚖️ <b>{'مقایسه دمای دو شهر' if u['lang']=='fa' else 'Compare Cities'}</b>", "",
              f"📍 <b>{nm(c1)}</b> — 🌡️ <b>{fmt_t(t1, u['unit'])}</b>",
              f"📍 <b>{nm(c2)}</b> — 🌡️ <b>{fmt_t(t2, u['unit'])}</b>", ""]
         if abs(diff) < 0.5: L.append("🤝 یکسان" if u["lang"]=="fa" else "🤝 Same")
@@ -762,67 +752,96 @@ def kb_main(lang):
         ph = "Type a city name..."
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, input_field_placeholder=ph)
 
+
 def build_menu(u):
     s = get_user(u["user_id"]); lang = u["lang"]
     nst = "✅ روشن" if s.get("notify_enabled") else "❌ خاموش"
     nst_en = "ON ✅" if s.get("notify_enabled") else "OFF ❌"
     hd = s.get("default_city") or ("تنظیم نشده" if lang == "fa" else "not set")
     if lang == "fa":
-        txt = (f"🎛️ <b>منو</b>\n\n🏙️ شهر پیش‌فرض: <b>{hd}</b>\n🔔 اعلان: <b>{nst}</b>\n"
-               f"⏰ ساعت: <b>{s.get('notify_time','07:00')}</b>\n🌡️ واحد: <b>{s['unit']}</b>")
+        txt = (f"🎛️ <b>منوی ربات</b>\n\n"
+               f"🏙️ شهر پیش‌فرض: <b>{hd}</b>\n"
+               f"🔔 اعلان روزانه: <b>{nst}</b>\n"
+               f"⏰ ساعت اعلان: <b>{s.get('notify_time','07:00')}</b>\n"
+               f"🌡️ واحد دما: <b>{s['unit']}</b>\n\n"
+               "👇 گزینه مورد نظرت رو انتخاب کن:")
         rows = [[InlineKeyboardButton("🏙️ تغییر شهر پیش‌فرض", callback_data="m:def")],
                 [InlineKeyboardButton("⚖️ مقایسه دمای دو شهر", callback_data="m:cmp")],
-                [InlineKeyboardButton(f"🔔 اعلان ({nst})", callback_data="m:ntf")],
-                [InlineKeyboardButton("⏰ ساعت اعلان", callback_data="m:tim")],
-                [InlineKeyboardButton("🌐 زبان", callback_data="m:lng"),
-                 InlineKeyboardButton("🌡️ واحد", callback_data="m:unt")]]
+                [InlineKeyboardButton(f"🔔 اعلان روزانه ({nst})", callback_data="m:ntf")],
+                [InlineKeyboardButton("⏰ تغییر ساعت اعلان", callback_data="m:tim")],
+                [InlineKeyboardButton("🌐 تغییر زبان", callback_data="m:lng"),
+                 InlineKeyboardButton("🌡️ تغییر واحد", callback_data="m:unt")]]
     else:
-        txt = (f"🎛️ <b>Menu</b>\n\n🏙️ Default: <b>{hd}</b>\n🔔 Notify: <b>{nst_en}</b>\n"
-               f"⏰ Time: <b>{s.get('notify_time','07:00')}</b>\n🌡️ Unit: <b>{s['unit']}</b>")
-        rows = [[InlineKeyboardButton("🏙️ Change Default", callback_data="m:def")],
-                [InlineKeyboardButton("⚖️ Compare Cities", callback_data="m:cmp")],
-                [InlineKeyboardButton(f"🔔 Notify ({nst_en})", callback_data="m:ntf")],
-                [InlineKeyboardButton("⏰ Time", callback_data="m:tim")],
-                [InlineKeyboardButton("🌐 Language", callback_data="m:lng"),
-                 InlineKeyboardButton("🌡️ Unit", callback_data="m:unt")]]
+        txt = (f"🎛️ <b>Bot Menu</b>\n\n"
+               f"🏙️ Default city: <b>{hd}</b>\n"
+               f"🔔 Daily notify: <b>{nst_en}</b>\n"
+               f"⏰ Notify time: <b>{s.get('notify_time','07:00')}</b>\n"
+               f"🌡️ Temp unit: <b>{s['unit']}</b>\n\n"
+               "👇 Choose an option:")
+        rows = [[InlineKeyboardButton("🏙️ Change Default City", callback_data="m:def")],
+                [InlineKeyboardButton("⚖️ Compare City Temperatures", callback_data="m:cmp")],
+                [InlineKeyboardButton(f"🔔 Daily Notify ({nst_en})", callback_data="m:ntf")],
+                [InlineKeyboardButton("⏰ Change Notify Time", callback_data="m:tim")],
+                [InlineKeyboardButton("🌐 Change Language", callback_data="m:lng"),
+                 InlineKeyboardButton("🌡️ Change Unit", callback_data="m:unt")]]
     return txt, rows
+
 
 def build_admin_panel(u):
     lang = u["lang"]; s = all_stats()
     total = total_users(); active = active_users_24h()
     errs = recent_errors(5); tops = top_cities(5)
     if lang == "fa":
-        txt = (f"🔐 <b>پنل مدیریت</b>\n\n👥 کاربران: <b>{total}</b>\n🟢 فعال ۲۴h: <b>{active}</b>\n"
-               f"🚀 اجرا: <b>{s.get('bot_starts',0)}</b>\n\n📈 استفاده:\n"
-               f"  🌤️ <b>{s.get('weather_requests',0)}</b>  🌫️ <b>{s.get('aqi_requests',0)}</b>  "
-               f"📅 <b>{s.get('forecast_requests',0)}</b>  ⚖️ <b>{s.get('compare_requests',0)}</b>\n\n"
-               f"🔔 اعلان فعال: <b>{s.get('notify_enabled',0)}</b>  📨 ارسال: <b>{s.get('notifications_sent',0)}</b>")
+        txt = (f"🔐 <b>پنل مدیریت</b>\n\n"
+               f"👥 کاربران: <b>{total}</b>\n"
+               f"🟢 فعال ۲۴ ساعت: <b>{active}</b>\n"
+               f"🚀 تعداد اجرا: <b>{s.get('bot_starts',0)}</b>\n\n"
+               f"📈 استفاده:\n"
+               f"  🌤️ آب‌وهوا: <b>{s.get('weather_requests',0)}</b>\n"
+               f"  🌫️ AQI: <b>{s.get('aqi_requests',0)}</b>\n"
+               f"  📅 پیش‌بینی: <b>{s.get('forecast_requests',0)}</b>\n"
+               f"  ⚖️ مقایسه: <b>{s.get('compare_requests',0)}</b>\n\n"
+               f"🔔 اعلان فعال: <b>{s.get('notify_enabled',0)}</b>\n"
+               f"📨 اعلان ارسالی: <b>{s.get('notifications_sent',0)}</b>")
         if tops:
-            txt += "\n\n🏆 محبوب:\n"
+            txt += "\n\n🏆 <b>محبوب‌ترین شهرها:</b>\n"
             m = ["🥇","🥈","🥉","4️⃣","5️⃣"]
             for i,(cn,cnt) in enumerate(tops): txt += f"  {m[i]} {cn} — <b>{cnt}</b>\n"
         if errs:
-            txt += "\n⚠️ خطاها:\n"
+            txt += "\n⚠️ <b>خطاهای اخیر:</b>\n"
             for e in errs: txt += f"  <code>{e['error'][:60]}</code>\n"
-        rows = [[InlineKeyboardButton("🔄 رفرش", callback_data="a:refresh")],
-                [InlineKeyboardButton("🚪 خروج", callback_data="a:logout")]]
+        rows = [[InlineKeyboardButton("🔄 رفرش آمار", callback_data="a:refresh")],
+                [InlineKeyboardButton("🚪 خروج از پنل", callback_data="a:logout")]]
     else:
-        txt = (f"🔐 <b>Admin</b>\n\n👥 Users: <b>{total}</b>\n🟢 Active: <b>{active}</b>\n"
-               f"🌤️ <b>{s.get('weather_requests',0)}</b>  🌫️ <b>{s.get('aqi_requests',0)}</b>\n")
+        txt = (f"🔐 <b>Admin Panel</b>\n\n"
+               f"👥 Users: <b>{total}</b>\n"
+               f"🟢 Active 24h: <b>{active}</b>\n"
+               f"🚀 Starts: <b>{s.get('bot_starts',0)}</b>\n\n"
+               f"📈 Usage:\n"
+               f"  🌤️ Weather: <b>{s.get('weather_requests',0)}</b>\n"
+               f"  🌫️ AQI: <b>{s.get('aqi_requests',0)}</b>\n"
+               f"  📅 Forecast: <b>{s.get('forecast_requests',0)}</b>\n"
+               f"  ⚖️ Compare: <b>{s.get('compare_requests',0)}</b>")
         rows = [[InlineKeyboardButton("🔄 Refresh", callback_data="a:refresh")],
                 [InlineKeyboardButton("🚪 Logout", callback_data="a:logout")]]
     return txt, rows
+
 
 # ==================== دستورات ====================
 async def cmd_start(update, ctx):
     u = get_user(update.effective_user.id, update)
     save_user(u["user_id"], pending_action=None)
     if u["lang"] == "fa":
-        txt = ("🌤️ <b>به ربات آب‌وهوا خوش آمدید!</b>\n\nفقط اسم شهر رو بنویس و بفرست 🚀\n\n"
-               "🎛️ دکمه منو برای همه امکانات\n💡 مثلاً: <code>تهران</code>")
+        txt = ("🌤️ <b>به ربات آب‌وهوا خوش آمدید!</b>\n\n"
+               "فقط اسم شهر رو بنویس و بفرست 🚀\n\n"
+               "🎛️ دکمه منو برای همه امکانات\n"
+               "💡 مثلاً: <code>تهران</code> یا <code>Paris</code>")
     else:
-        txt = "🌤️ <b>Welcome!</b>\n\nJust type a city name 🚀"
+        txt = ("🌤️ <b>Welcome!</b>\n\n"
+               "Just type a city name 🚀\n\n"
+               "💡 Example: <code>Tehran</code>")
     await update.message.reply_text(txt, parse_mode=ParseMode.HTML, reply_markup=kb_main(u["lang"]))
+
 
 async def cmd_weather(update, ctx):
     u = get_user(update.effective_user.id, update)
@@ -832,6 +851,7 @@ async def cmd_weather(update, ctx):
         await update.message.reply_text("اسم شهر رو بنویس", reply_markup=kb_main(u["lang"])); return
     await snd_weather(ctx, update.effective_chat.id, u["user_id"], " ".join(ctx.args), u)
 
+
 async def cmd_aqi(update, ctx):
     u = get_user(update.effective_user.id, update)
     if not ctx.args:
@@ -839,6 +859,7 @@ async def cmd_aqi(update, ctx):
             await snd_aqi(ctx, update.effective_chat.id, u["user_id"], u["default_city"], u); return
         await update.message.reply_text("/aqi تهران", reply_markup=kb_main(u["lang"])); return
     await snd_aqi(ctx, update.effective_chat.id, u["user_id"], " ".join(ctx.args), u)
+
 
 async def cmd_forecast(update, ctx):
     u = get_user(update.effective_user.id, update)
@@ -848,24 +869,30 @@ async def cmd_forecast(update, ctx):
         await update.message.reply_text("/forecast تهران", reply_markup=kb_main(u["lang"])); return
     await snd_forecast(ctx, update.effective_chat.id, u["user_id"], " ".join(ctx.args), u)
 
+
 async def cmd_compare(update, ctx):
     u = get_user(update.effective_user.id, update)
     await snd_compare(ctx, update.effective_chat.id, u["user_id"], ctx.args, u)
 
+
 async def cmd_default(update, ctx):
     u = get_user(update.effective_user.id, update)
     if not ctx.args:
-        await update.message.reply_text(f"🏙️ {u.get('default_city') or '—'}", reply_markup=kb_main(u["lang"])); return
+        await update.message.reply_text(f"🏙️ {u.get('default_city') or '—'}",
+                                        reply_markup=kb_main(u["lang"])); return
     city = await geocode(" ".join(ctx.args), u["lang"])
     if not city: await update.message.reply_text("❌"); return
     save_user(u["user_id"], default_city=city["name"])
-    await update.message.reply_text(f"✅ <b>{city['name']}</b>", parse_mode=ParseMode.HTML, reply_markup=kb_main(u["lang"]))
+    await update.message.reply_text(f"✅ <b>{city['name']}</b>",
+                                    parse_mode=ParseMode.HTML, reply_markup=kb_main(u["lang"]))
+
 
 async def cmd_notify(update, ctx):
     u = get_user(update.effective_user.id, update)
     if not ctx.args:
         s = "✅" if u.get("notify_enabled") else "❌"
-        await update.message.reply_text(f"🔔 {s} {u.get('notify_time','07:00')}", reply_markup=kb_main(u["lang"])); return
+        await update.message.reply_text(f"🔔 {s} {u.get('notify_time','07:00')}",
+                                        reply_markup=kb_main(u["lang"])); return
     a = ctx.args[0].lower()
     if a in ("on","روشن"):
         if not u.get("default_city"): await update.message.reply_text("اول /default تهران"); return
@@ -874,6 +901,7 @@ async def cmd_notify(update, ctx):
     elif a in ("off","خاموش"):
         save_user(u["user_id"], notify_enabled=0)
         await update.message.reply_text("❌", reply_markup=kb_main(u["lang"]))
+
 
 async def cmd_settime(update, ctx):
     u = get_user(update.effective_user.id, update)
@@ -885,18 +913,20 @@ async def cmd_settime(update, ctx):
         await update.message.reply_text(f"✅ {h:02d}:{m:02d}", reply_markup=kb_main(u["lang"]))
     except Exception: await update.message.reply_text("❌")
 
+
 async def on_location(update, ctx):
     u = get_user(update.effective_user.id, update)
     loc = update.message.location
     if not loc: return
     msg = await update.message.reply_text("⏳ ...")
     try:
-        w, a = await fetch_all(loc.latitude, loc.longitude, "")
-        if not w: await safe_edit(msg, "⚠️ خطا"); return
+        w, a = await fetch_all_parallel(loc.latitude, loc.longitude, "")
+        if not w: await safe_edit(msg, "⚠️"); return
         city = {"name": "موقعیت شما" if u["lang"]=="fa" else "Your Location",
                 "latitude": loc.latitude, "longitude": loc.longitude}
         await safe_edit(msg, build_w(city, w, a, u["lang"], u["unit"]), parse_mode=ParseMode.HTML)
     except Exception as e: log_err(u["user_id"], e, "loc")
+
 
 # ==================== متن ====================
 async def on_text(update, ctx):
@@ -913,7 +943,8 @@ async def on_text(update, ctx):
                                        reply_markup=InlineKeyboardMarkup(rows))
             return
         save_user(u["user_id"], pending_action="admin_pass")
-        await ctx.bot.send_message(chat_id=chat_id, text="🔐 رمز:" if lang=="fa" else "🔐 Password:")
+        await ctx.bot.send_message(chat_id=chat_id,
+                                   text="🔐 رمز عبور رو وارد کن:" if lang=="fa" else "🔐 Enter password:")
         return
 
     if t in ["🎛️ منو","🎛️ Menu"]:
@@ -961,7 +992,7 @@ async def on_text(update, ctx):
             await ctx.bot.send_message(chat_id=chat_id, text=txt, parse_mode=ParseMode.HTML,
                                        reply_markup=InlineKeyboardMarkup(rows))
         else:
-            await ctx.bot.send_message(chat_id=chat_id, text="❌")
+            await ctx.bot.send_message(chat_id=chat_id, text="❌ رمز اشتباه" if lang=="fa" else "❌ Wrong")
         return
 
     if act:
@@ -974,7 +1005,7 @@ async def on_text(update, ctx):
             save_user(u["user_id"], default_city=c["name"])
             u3 = get_user(u["user_id"])
             txt, rows = build_menu(u3)
-            await ctx.bot.send_message(chat_id=chat_id, text=f"✅ {c['name']}\n\n{txt}",
+            await ctx.bot.send_message(chat_id=chat_id, text=f"✅ <b>{c['name']}</b>\n\n{txt}",
                                        parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(rows))
             return
         if act == "c1":
@@ -992,6 +1023,7 @@ async def on_text(update, ctx):
     except Exception: pass
     await snd_weather(ctx, chat_id, u["user_id"], t, u)
 
+
 # ==================== Callbacks ====================
 async def on_cb(update, ctx):
     q = update.callback_query
@@ -1008,7 +1040,7 @@ async def on_cb(update, ctx):
 
     if d == "a:logout":
         logout_admin(u["user_id"]); await q.answer("🚪")
-        try: await q.edit_message_text("🚪")
+        try: await q.edit_message_text("🚪 از پنل خارج شدی" if lang=="fa" else "🚪 Logged out")
         except Exception: pass
         return
 
@@ -1031,19 +1063,16 @@ async def on_cb(update, ctx):
         except Exception: pass
         return
 
-    # ✅ دکمه تغییر شهر پیش‌فرض (منو)
     if d == "m:def":
         save_user(u["user_id"], pending_action="def"); await q.answer()
         await ctx.bot.send_message(chat_id=chat_id, text="🏙️ اسم شهر جدید:")
         return
 
-    # ✅ دکمه مقایسه (منو)
     if d == "m:cmp":
         save_user(u["user_id"], pending_action="c1", compare_temp=None); await q.answer()
-        await ctx.bot.send_message(chat_id=chat_id, text="⚖️ شهر اول:")
+        await ctx.bot.send_message(chat_id=chat_id, text="⚖️ اسم شهر اول:")
         return
 
-    # ✅ دکمه اعلان — با چک کردن شهر پیش‌فرض (رفتار قبلی برگشت)
     if d == "m:ntf":
         s = get_user(u["user_id"])
         if not s.get("default_city"):
@@ -1063,8 +1092,14 @@ async def on_cb(update, ctx):
         await q.answer()
         times = ["06:00","07:00","08:00","09:00","12:00","15:00","18:00","21:00"]
         rows = [[InlineKeyboardButton(tt, callback_data=f"st:{tt}") for tt in times[i:i+4]] for i in range(0,len(times),4)]
-        rows.append([InlineKeyboardButton("🔙", callback_data="m:home")])
-        await q.edit_message_text("⏰", reply_markup=InlineKeyboardMarkup(rows))
+        rows.append([InlineKeyboardButton("🔙 بازگشت به منو" if lang=="fa" else "🔙 Back to Menu",
+                                          callback_data="m:home")])
+        try:
+            await q.edit_message_text(
+                "⏰ <b>ساعت اعلان</b>\n\nساعت مورد نظرت رو انتخاب کن:" if lang=="fa"
+                else "⏰ <b>Notify Time</b>\n\nChoose the time:",
+                parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(rows))
+        except Exception: pass
         return
 
     if d.startswith("st:"):
@@ -1088,17 +1123,30 @@ async def on_cb(update, ctx):
         await q.answer()
         rows = [[InlineKeyboardButton("🇮🇷 فارسی", callback_data="lang:fa"),
                  InlineKeyboardButton("🇬🇧 English", callback_data="lang:en")],
-                [InlineKeyboardButton("🔙", callback_data="m:home")]]
-        await q.edit_message_text("🌐", reply_markup=InlineKeyboardMarkup(rows))
+                [InlineKeyboardButton("🔙 بازگشت به منو" if lang=="fa" else "🔙 Back to Menu",
+                                      callback_data="m:home")]]
+        try:
+            await q.edit_message_text(
+                "🌐 <b>انتخاب زبان</b>\n\nزبان مورد نظرت رو انتخاب کن:" if lang=="fa"
+                else "🌐 <b>Choose Language</b>\n\nSelect your language:",
+                parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(rows))
+        except Exception: pass
         return
 
     if d == "m:unt":
         await q.answer()
-        rows = [[InlineKeyboardButton("°C", callback_data="unit:C"),
-                 InlineKeyboardButton("°F", callback_data="unit:F")],
-                [InlineKeyboardButton("🔙", callback_data="m:home")]]
-        await q.edit_message_text("🌡️", reply_markup=InlineKeyboardMarkup(rows))
+        rows = [[InlineKeyboardButton("🌡️ سلسیوس °C", callback_data="unit:C"),
+                 InlineKeyboardButton("🌡️ فارنهایت °F", callback_data="unit:F")],
+                [InlineKeyboardButton("🔙 بازگشت به منو" if lang=="fa" else "🔙 Back to Menu",
+                                      callback_data="m:home")]]
+        try:
+            await q.edit_message_text(
+                "🌡️ <b>واحد دما</b>\n\nواحد مورد نظرت رو انتخاب کن:" if lang=="fa"
+                else "🌡️ <b>Temperature Unit</b>\n\nChoose the unit:",
+                parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(rows))
+        except Exception: pass
         return
+
 
 # ==================== notify ====================
 async def notify_job(ctx):
@@ -1111,7 +1159,7 @@ async def notify_job(ctx):
             lg, un = ud["lang"], ud["unit"]
             city = await geocode(cn, lg)
             if not city: continue
-            w, a = await fetch_all(city["latitude"], city["longitude"], city.get("name",""))
+            w, a = await fetch_all_parallel(city["latitude"], city["longitude"], city.get("name",""))
             if not w: continue
             c = w["current"]; ic = WMO.get(c.get("weather_code",0), {"ic":"❓"})["ic"]
             cname = (city.get("name_fa") or city["name"]) if lg=="fa" else city["name"]
@@ -1122,6 +1170,7 @@ async def notify_job(ctx):
         except Exception as e:
             logger.error(f"notify: {e}")
 
+
 # ==================== main ====================
 async def post_init(app):
     init_db()
@@ -1129,6 +1178,7 @@ async def post_init(app):
     if app.job_queue:
         app.job_queue.run_repeating(notify_job, interval=30, first=10)
     logger.info("✅ Bot started")
+
 
 def main():
     if BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
@@ -1148,6 +1198,7 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
     print("🤖 Bot running...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
+
 
 if __name__ == "__main__":
     main()
