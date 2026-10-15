@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ربات هوشمند آب‌وهوا — نسخه نهایی"""
 
-import os, logging, asyncio, time, sqlite3, re
+import os, logging, asyncio, time, sqlite3
 from datetime import datetime
 from typing import Optional
 
@@ -293,7 +293,7 @@ IRAN = [
     ("Masjed Soleyman","مسجدسلیمان",31.9353,49.3039),("Shush","شوش",32.1944,48.2572),
     ("Bandar Mahshahr","بندر ماهشهر",30.5589,49.1981),("Omidiyeh","امیدیه",30.7622,49.7025),
     ("Ramhormoz","رامهرمز",31.2792,49.6022),("Susangerd","سوسنگرد",31.5619,48.1819),
-    ("Hendijan","هندیجان",30.2342,49.7139),("Dehdez","دهدز",31.7083,50.2856),
+    ("Hendijan","هندیجان",30.2342,49.7139),("DehdeZ","دهدز",31.7083,50.2856),
     ("Shadegan","شادگان",30.6500,48.6667),("Hoveyzeh","هویزه",31.4667,48.0833),
     ("Haftgel","هفتکل",31.4667,49.5500),("Aghajari","آغاجاری",30.7000,49.8333),
     ("Gotvand","گتوند",32.2500,48.8167),("Lali","لالی",32.3333,49.1000),
@@ -554,37 +554,6 @@ async def fetch_all(la, lo):
     return w, a
 
 
-# ==================== تایپ نرم ====================
-async def smooth_type(msg, final_text: str, duration: float = 1.5):
-    """تایپ نرم — کاراکتر به کاراکتر مثل ماشین تحریر"""
-    plain = re.sub(r'<[^>]+>', '', final_text)
-    plain = re.sub(r'\s+', ' ', plain).strip()
-    total = len(plain)
-    if total < 20:
-        try: await msg.edit_text(final_text, parse_mode=ParseMode.HTML)
-        except Exception: pass
-        return
-
-    steps = min(10, max(4, total // 15))
-    delay = duration / steps
-
-    for i in range(1, steps + 1):
-        chars = int(total * i / steps)
-        partial = plain[:chars]
-        if i < steps:
-            partial += " ▌"
-        try:
-            await msg.edit_text(partial)
-        except Exception:
-            pass
-        await asyncio.sleep(delay)
-
-    try:
-        await msg.edit_text(final_text, parse_mode=ParseMode.HTML)
-    except Exception:
-        pass
-
-
 # ==================== ساخت پیام ====================
 def build_w(city, w, a, lang, unit):
     c = w["current"]; d = w["daily"]
@@ -705,47 +674,50 @@ def build_w(city, w, a, lang, unit):
 
 # ==================== ارسال‌ها ====================
 async def snd_weather(chat, uid, q, u, reply_to=None):
-    msg = await (reply_to.reply_text("⏳ در حال دریافت..." if u["lang"]=="fa" else "⏳ Fetching...") if reply_to else chat.send_message("⏳ در حال دریافت..." if u["lang"]=="fa" else "⏳ Fetching..."))
+    load = "⏳ در حال دریافت..." if u["lang"]=="fa" else "⏳ Fetching..."
+    msg = await (reply_to.reply_text(load) if reply_to else chat.send_message(load))
     try:
         city = await geocode(q, u["lang"])
         if not city:
             err = "❌ شهر پیدا نشد" if u["lang"]=="fa" else "❌ City not found"
-            await msg.edit_text(err); return
+            await msg.edit_text(err, reply_markup=kb_main(u["lang"])); return
         la, lo = city["latitude"], city["longitude"]
         w, a = await fetch_all(la, lo)
         if not w:
             err = "⚠️ خطا در دریافت داده" if u["lang"]=="fa" else "⚠️ Failed to fetch"
-            await msg.edit_text(err); return
+            await msg.edit_text(err, reply_markup=kb_main(u["lang"])); return
         text = build_w(city, w, a, u["lang"], u["unit"])
         kb = []
         if WEB_APP_URL:
             kb.append([InlineKeyboardButton(
                 "🌐 وب‌سایت کامل" if u["lang"]=="fa" else "🌐 Full Website", url=WEB_APP_URL)])
-        await smooth_type(msg, text, duration=1.3)
         if kb:
             await msg.edit_text(text, parse_mode=ParseMode.HTML,
                                reply_markup=InlineKeyboardMarkup(kb))
         else:
             await msg.edit_text(text, parse_mode=ParseMode.HTML)
+        # ارسال کیبورد پایین برای آپدیت خودکار
+        await chat.send_message("🔽", reply_markup=kb_main(u["lang"]))
         stat("weather_requests")
     except Exception as e:
         logger.exception("snd_weather")
         log_err(uid, e, "snd_weather")
-        try: await msg.edit_text(f"❌ {str(e)[:80]}")
+        try: await msg.edit_text(f"❌ {str(e)[:80]}", reply_markup=kb_main(u["lang"]))
         except Exception: pass
 
 
 async def snd_aqi(chat, uid, q, u):
-    msg = await chat.send_message("⏳ در حال دریافت..." if u["lang"]=="fa" else "⏳ Fetching...")
+    load = "⏳ در حال دریافت..." if u["lang"]=="fa" else "⏳ Fetching..."
+    msg = await chat.send_message(load)
     try:
         city = await geocode(q, u["lang"])
         if not city:
             err = "❌ شهر پیدا نشد" if u["lang"]=="fa" else "❌ Not found"
-            await msg.edit_text(err); return
+            await msg.edit_text(err, reply_markup=kb_main(u["lang"])); return
         _, a = await fetch_all(city["latitude"], city["longitude"])
         if not a or a.get("european_aqi") is None:
             err = "⚠️ داده کیفیت هوا موجود نیست" if u["lang"]=="fa" else "⚠️ AQI data not available"
-            await msg.edit_text(err); return
+            await msg.edit_text(err, reply_markup=kb_main(u["lang"])); return
         v = a["european_aqi"]; info = aqi_i(v, u["lang"])
         cn = (city.get("name_fa") or city["name"]) if u["lang"]=="fa" else city["name"]
 
@@ -787,24 +759,27 @@ async def snd_aqi(chat, uid, q, u):
               f"<i>📡 {'داده‌ها از Open-Meteo' if u['lang']=='fa' else 'Data from Open-Meteo'}</i>"]
 
         await msg.edit_text("\n".join(L), parse_mode=ParseMode.HTML)
+        # ارسال کیبورد پایین برای آپدیت خودکار
+        await chat.send_message("🔽", reply_markup=kb_main(u["lang"]))
         stat("aqi_requests")
     except Exception as e:
         log_err(uid, e, "snd_aqi")
-        try: await msg.edit_text(f"❌ {str(e)[:80]}")
+        try: await msg.edit_text(f"❌ {str(e)[:80]}", reply_markup=kb_main(u["lang"]))
         except Exception: pass
 
 
 async def snd_forecast(chat, uid, q, u):
-    msg = await chat.send_message("⏳ در حال دریافت..." if u["lang"]=="fa" else "⏳ Fetching...")
+    load = "⏳ در حال دریافت..." if u["lang"]=="fa" else "⏳ Fetching..."
+    msg = await chat.send_message(load)
     try:
         city = await geocode(q, u["lang"])
         if not city:
             err = "❌ شهر پیدا نشد" if u["lang"]=="fa" else "❌ Not found"
-            await msg.edit_text(err); return
+            await msg.edit_text(err, reply_markup=kb_main(u["lang"])); return
         w, _ = await fetch_all(city["latitude"], city["longitude"])
         if not w:
             err = "⚠️ خطا در دریافت داده" if u["lang"]=="fa" else "⚠️ Failed"
-            await msg.edit_text(err); return
+            await msg.edit_text(err, reply_markup=kb_main(u["lang"])); return
         d = w["daily"]
         cn = (city.get("name_fa") or city["name"]) if u["lang"]=="fa" else city["name"]
 
@@ -826,10 +801,12 @@ async def snd_forecast(chat, uid, q, u):
             L.append("")
 
         await msg.edit_text("\n".join(L), parse_mode=ParseMode.HTML)
+        # ارسال کیبورد پایین برای آپدیت خودکار
+        await chat.send_message("🔽", reply_markup=kb_main(u["lang"]))
         stat("forecast_requests")
     except Exception as e:
         log_err(uid, e, "snd_forecast")
-        try: await msg.edit_text(f"❌ {str(e)[:80]}")
+        try: await msg.edit_text(f"❌ {str(e)[:80]}", reply_markup=kb_main(u["lang"]))
         except Exception: pass
 
 
@@ -837,19 +814,20 @@ async def snd_compare(chat, uid, cities, u):
     if len(cities) < 2:
         msg = ("مثال: <code>/compare تهران مشهد</code>" if u["lang"]=="fa"
                else "Example: <code>/compare Tehran Mashhad</code>")
-        await chat.send_message(msg, parse_mode=ParseMode.HTML); return
-    msg = await chat.send_message("⏳ در حال مقایسه..." if u["lang"]=="fa" else "⏳ Comparing...")
+        await chat.send_message(msg, parse_mode=ParseMode.HTML, reply_markup=kb_main(u["lang"])); return
+    load = "⏳ در حال مقایسه..." if u["lang"]=="fa" else "⏳ Comparing..."
+    msg = await chat.send_message(load)
     try:
         c1 = await geocode(cities[0], u["lang"]); c2 = await geocode(cities[1], u["lang"])
         if not c1 or not c2:
             err = "❌ یکی از شهرها پیدا نشد" if u["lang"]=="fa" else "❌ One city not found"
-            await msg.edit_text(err); return
+            await msg.edit_text(err, reply_markup=kb_main(u["lang"])); return
         (w1, a1), (w2, a2) = await asyncio.gather(
             fetch_all(c1["latitude"], c1["longitude"]),
             fetch_all(c2["latitude"], c2["longitude"]))
         if not w1 or not w2:
             err = "⚠️ خطا" if u["lang"]=="fa" else "⚠️ Error"
-            await msg.edit_text(err); return
+            await msg.edit_text(err, reply_markup=kb_main(u["lang"])); return
         def nm(c): return (c.get("name_fa") or c["name"]) if u["lang"]=="fa" else c["name"]
         t1, t2 = w1["current"]["temperature_2m"], w2["current"]["temperature_2m"]
         diff = t1 - t2
@@ -902,10 +880,12 @@ async def snd_compare(chat, uid, cities, u):
                 L.append(f"📈 <b>{nm(c2)}</b> is <b>{round(abs(diff))}°</b> warmer than <b>{nm(c1)}</b>")
 
         await msg.edit_text("\n".join(L), parse_mode=ParseMode.HTML)
+        # ارسال کیبورد پایین برای آپدیت خودکار
+        await chat.send_message("🔽", reply_markup=kb_main(u["lang"]))
         stat("compare_requests")
     except Exception as e:
         log_err(uid, e, "snd_compare")
-        try: await msg.edit_text(f"❌ {str(e)[:80]}")
+        try: await msg.edit_text(f"❌ {str(e)[:80]}", reply_markup=kb_main(u["lang"]))
         except Exception: pass
 
 
@@ -1068,7 +1048,7 @@ async def cmd_weather(update, ctx):
         if u.get("default_city"):
             await snd_weather(update.effective_chat, u["user_id"], u["default_city"], u); return
         msg = "اسم شهر رو بنویس" if u["lang"]=="fa" else "Type city name"
-        await update.message.reply_text(msg); return
+        await update.message.reply_text(msg, reply_markup=kb_main(u["lang"])); return
     await snd_weather(update.effective_chat, u["user_id"], " ".join(args), u)
 
 
@@ -1079,7 +1059,7 @@ async def cmd_aqi(update, ctx):
         if u.get("default_city"):
             await snd_aqi(update.effective_chat, u["user_id"], u["default_city"], u); return
         msg = "مثال: <code>/aqi تهران</code>" if u["lang"]=="fa" else "Example: <code>/aqi Tehran</code>"
-        await update.message.reply_text(msg, parse_mode=ParseMode.HTML); return
+        await update.message.reply_text(msg, parse_mode=ParseMode.HTML, reply_markup=kb_main(u["lang"])); return
     await snd_aqi(update.effective_chat, u["user_id"], " ".join(args), u)
 
 
@@ -1090,7 +1070,7 @@ async def cmd_forecast(update, ctx):
         if u.get("default_city"):
             await snd_forecast(update.effective_chat, u["user_id"], u["default_city"], u); return
         msg = "مثال: <code>/forecast تهران</code>" if u["lang"]=="fa" else "Example: <code>/forecast Tehran</code>"
-        await update.message.reply_text(msg, parse_mode=ParseMode.HTML); return
+        await update.message.reply_text(msg, parse_mode=ParseMode.HTML, reply_markup=kb_main(u["lang"])); return
     await snd_forecast(update.effective_chat, u["user_id"], " ".join(args), u)
 
 
@@ -1108,18 +1088,18 @@ async def cmd_default(update, ctx):
         else:
             msg = (f"🏙️ Default city: <b>{u.get('default_city') or 'not set'}</b>\n\n"
                    f"Example: <code>/default Tehran</code>")
-        await update.message.reply_text(msg, parse_mode=ParseMode.HTML); return
+        await update.message.reply_text(msg, parse_mode=ParseMode.HTML, reply_markup=kb_main(u["lang"])); return
     cn = " ".join(ctx.args)
     city = await geocode(cn, u["lang"])
     if not city:
         err = "❌ شهر پیدا نشد" if u["lang"]=="fa" else "❌ Not found"
-        await update.message.reply_text(err); return
+        await update.message.reply_text(err, reply_markup=kb_main(u["lang"])); return
     save_user(u["user_id"], default_city=city["name"])
     if u["lang"] == "fa":
         msg = f"✅ <b>{city['name']}</b> به عنوان شهر پیش‌فرض تنظیم شد"
     else:
         msg = f"✅ <b>{city['name']}</b> set as default city"
-    await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
+    await update.message.reply_text(msg, parse_mode=ParseMode.HTML, reply_markup=kb_main(u["lang"]))
 
 
 async def cmd_notify(update, ctx):
@@ -1135,41 +1115,41 @@ async def cmd_notify(update, ctx):
             msg = (f"🔔 Daily notify: <b>{s}</b>\n"
                    f"⏰ Time: <b>{u.get('notify_time','07:00')}</b>\n\n"
                    f"<code>/notify on</code> / <code>/notify off</code>")
-        await update.message.reply_text(msg, parse_mode=ParseMode.HTML); return
+        await update.message.reply_text(msg, parse_mode=ParseMode.HTML, reply_markup=kb_main(u["lang"])); return
     a = ctx.args[0].lower()
     if a in ("on","روشن"):
         if not u.get("default_city"):
             msg = "⚠️ اول شهر پیش‌فرض رو تنظیم کن: /default تهران" if u["lang"]=="fa" \
                 else "⚠️ Set default city first: /default Tehran"
-            await update.message.reply_text(msg); return
+            await update.message.reply_text(msg, reply_markup=kb_main(u["lang"])); return
         save_user(u["user_id"], notify_enabled=1)
         if u["lang"] == "fa":
             msg = f"✅ اعلان روزانه روشن شد\n⏰ هر روز ساعت <b>{u.get('notify_time','07:00')}</b>"
         else:
             msg = f"✅ Daily notify enabled\n⏰ Every day at <b>{u.get('notify_time','07:00')}</b>"
-        await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
+        await update.message.reply_text(msg, parse_mode=ParseMode.HTML, reply_markup=kb_main(u["lang"]))
         stat("notify_enabled")
     elif a in ("off","خاموش"):
         save_user(u["user_id"], notify_enabled=0)
         msg = "❌ اعلان خاموش شد" if u["lang"]=="fa" else "❌ Notifications disabled"
-        await update.message.reply_text(msg)
+        await update.message.reply_text(msg, reply_markup=kb_main(u["lang"]))
 
 
 async def cmd_settime(update, ctx):
     u = get_user(update.effective_user.id, update)
     if not ctx.args:
         msg = "مثال: <code>/settime 07:30</code>" if u["lang"]=="fa" else "Example: <code>/settime 07:30</code>"
-        await update.message.reply_text(msg, parse_mode=ParseMode.HTML); return
+        await update.message.reply_text(msg, parse_mode=ParseMode.HTML, reply_markup=kb_main(u["lang"])); return
     try:
         h, m = map(int, ctx.args[0].split(":"))
         if not (0<=h<24 and 0<=m<60): raise ValueError
         t = f"{h:02d}:{m:02d}"
         save_user(u["user_id"], notify_time=t)
         msg = f"✅ ساعت اعلان: <b>{t}</b>" if u["lang"]=="fa" else f"✅ Notify time: <b>{t}</b>"
-        await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
+        await update.message.reply_text(msg, parse_mode=ParseMode.HTML, reply_markup=kb_main(u["lang"]))
     except Exception:
         msg = "❌ فرمت اشتباه. مثال: <code>07:30</code>" if u["lang"]=="fa" else "❌ Wrong format. Example: <code>07:30</code>"
-        await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
+        await update.message.reply_text(msg, parse_mode=ParseMode.HTML, reply_markup=kb_main(u["lang"]))
 
 
 async def on_location(update, ctx):
@@ -1182,12 +1162,12 @@ async def on_location(update, ctx):
         w, a = await fetch_all(loc.latitude, loc.longitude)
         if not w:
             err = "⚠️ خطا در دریافت داده" if u["lang"]=="fa" else "⚠️ Failed"
-            await msg.edit_text(err); return
+            await msg.edit_text(err, reply_markup=kb_main(u["lang"])); return
         city_name = "موقعیت شما" if u["lang"]=="fa" else "Your Location"
         city = {"name": city_name, "latitude": loc.latitude, "longitude": loc.longitude}
         text = build_w(city, w, a, u["lang"], u["unit"])
-        await smooth_type(msg, text, duration=1.2)
         await msg.edit_text(text, parse_mode=ParseMode.HTML)
+        await update.effective_chat.send_message("🔽", reply_markup=kb_main(u["lang"]))
     except Exception as e:
         log_err(u["user_id"], e, "location")
 
@@ -1200,10 +1180,13 @@ async def on_text(update, ctx):
 
     # ==================== پنل مدیریت ====================
     if t in ["🔐 پنل مدیریت", "🔐 Admin Panel"]:
+        # حذف پیام کاربر
+        try: await update.message.delete()
+        except Exception: pass
         if is_admin(u["user_id"]):
             txt, rows = build_admin_panel(u)
-            await update.message.reply_text(txt, parse_mode=ParseMode.HTML,
-                                            reply_markup=InlineKeyboardMarkup(rows))
+            await update.effective_chat.send_message(txt, parse_mode=ParseMode.HTML,
+                                                     reply_markup=InlineKeyboardMarkup(rows))
             return
         save_user(u["user_id"], pending_action="admin_pass")
         if lang == "fa":
@@ -1214,37 +1197,45 @@ async def on_text(update, ctx):
             msg = ("🔐 <b>Admin Panel Login</b>\n\n"
                    "Please enter password:\n"
                    "<i>(cancel with /start)</i>")
-        await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
+        await update.effective_chat.send_message(msg, parse_mode=ParseMode.HTML)
         return
 
     # ==================== منو ====================
     if t in ["🎛️ منو","🎛️ Menu"]:
+        try: await update.message.delete()
+        except Exception: pass
         txt, rows = build_menu(u)
-        await update.message.reply_text(txt, parse_mode=ParseMode.HTML,
-                                        reply_markup=InlineKeyboardMarkup(rows))
+        await update.effective_chat.send_message(txt, parse_mode=ParseMode.HTML,
+                                                 reply_markup=InlineKeyboardMarkup(rows))
         return
 
     # ==================== دکمه‌های اصلی ====================
     if t in ["🌤️ آب‌وهوا","🌤️ Weather"]:
+        try: await update.message.delete()
+        except Exception: pass
         if u.get("default_city"):
             await snd_weather(update.effective_chat, u["user_id"], u["default_city"], u); return
         save_user(u["user_id"], pending_action="w")
         msg = "🏙️ اسم شهر:" if lang=="fa" else "🏙️ City name:"
-        await update.message.reply_text(msg); return
+        await update.effective_chat.send_message(msg, reply_markup=kb_main(lang)); return
 
     if t in ["🌫️ کیفیت هوا","🌫️ Air Quality"]:
+        try: await update.message.delete()
+        except Exception: pass
         if u.get("default_city"):
             await snd_aqi(update.effective_chat, u["user_id"], u["default_city"], u); return
         save_user(u["user_id"], pending_action="a")
         msg = "🌫️ اسم شهر:" if lang=="fa" else "🌫️ City:"
-        await update.message.reply_text(msg); return
+        await update.effective_chat.send_message(msg, reply_markup=kb_main(lang)); return
 
     if t in ["📅 پیش‌بینی","📅 Forecast"]:
+        try: await update.message.delete()
+        except Exception: pass
         if u.get("default_city"):
             await snd_forecast(update.effective_chat, u["user_id"], u["default_city"], u); return
         save_user(u["user_id"], pending_action="f")
         msg = "📅 اسم شهر:" if lang=="fa" else "📅 City:"
-        await update.message.reply_text(msg); return
+        await update.effective_chat.send_message(msg, reply_markup=kb_main(lang)); return
 
     # ==================== pending_action ====================
     u2 = get_user(u["user_id"])
@@ -1253,29 +1244,30 @@ async def on_text(update, ctx):
     # --- رمز ادمین ---
     if act == "admin_pass":
         save_user(u["user_id"], pending_action=None)
-        # حذف پیام رمز برای امنیت
         try: await update.message.delete()
         except Exception: pass
         if t == ADMIN_PASSWORD:
             login_admin(u["user_id"])
             ok_msg = "✅ رمز درست! ورود موفق" if lang=="fa" else "✅ Correct! Login successful"
-            await update.message.reply_text(ok_msg)
+            await update.effective_chat.send_message(ok_msg)
             u3 = get_user(u["user_id"])
             txt, rows = build_admin_panel(u3)
-            await update.message.reply_text(txt, parse_mode=ParseMode.HTML,
-                                            reply_markup=InlineKeyboardMarkup(rows))
+            await update.effective_chat.send_message(txt, parse_mode=ParseMode.HTML,
+                                                     reply_markup=InlineKeyboardMarkup(rows))
         else:
             err = "❌ رمز اشتباه است" if lang=="fa" else "❌ Wrong password"
-            await update.message.reply_text(err)
+            await update.effective_chat.send_message(err)
         return
 
     if act:
+        try: await update.message.delete()
+        except Exception: pass
         save_user(u["user_id"], pending_action=None)
         if act == "def":
             c = await geocode(t, lang)
             if not c:
                 err = "❌ شهر پیدا نشد" if lang=="fa" else "❌ Not found"
-                await update.message.reply_text(err); return
+                await update.effective_chat.send_message(err, reply_markup=kb_main(lang)); return
             save_user(u["user_id"], default_city=c["name"])
             u3 = get_user(u["user_id"])
             txt, rows = build_menu(u3)
@@ -1283,8 +1275,8 @@ async def on_text(update, ctx):
                 head = f"✅ <b>{c['name']}</b> به عنوان شهر پیش‌فرض تنظیم شد\n\n"
             else:
                 head = f"✅ <b>{c['name']}</b> set as default city\n\n"
-            await update.message.reply_text(head + txt, parse_mode=ParseMode.HTML,
-                                            reply_markup=InlineKeyboardMarkup(rows))
+            await update.effective_chat.send_message(head + txt, parse_mode=ParseMode.HTML,
+                                                     reply_markup=InlineKeyboardMarkup(rows))
             return
         if act == "c1":
             save_user(u["user_id"], compare_temp=t, pending_action="c2")
@@ -1292,7 +1284,7 @@ async def on_text(update, ctx):
                 msg = f"✅ شهر اول: <b>{t}</b>\n\n⚖️ حالا اسم <b>شهر دوم</b> رو بنویس:"
             else:
                 msg = f"✅ City 1: <b>{t}</b>\n\n⚖️ Now type <b>city 2</b>:"
-            await update.message.reply_text(msg, parse_mode=ParseMode.HTML); return
+            await update.effective_chat.send_message(msg, parse_mode=ParseMode.HTML); return
         if act == "c2":
             c1 = u2.get("compare_temp")
             save_user(u["user_id"], compare_temp=None)
@@ -1302,7 +1294,6 @@ async def on_text(update, ctx):
         if act == "f": await snd_forecast(update.effective_chat, u["user_id"], t, u); return
 
     # --- اسم شهر عادی ---
-    # حذف پیام کاربر
     try: await update.message.delete()
     except Exception: pass
     await snd_weather(update.effective_chat, u["user_id"], t, u)
@@ -1347,7 +1338,8 @@ async def on_cb(update, ctx):
             await q.edit_message_text(txt, parse_mode=ParseMode.HTML,
                                       reply_markup=InlineKeyboardMarkup(rows))
         except Exception: pass
-        await q.message.reply_text("🔽", reply_markup=kb_main(nl))
+        # آپدیت کیبورد پایین
+        await q.message.chat.send_message("🔽", reply_markup=kb_main(nl))
         return
 
     # ==================== تغییر واحد ====================
@@ -1368,7 +1360,7 @@ async def on_cb(update, ctx):
         save_user(u["user_id"], pending_action="def")
         await q.answer()
         msg = "🏙️ اسم شهر جدید رو بنویس:" if lang=="fa" else "🏙️ Type new city name:"
-        await q.message.reply_text(msg)
+        await q.message.chat.send_message(msg)
         return
 
     # ==================== منو: مقایسه ====================
@@ -1376,7 +1368,7 @@ async def on_cb(update, ctx):
         save_user(u["user_id"], pending_action="c1", compare_temp=None)
         await q.answer()
         msg = "⚖️ اسم <b>شهر اول</b> رو بنویس:" if lang=="fa" else "⚖️ Type <b>city 1</b>:"
-        await q.message.reply_text(msg, parse_mode=ParseMode.HTML)
+        await q.message.chat.send_message(msg, parse_mode=ParseMode.HTML)
         return
 
     # ==================== منو: toggle اعلان ====================
@@ -1498,7 +1490,8 @@ async def notify_job(ctx):
                 L.append("")
                 L.append("<i>To disable: /notify off</i>")
 
-            await ctx.bot.send_message(ud["user_id"], "\n".join(L), parse_mode=ParseMode.HTML)
+            await ctx.bot.send_message(ud["user_id"], "\n".join(L), parse_mode=ParseMode.HTML,
+                                       reply_markup=kb_main(lg))
             stat("notifications_sent")
         except Exception as e:
             logger.error(f"notify {ud['user_id']}: {e}")
