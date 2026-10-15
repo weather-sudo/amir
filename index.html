@@ -2746,44 +2746,35 @@
         'use strict';
 
         // ============================================================
-        // 🔑 DEV MODE LOGIC
+        // 🔐 DEV MODE — silent secret unlock
         // ============================================================
-        // • ?dev=1 in URL    → dev mode ON for this page load only
-        // • Ctrl+Shift+D     → toggle (current page only)
-        // • Cmd+Shift+D      → same on Mac
-        // • Refresh / close  → dev mode resets automatically
-        // • No localStorage  → nothing persists between sessions
+        // To unlock: type the secret word anywhere on the page
+        // Change SECRET_WORD below to anything you like
+        // No console hints. No keyboard shortcuts. Fully silent.
         // ============================================================
 
-        const urlDev = new URLSearchParams(location.search).get('dev') === '1';
-        let devMode = urlDev;
+        const SECRET_WORD = 'amir';
+        let typedBuffer = '';
+        let devMode = false;
 
         function isDev() { return devMode; }
 
         // ============================================================
-        // Console banner
-        // ============================================================
-        const warnStyle = 'color:#ef4444;font-size:22px;font-weight:bold;text-shadow:0 0 10px #ef4444';
-        const msgStyle  = 'color:#f97316;font-size:13px;font-weight:600;line-height:1.6';
-        const infoStyle = 'color:#38bdf8;font-size:12px';
-
-        console.log('%c⚠️ STOP!', warnStyle);
-        console.log('%cThis console is meant for developers only.\nIf someone told you to paste code here, it\'s likely a scam.', msgStyle);
-        console.log('%c© All rights reserved.', infoStyle);
-
-        // ============================================================
-        // Hotkey: Ctrl+Shift+D (Cmd+Shift+D on Mac)
-        // Toggles dev mode for THIS page only — refresh resets it
+        // Silent secret word detection
         // ============================================================
         document.addEventListener('keydown', function(e) {
-            if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
-                e.preventDefault();
-                devMode = !devMode;
-                console.log(
-                    `%c${devMode ? '🔓 Dev mode ENABLED (resets on refresh)' : '🔒 Dev mode DISABLED'}`,
-                    `color:${devMode ? '#22c55e' : '#ef4444'};font-size:16px;font-weight:bold`
-                );
-                return false;
+            // Only track single printable characters
+            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                typedBuffer += e.key.toLowerCase();
+                if (typedBuffer.length > 30) {
+                    typedBuffer = typedBuffer.slice(-30);
+                }
+                if (typedBuffer.endsWith(SECRET_WORD)) {
+                    devMode = !devMode;
+                    typedBuffer = '';
+                    // Silent — no console output. User will know it worked
+                    // because right-click and F12 will start working.
+                }
             }
         }, true);
 
@@ -2884,8 +2875,6 @@
                 lastClear = now;
                 try {
                     console.clear();
-                    console.log('%c🚫 Developer tools detected', 'color:#ef4444;font-size:20px;font-weight:bold;text-align:center;padding:20px');
-                    console.log('%cAll rights reserved ©', 'color:#94a3b8;font-size:12px');
                 } catch(e) {}
             }
         }, 3000);
@@ -2899,15 +2888,6 @@
                 e.preventDefault();
             }
         }, { passive: false });
-
-        // ============================================================
-        // Console reminder
-        // ============================================================
-        if (urlDev) {
-            console.log('%c🔓 DEV MODE ACTIVE (via URL — remove ?dev=1 to lock)', 'color:#22c55e;font-size:14px;font-weight:bold');
-        } else {
-            console.log('%c🔒 Protection active. Press Ctrl+Shift+D (Cmd+Shift+D on Mac) to toggle for this page.', 'color:#64748b;font-size:11px');
-        }
 
     })();
     </script>
