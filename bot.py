@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ربات آب‌وهوا — نسخه کامل اصلاح‌شده"""
+"""ربات آب‌وهوا — نسخه نهایی"""
 
 import os, logging, asyncio, time, sqlite3, re
 from datetime import datetime
@@ -166,14 +166,14 @@ async def get_http():
         )
     return _http
 
-# ✅ FIX #1: کش صحیح — timestamp cache جدا
+# کش
 _geo_cache, _geo_t = {}, {}
 _wx_cache, _wx_t = {}, {}
 _aqi_cache, _aqi_t = {}, {}
 GEO_TTL = 86400
 WX_TTL = 900
 AQI_TTL = 900
-CACHE_MAX = 5000  # ✅ FIX #7: سقف کش
+CACHE_MAX = 5000
 
 def _cget(cache, tc, key, ttl):
     if key in cache:
@@ -185,7 +185,6 @@ def _cget(cache, tc, key, ttl):
 def _cset(cache, tc, key, value):
     cache[key] = value
     tc[key] = time.time()
-    # ✅ FIX #7: محدودیت کش
     if len(cache) > CACHE_MAX:
         oldest = sorted(tc.items(), key=lambda x: x[1])[:len(cache) - CACHE_MAX + 100]
         for k, _ in oldest:
@@ -203,7 +202,6 @@ async def safe_edit(msg, text, **kwargs):
             return await msg.get_bot().send_message(chat_id=msg.chat_id, text=text, **kwargs)
         except Exception:
             try:
-                # ✅ FIX #9: HTML unescape + tag removal
                 plain = re.sub(r'<[^>]+>', '', text)
                 plain = unescape(plain)
                 return await msg.get_bot().send_message(chat_id=msg.chat_id, text=plain[:4000])
@@ -451,7 +449,6 @@ async def geocode(q, lang="fa"):
 
 async def fetch_weather_only(la, lo, city_name=""):
     k = f"{la:.3f},{lo:.3f}"
-    # ✅ FIX #1: کش صحیح
     c = _cget(_wx_cache, _wx_t, k, WX_TTL)
     if c: return c
     w = None
@@ -500,14 +497,12 @@ async def fetch_weather_only(la, lo, city_name=""):
                 }
         except Exception as e:
             logger.warning(f"wttr failed: {e}"); w = None
-    # ✅ FIX #1: کش صحیح
     if w: _cset(_wx_cache, _wx_t, k, w)
     return w
 
 
 async def fetch_aqi_only(la, lo):
     k = f"{la:.3f},{lo:.3f}"
-    # ✅ FIX #1: کش صحیح
     c = _cget(_aqi_cache, _aqi_t, k, AQI_TTL)
     if c: return c
     try:
@@ -655,8 +650,7 @@ def build_w(city, w, a, lang, unit):
     return "\n".join(L)
 
 
-# ==================== ارسال — با کیبورد ====================
-# ✅ FIX #2: kb_main همیشه فرستاده می‌شه
+# ==================== ارسال ====================
 async def snd_weather(ctx, chat_id, uid, q, u):
     load = "⏳ در حال دریافت..." if u["lang"]=="fa" else "⏳ Fetching..."
     try:
@@ -882,7 +876,6 @@ def build_admin_panel(u):
         if errs:
             txt += "\n⚠️ <b>خطاهای اخیر:</b>\n"
             for e in errs:
-                # ✅ FIX #6: HTML escape
                 err_text = escape(e['error'][:60])
                 txt += f"  <code>{err_text}</code>\n"
         rows = [[InlineKeyboardButton("🔄 رفرش آمار", callback_data="a:refresh")],
@@ -1044,13 +1037,10 @@ async def on_text(update, ctx):
     if t in ["🎛️ منو","🎛️ Menu"]:
         try: await update.message.delete()
         except Exception: pass
-        # ✅ FIX #3: کیبورد پایین هم رفرش می‌شه
+        # ✅ فقط منو، بدون پیام 🔽 اضافه
         txt, rows = build_menu(u)
         await ctx.bot.send_message(chat_id=chat_id, text=txt, parse_mode=ParseMode.HTML,
                                    reply_markup=InlineKeyboardMarkup(rows))
-        # کیبورد پایین جدا
-        await ctx.bot.send_message(chat_id=chat_id, text="🔽", reply_markup=kb_main(lang),
-                                   disable_notification=True)
         return
 
     if t in ["🌤️ آب‌وهوا","🌤️ Weather"]:
@@ -1118,7 +1108,6 @@ async def on_text(update, ctx):
             await ctx.bot.send_message(chat_id=chat_id, text=msg); return
         if act == "c2":
             c1 = u2.get("compare_temp")
-            # ✅ FIX #5: چک کردن c1
             if not c1:
                 msg = "⚠️ یه بار دیگه از منو شروع کن" if lang=="fa" else "⚠️ Restart from Menu"
                 await ctx.bot.send_message(chat_id=chat_id, text=msg); return
@@ -1128,7 +1117,6 @@ async def on_text(update, ctx):
         if act == "a": await snd_aqi(ctx, chat_id, u["user_id"], t, u); return
         if act == "f": await snd_forecast(ctx, chat_id, u["user_id"], t, u); return
 
-    # ✅ FIX #4: پیام کاربر حذف می‌شه ولی بعدش درخواست می‌ره
     try: await update.message.delete()
     except Exception: pass
     await snd_weather(ctx, chat_id, u["user_id"], t, u)
@@ -1162,8 +1150,7 @@ async def on_cb(update, ctx):
         txt, rows = build_menu(u2)
         try: await q.edit_message_text(txt, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(rows))
         except Exception: pass
-        # ✅ FIX #3: بدون نوتیفیکیشن
-        await ctx.bot.send_message(chat_id=chat_id, text="🔽", reply_markup=kb_main(nl), disable_notification=True)
+        # ✅ بدون پیام 🔽 اضافه
         return
 
     if d.startswith("unit:"):
@@ -1276,7 +1263,8 @@ async def notify_job(ctx):
             else:
                 L = [f"☀️ <b>Good morning!</b>", "",
                      f"{ic} <b>{cname}</b>", f"🌡️ <b>{fmt_t(c.get('temperature_2m',0),un)}</b>"]
-            await ctx.bot.send_message(chat_id=ud["user_id"], text="\n".join(L), parse_mode=ParseMode.HTML)
+            await ctx.bot.send_message(chat_id=ud["user_id"], text="\n".join(L),
+                                       parse_mode=ParseMode.HTML, reply_markup=kb_main(lg))
             stat("notifications_sent")
         except Exception as e:
             logger.error(f"notify: {e}")
