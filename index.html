@@ -17,9 +17,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
 
     <style>
-        /* ========================================== */
-        /* 2. CSS VARIABLES (THEMES & ACCENTS)        */
-        /* ========================================== */
         :root {
             --bg: #0f172a;
             --card-bg: #1e293b;
@@ -62,24 +59,21 @@
             --cookie-bg: #ffffff;
         }
 
-        /* Font Size Scaling */
         html { font-size: 16px; }
         html[data-font="small"] { font-size: 13px; }
         html[data-font="normal"] { font-size: 16px; }
         html[data-font="large"] { font-size: 18px; }
         html[data-font="xl"] { font-size: 21px; }
 
-        /* Accent Color Variations */
-        body[data-accent="blue"]   { --accent: #38bdf8; }
-        body[data-accent="green"]  { --accent: #22c55e; }
+        body[data-accent="blue"] { --accent: #38bdf8; }
+        body[data-accent="green"] { --accent: #22c55e; }
         body[data-accent="purple"] { --accent: #a855f7; }
-        body[data-accent="pink"]   { --accent: #ec4899; }
+        body[data-accent="pink"] { --accent: #ec4899; }
         body[data-accent="orange"] { --accent: #f97316; }
-        body[data-accent="red"]    { --accent: #ef4444; }
-        body[data-accent="teal"]   { --accent: #14b8a6; }
+        body[data-accent="red"] { --accent: #ef4444; }
+        body[data-accent="teal"] { --accent: #14b8a6; }
         body[data-accent="yellow"] { --accent: #eab308; }
 
-        /* Card Density */
         body[data-density="compact"] .card { padding: 0.85rem !important; gap: 0.5rem !important; }
         body[data-density="compact"] .aqi-card { padding: 0.85rem 0.9rem !important; }
         body[data-density="normal"] .card { padding: 1.25rem !important; gap: 0.75rem !important; }
@@ -87,7 +81,6 @@
         body[data-density="comfortable"] .card { padding: 1.6rem !important; gap: 1rem !important; }
         body[data-density="comfortable"] .aqi-card { padding: 1.4rem 1.5rem !important; }
 
-        /* Glass Mode */
         [data-glass="true"] {
             --card-bg: var(--glass-bg);
             --card-bg-hover: var(--glass-bg);
@@ -101,9 +94,6 @@
             -webkit-backdrop-filter: blur(var(--glass-blur));
         }
 
-        /* ========================================== */
-        /* 3. BASE STYLES & RESET                     */
-        /* ========================================== */
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; height: 100%; }
 
@@ -119,9 +109,6 @@
             position: relative;
         }
 
-        /* ========================================== */
-        /* 4. AMBIENT BACKGROUND ANIMATIONS           */
-        /* ========================================== */
         .ambient-bg {
             position: fixed;
             inset: 0;
@@ -137,7 +124,6 @@
             animation-play-state: var(--anim-state, running);
             transform: translateZ(0);
             backface-visibility: hidden;
-            will-change: transform;
         }
 
         .orb-1 {
@@ -173,9 +159,6 @@
         [data-theme="light"] .orb-2 { background: radial-gradient(circle, rgba(139, 92, 246, 0.10), rgba(139, 92, 246, 0) 70%); }
         [data-theme="light"] .orb-3 { background: radial-gradient(circle, rgba(34, 197, 94, 0.08), rgba(34, 197, 94, 0) 70%); }
 
-        /* ========================================== */
-        /* 5. LAYOUT & HEADER                         */
-        /* ========================================== */
         .app {
             width: 100%; max-width: 1400px; margin: 0 auto; position: relative; z-index: 1;
             padding: 1rem;
@@ -246,14 +229,25 @@
             50% { box-shadow: 0 0 0 6px rgba(56, 189, 248, 0); }
         }
 
-        /* ========================================== */
-        /* 6. SEARCH & SUGGESTIONS                    */
-        /* ========================================== */
         .tab-content { flex: 1; position: relative; min-height: 0; }
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
 
-        .search-wrapper { position: relative; margin-bottom: 1rem; }
+        /* ========================================== */
+        /* 6. SEARCH & SUGGESTIONS (FIXED BLACK LINE) */
+        /* ========================================== */
+        .search-wrapper {
+            position: -webkit-sticky;
+            position: sticky;
+            top: env(safe-area-inset-top, 0px);
+            z-index: 50;
+            background: var(--bg); /* پس‌زمینه یکدست بدون خط مشکی */
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            margin-top: -0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
         .search-box { display: flex; gap: 0.5rem; }
         .search-box input {
             flex: 1; min-width: 0;
@@ -302,9 +296,6 @@
         }
         .suggestions-loading, .suggestions-empty { padding: 1rem; text-align: center; font-size: 0.85rem; color: #94a3b8; }
 
-        /* ========================================== */
-        /* 7. WEATHER CARDS                           */
-        /* ========================================== */
         .cards {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
@@ -326,6 +317,8 @@
             transform: translateZ(0);
             backface-visibility: hidden;
             contain: layout style paint;
+            content-visibility: auto;
+            contain-intrinsic-size: 280px;
         }
 
         @keyframes fadeIn {
@@ -337,7 +330,6 @@
             .card:hover {
                 transform: translate3d(0, -2px, 0);
                 border-color: rgba(56, 189, 248, 0.35);
-                will-change: transform;
             }
         }
 
@@ -453,9 +445,6 @@
         }
         .weather-disclaimer .disclaimer-icon { flex-shrink: 0; opacity: 0.9; }
 
-        /* ========================================== */
-        /* 8. COUNTDOWN FOOTER                        */
-        /* ========================================== */
         .footer {
             text-align: center; font-size: 0.85rem; color: var(--text-muted);
             display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
@@ -464,16 +453,16 @@
         #countdown {
             display: inline-flex; align-items: center; gap: 0.15rem;
             font-variant-numeric: tabular-nums; color: var(--text-muted);
-            direction: ltr; unicode-bidi: isolate;
+            unicode-bidi: isolate;
         }
-        #countdown .cd-label { margin-right: 0.3rem; white-space: nowrap; direction: rtl; unicode-bidi: isolate; }
+        #countdown .cd-label { margin-right: 0.3rem; white-space: nowrap; unicode-bidi: isolate; }
         #countdown .cd-digit {
             position: relative; display: inline-block; width: 0.72em; height: 1.25em;
             overflow: hidden; vertical-align: middle; text-align: center;
             font-weight: 700; color: var(--accent);
             background: rgba(56, 189, 248, 0.1); border-radius: 4px;
             font-size: 1.1em; line-height: 1.25em;
-            direction: ltr; unicode-bidi: isolate;
+            unicode-bidi: isolate;
         }
         [data-theme="light"] #countdown .cd-digit { background: rgba(56, 189, 248, 0.15); }
         #countdown .cd-digit>span {
@@ -490,12 +479,9 @@
         }
         #countdown .cd-sep {
             display: inline-block; font-weight: 700; color: var(--accent);
-            opacity: 0.7; direction: ltr;
+            opacity: 0.7; unicode-bidi: isolate;
         }
 
-        /* ========================================== */
-        /* 9. AIR QUALITY CARDS                       */
-        /* ========================================== */
         .aqi-list {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
@@ -513,6 +499,8 @@
             transform: translateZ(0);
             backface-visibility: hidden;
             contain: layout style paint;
+            content-visibility: auto;
+            contain-intrinsic-size: 120px;
         }
 
         body[data-aqi-tint="true"] .aqi-card {
@@ -618,7 +606,6 @@
             opacity: 0.14; filter: blur(8px);
             animation: aqiRingAura 2.8s ease-in-out infinite;
             pointer-events: none; z-index: 0; transform-origin: center;
-            will-change: opacity, transform;
         }
         @keyframes aqiRingAura {
             0%, 100% { opacity: 0.10; transform: scale(0.94); }
@@ -638,7 +625,6 @@
             transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
             animation: aqiRingPulse 2.8s ease-in-out infinite;
             transform-origin: 40px 40px;
-            will-change: filter, opacity;
         }
         @keyframes aqiRingPulse {
             0%, 100% {
@@ -658,9 +644,8 @@
         }
         .aqi-ring-value .num {
             font-size: 1.5rem; font-weight: 800; color: var(--aqi-color, var(--text));
-            font-variant-numeric: tabular-nums; line-height: 1; direction: ltr;
+            font-variant-numeric: tabular-nums; line-height: 1;
             animation: aqiNumberGlow 2.8s ease-in-out infinite;
-            will-change: text-shadow;
         }
         @keyframes aqiNumberGlow {
             0%, 100% { text-shadow: 0 0 3px var(--aqi-color, transparent); }
@@ -668,7 +653,7 @@
         }
         .aqi-ring-value .lbl {
             font-size: 0.55rem; font-weight: 600; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.15rem; direction: ltr;
+            text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.15rem;
         }
 
         body[data-anim-paused="true"] .aqi-ring::before,
@@ -679,9 +664,6 @@
             .aqi-ring::before, .aqi-ring .ring-fill, .aqi-ring-value .num { animation: none; }
         }
 
-        /* ========================================== */
-        /* 10. SETTINGS PAGE                          */
-        /* ========================================== */
         .settings-container { display: flex; flex-direction: column; gap: 1rem; }
         .settings-section {
             background: var(--card-bg); border: 1px solid var(--border);
@@ -742,7 +724,7 @@
         .slider-value {
             font-size: 0.8rem; color: var(--accent); font-weight: 700;
             min-width: 45px; text-align: center;
-            font-variant-numeric: tabular-nums; direction: ltr;
+            font-variant-numeric: tabular-nums;
         }
 
         .select {
@@ -782,9 +764,6 @@
         }
         .color-swatch.active::after { opacity: 1; }
 
-        /* ========================================== */
-        /* 11. BOTTOM NAV & THEME SWITCH              */
-        /* ========================================== */
         .bottom-nav {
             position: fixed;
             bottom: calc(1rem + env(safe-area-inset-bottom));
@@ -797,7 +776,6 @@
             -webkit-backdrop-filter: blur(20px) saturate(180%);
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
             z-index: 1000;
-            will-change: transform;
         }
 
         .nav-pill {
@@ -943,9 +921,6 @@
             top: 50%; transform: translateY(-50%);
         }
 
-        /* ========================================== */
-        /* 12. WELCOME SCREEN & COOKIE BANNER         */
-        /* ========================================== */
         .welcome-screen {
             position: fixed; inset: 0; z-index: 99999;
             background: radial-gradient(ellipse at top, #0f172a 0%, #070b16 55%, #03060f 100%);
@@ -966,7 +941,6 @@
             position: relative; width: clamp(72px, 14vw, 110px); height: clamp(72px, 14vw, 110px);
             margin-bottom: 2rem; display: flex; align-items: center; justify-content: center;
             opacity: 0; animation: welcomeFadeScale 1s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
-            will-change: transform, opacity;
         }
         .welcome-icon-glow {
             position: absolute; inset: -50%; border-radius: 50%;
@@ -987,13 +961,11 @@
             -webkit-background-clip: text; background-clip: text;
             -webkit-text-fill-color: transparent; margin-bottom: 1rem;
             opacity: 0; animation: welcomeSubIn 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.55s forwards;
-            will-change: transform, opacity;
         }
         .welcome-subtitle {
             font-size: clamp(0.95rem, 2.5vw, 1.4rem); color: rgba(226, 232, 240, 0.75);
             margin-bottom: 2rem; opacity: 0;
             animation: welcomeSubIn 1s cubic-bezier(0.22, 1, 0.36, 1) 0.9s forwards;
-            will-change: transform, opacity;
         }
         @keyframes welcomeSubIn {
             from { opacity: 0; transform: translateY(15px); }
@@ -1045,11 +1017,18 @@
         .cookie-btn-accept { background: var(--accent); color: #0f172a; }
         .cookie-btn-reject { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
 
-        /* ========================================== */
-        /* 13. RESPONSIVE MEDIA QUERIES               */
-        /* ========================================== */
+        /* بهینه‌سازی سنگین برای موبایل: حذف بلرها و افکت‌های گران‌قیمت */
         @media (max-width: 768px) {
             .ambient-bg { display: none !important; }
+            
+            .bottom-nav, .header, .settings-section, .card, .aqi-card,
+            [data-glass="true"] .card, [data-glass="true"] .aqi-card,
+            [data-glass="true"] .header, [data-glass="true"] .settings-section {
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+            .bottom-nav { background: var(--nav-bg) !important; }
+            .card, .aqi-card { content-visibility: auto; }
         }
 
         @media (max-width: 480px) {
@@ -1083,9 +1062,6 @@
             .ambient-bg { display: none; }
         }
 
-        /* ========================================== */
-        /* 14. CARD ENTRANCE/EXIT ANIMATIONS          */
-        /* ========================================== */
         @keyframes cityAddPop {
             0% { opacity: 0; transform: scale(0.9); }
             100% { opacity: 1; transform: scale(1); }
@@ -1096,12 +1072,10 @@
         }
         .city-add-pop {
             animation: cityAddPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-            will-change: transform, opacity;
         }
         .city-remove-shrink {
             animation: cityRemoveShrink 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
             pointer-events: none;
-            will-change: transform, opacity;
         }
     </style>
 </head>
@@ -1331,7 +1305,6 @@
                                 <option value="auto" selected data-i18n="source_auto">Auto (Smart)</option>
                                 <option value="openmeteo" data-i18n="source_openmeteo">Open-Meteo only</option>
                                 <option value="wttr" data-i18n="source_wttr">wttr.in only</option>
-                                <option value="both" data-i18n="source_both">Both (merge)</option>
                             </select>
                         </div>
                         <div class="setting-row">
@@ -1577,7 +1550,6 @@
     </script>
 
     <script>
-        // --- 20.1 DEBUG & LOGGING ---
         const DEBUG = (() => {
             try {
                 const h = location.hostname;
@@ -1596,7 +1568,6 @@
         console.error = _error;
         if (DEBUG) _log('%c🔧 DEBUG mode active', 'color:#38bdf8;font-weight:bold');
 
-        // --- 20.2 HAPTIC FEEDBACK ---
         function haptic(pattern) {
             if (!settings.haptic) return;
             try {
@@ -1608,7 +1579,6 @@
             } catch (e) { }
         }
 
-        // --- 20.3 AQI HISTORY ---
         const AQI_HISTORY_KEY = 'iran_weather_aqi_history';
         function loadAQIHistory() { try { const raw = storeGet(AQI_HISTORY_KEY); return raw ? JSON.parse(raw) : {}; } catch (e) { return {}; } }
         function saveAQIHistory(history) { try { storeSet(AQI_HISTORY_KEY, JSON.stringify(history), 30); } catch (e) { } }
@@ -1637,7 +1607,6 @@
             return 'stable';
         }
 
-        // --- 20.4 CORE SYSTEM ---
         const Core = (() => {
             'use strict';
             const device = (() => {
@@ -1717,7 +1686,7 @@
                     if (h.skippedUntil && now > h.skippedUntil + 3600_000) { h.skippedUntil = 0; h.fail = 0; }
                 }
             }
-            setInterval(cleanupSourceHealth, 600_000);
+            setInterval(cleanupSourceHealth, 1800_000); // 30 دقیقه
 
             function recordError(err) {
                 state.errors.push(err);
@@ -1745,9 +1714,10 @@
             };
         })();
 
-        // --- 20.5 PERSIAN CITY MAP ---
         const PERSIAN_CITY_MAP = {
-            'تهران': 'Tehran', 'مشهد': 'Mashhad', 'اصفهان': 'Isfahan', 'شیراز': 'Shiraz', 'تبریز': 'Tabriz', 'اهواز': 'Ahvaz', 'قم': 'Qom', 'کرج': 'Karaj', 'اردبیل': 'Ardabil', 'ساری': 'Sari', 'اراک': 'Arak', 'ارومیه': 'Urmia', 'گرگان': 'Gorgan', 'رشت': 'Rasht', 'کرمان': 'Kerman', 'یزد': 'Yazd', 'کرمانشاه': 'Kermanshah', 'زاهدان': 'Zahedan', 'همدان': 'Hamadan', 'بندرعباس': 'Bandar Abbas', 'بندر عباس': 'Bandar Abbas', 'بوشهر': 'Bushehr', 'قزوین': 'Qazvin', 'سنندج': 'Sanandaj', 'خرم آباد': 'Khorramabad', 'خرم‌آباد': 'Khorramabad', 'خرماباد': 'Khorramabad', 'بیرجند': 'Birjand', 'بجنورد': 'Bojnord', 'شهرکرد': 'Shahr-e Kord', 'شهر کرد': 'Shahr-e Kord', 'ایلام': 'Ilam', 'سمنان': 'Semnan', 'زنجان': 'Zanjan', 'کاشان': 'Kashan', 'نیشابور': 'Neyshabur', 'بابل': 'Babol', 'آمل': 'Amol', 'دزفول': 'Dezful', 'آبادان': 'Abadan', 'خرمشهر': 'Khorramshahr', 'اندیمشک': 'Andimeshk', 'شوشتر': 'Shushtar', 'بهبهان': 'Behbahan', 'سردشت': 'Sardasht', 'بم': 'Bam', 'شیروان': 'Shirvan', 'لاهیجان': 'Lahijan', 'انزلی': 'Anzali', 'بندر انزلی': 'Bandar Anzali', 'چابهار': 'Chabahar', 'جهرم': 'Jahrom', 'مراغه': 'Maragheh', 'مرند': 'Marand', 'خوی': 'Khoy', 'مهاباد': 'Mahabad', 'سقز': 'Saqqez', 'بروجرد': 'Borujerd', 'دورود': 'Dorud', 'نجف آباد': 'Najafabad', 'نجف‌آباد': 'Najafabad', 'خمینی شهر': 'Khomeynishahr', 'شاهین شهر': 'Shahin Shahr', 'شهرضا': 'Shahreza', 'کیش': 'Kish', 'قشم': 'Qeshm', 'کبودرآهنگ': 'Kabudarahang', 'رباط کریم': 'Robat Karim', 'ورامین': 'Varamin', 'پاکدشت': 'Pakdasht', 'پردیس': 'Pardis', 'دماوند': 'Damavand', 'فیروزکوه': 'Firuzkuh', 'رودهن': 'Rudehen', 'لواسان': 'Lavasan', 'اسلامشهر': 'Eslamshahr', 'شهریار': 'Shahriar', 'قدس': 'Qods', 'ملارد': 'Malard', 'بهارستان': 'Baharestan', 'رباط‌کریم': 'Robat Karim'
+            'تهران': 'Tehran', 'مشهد': 'Mashhad', 'اصفهان': 'Isfahan', 'شیراز': 'Shiraz', 'تبریز': 'Tabriz', 'اهواز': 'Ahvaz', 'قم': 'Qom', 'کرج': 'Karaj', 'اردبیل': 'Ardabil', 'ساری': 'Sari', 'اراک': 'Arak', 'ارومیه': 'Urmia', 'گرگان': 'Gorgan', 'رشت': 'Rasht', 'کرمان': 'Kerman', 'یزد': 'Yazd', 'کرمانشاه': 'Kermanshah', 'زاهدان': 'Zahedan', 'همدان': 'Hamadan', 'بندرعباس': 'Bandar Abbas', 'بندر عباس': 'Bandar Abbas', 'بوشهر': 'Bushehr', 'قزوین': 'Qazvin', 'سنندج': 'Sanandaj', 'خرم آباد': 'Khorramabad', 'خرم‌آباد': 'Khorramabad', 'خرماباد': 'Khorramabad', 'بیرجند': 'Birjand', 'بجنورد': 'Bojnord', 'شهرکرد': 'Shahr-e Kord', 'شهر کرد': 'Shahr-e Kord', 'ایلام': 'Ilam', 'سمنان': 'Semnan', 'زنجان': 'Zanjan', 'کاشان': 'Kashan', 'نیشابور': 'Neyshabur', 'بابل': 'Babol', 'آمل': 'Amol', 'دزفول': 'Dezful', 'آبادان': 'Abadan', 'خرمشهر': 'Khorramshahr', 'اندیمشک': 'Andimeshk', 'شوشتر': 'Shushtar', 'بهبهان': 'Behbahan', 'سردشت': 'Sardasht', 'بم': 'Bam', 'شیروان': 'Shirvan', 'لاهیجان': 'Lahijan', 'انزلی': 'Anzali', 'بندر انزلی': 'Bandar Anzali', 'چابهار': 'Chabahar', 'جهرم': 'Jahrom', 'مراغه': 'Maragheh', 'مرند': 'Marand', 'خوی': 'Khoy', 'مهاباد': 'Mahabad', 'سقز': 'Saqqez', 'بروجرد': 'Borujerd', 'دورود': 'Dorud', 'نجف آباد': 'Najafabad', 'نجف‌آباد': 'Najafabad', 'خمینی شهر': 'Khomeynishahr', 'شاهین شهر': 'Shahin Shahr', 'شهرضا': 'Shahreza', 'کیش': 'Kish', 'قشم': 'Qeshm', 'کبودرآهنگ': 'Kabudarahang', 'رباط کریم': 'Robat Karim', 'ورامین': 'Varamin', 'پاکدشت': 'Pakdasht', 'پردیس': 'Pardis', 'دماوند': 'Damavand', 'فیروزکوه': 'Firuzkuh', 'رودهن': 'Rudehen', 'لواسان': 'Lavasan', 'اسلامشهر': 'Eslamshahr', 'شهریار': 'Shahriar', 'قدس': 'Qods', 'ملارد': 'Malard', 'بهارستان': 'Baharestan', 'رباط‌کریم': 'Robat Karim',
+            'بندر ماهشهر': 'Bandar Mahshahr', 'شوش': 'Shush', 'سوسنگرد': 'Susangerd', 'رامهرمز': 'Ramhormoz', 'ایذه': 'Izeh', 'باغملک': 'Baghmalek', 'امیدیه': 'Omidiyeh', 'هندیجان': 'Hendijan', 'شادگان': 'Shadegan', 'عسلویه': 'Assaluyeh', 'لار': 'Lar', 'لامرد': 'Lamerd', 'آستارا': 'Astara', 'تالش': 'Talesh', 'فومن': 'Fuman', 'صومعه‌سرا': 'Sowme\'eh Sara', 'ماسال': 'Masal', 'رودسر': 'Rudsar', 'رامسر': 'Ramsar', 'تنکابن': 'Tonekabon', 'عباس‌آباد': 'Abbasabad', 'نشتارود': 'Nashtarud', 'کلاردشت': 'Kelardasht', 'چالوس': 'Chalus', 'نوشهر': 'Nowshahr', 'بابلسر': 'Babolsar', 'فریدونکنار': 'Fereydunkenar', 'محمودآباد': 'Mahmudabad', 'نور': 'Nur', 'قائم‌شهر': 'Qaem Shahr', 'جویبار': 'Juybar', 'اسلام‌آباد غرب': 'Eslamabad-e Gharb', 'گیلانغرب': 'Gilan-e Gharb', 'قصر شیرین': 'Qasr-e Shirin', 'سرپل ذهاب': 'Sarpol-e Zahab', 'جوانرود': 'Javanrud', 'روانسر': 'Ravansar', 'پاوه': 'Paveh', 'مریوان': 'Marivan', 'بانه': 'Baneh', 'دیواندره': 'Divandarreh', 'قروه': 'Qorveh', 'بیجار': 'Bijar', 'ملایر': 'Malayer', 'نهاوند': 'Nahavand', 'تویسرکان': 'Tuyserkan', 'اسدآباد': 'Asadabad', 'بهار': 'Bahar', 'سبزوار': 'Sabzevar', 'تربت حیدریه': 'Torbat-e Heydarieh', 'کاشمر': 'Kashmar', 'گناباد': 'Gonabad', 'قائنات': 'Qaen', 'طبس': 'Tabas', 'فردوس': 'Ferdows', 'بشرویه': 'Boshruyeh', 'نهبندان': 'Nehbandan', 'فولادشهر': 'Fouladshahr', 'زرین‌شهر': 'Zarrinshahr', 'خوانسار': 'Khansar', 'گلپایگان': 'Golpayegan', 'سمیرم': 'Semirom', 'دهاقان': 'Dehaqan', 'مرودشت': 'Marvdasht', 'کازرون': 'Kazerun', 'فسا': 'Fasa', 'داراب': 'Darab', 'آباده': 'Abadeh', 'صفاشهر': 'Safashahr', 'اقلید': 'Eqlid', 'ارسنجان': 'Arsanjan', 'استهبان': 'Estahban', 'نیریز': 'Neyriz', 'فیروزآباد': 'Firuzabad', 'میانه': 'Mianeh', 'بناب': 'Bonab', 'سراب': 'Sarab', 'شبستر': 'Shabestar', 'آذرشهر': 'Azarshahr', 'اسکو': 'Osku', 'جلفا': 'Jolfa', 'کلیبر': 'Kaleybar', 'هریس': 'Heris', 'بستان‌آباد': 'Bostanabad', 'هشترود': 'Hashtrud', 'ملکان': 'Malekan', 'عجب‌شیر': 'Ajab Shir', 'میاندوآب': 'Miandoab', 'بوکان': 'Bukan', 'سلماس': 'Salmas', 'نقده': 'Naqadeh', 'پیرانشهر': 'Piranshahr', 'ماکو': 'Maku', 'شوط': 'Showt', 'پلدشت': 'Poldasht', 'کنگان': 'Kangan', 'گناوه': 'Ganaveh',
+            'مسجد سلیمان': 'Masjed Soleyman', 'بندر امام خمینی': 'Bandar Imam Khomeini', 'سپاهان‌شهر': 'Sepahan Shahr', 'پرند': 'Parand', 'صدرا': 'Sadra', 'مهرشهر': 'Mehrshahr', 'گلبهار': 'Golbahar'
         };
 
         function normalizePersian(str) {
@@ -1766,9 +1736,8 @@
             return query;
         }
 
-        // --- 20.6 WELCOME SCREEN (OPTIMIZED: 3400 -> 1200) ---
         const WELCOME_KEY = 'welcome_shown_v1';
-        const WELCOME_TOTAL_DURATION = 1200;
+        const WELCOME_TOTAL_DURATION = 800;
         const WELCOME_FADE_DURATION = 500;
         function initWelcomeScreen() {
             const welcomeEl = document.getElementById('welcomeScreen');
@@ -1792,7 +1761,6 @@
         }
         initWelcomeScreen();
 
-        // --- 20.7 I18N ---
         const I18N = {
             en: {
                 app_title: 'Weather & Air Quality', auto_refresh: 'Auto refresh every', hour: 'hour',
@@ -1828,7 +1796,7 @@
                 font_small: 'Small', font_normal: 'Normal', font_large: 'Large', font_xl: 'Extra Large',
                 location_data: 'Location & Data', default_city: 'Default City', default_city_desc: 'Auto-scroll to this city on load',
                 none: 'None', data_source: 'Data Source', data_source_desc: 'Preferred weather provider',
-                source_auto: 'Auto (Smart)', source_openmeteo: 'Open-Meteo only', source_wttr: 'wttr.in only', source_both: 'Both (merge)',
+                source_auto: 'Auto (Smart)', source_openmeteo: 'Open-Meteo only', source_wttr: 'wttr.in only',
                 haptic_feedback: 'Haptic Feedback', haptic_feedback_desc: 'Vibrate on actions (mobile)',
                 air_quality: 'Air Quality', aqi_scale: 'AQI Scale', aqi_scale_desc: 'Which standard to use',
                 aqi_eu: 'European', aqi_us: 'US AQI', aqi_tint: 'Color-tint Cards', aqi_tint_desc: 'Tint AQI cards based on level',
@@ -1873,7 +1841,7 @@
                 font_small: 'کوچک', font_normal: 'معمولی', font_large: 'بزرگ', font_xl: 'خیلی بزرگ',
                 location_data: 'موقعیت و داده', default_city: 'شهر پیش‌فرض', default_city_desc: 'هنگام باز شدن، به این شهر اسکرول کن',
                 none: 'هیچ‌کدام', data_source: 'منبع داده', data_source_desc: 'سرویس آب‌وهوای ترجیحی',
-                source_auto: 'خودکار (هوشمند)', source_openmeteo: 'فقط Open-Meteo', source_wttr: 'فقط wttr.in', source_both: 'هر دو (ادغام)',
+                source_auto: 'خودکار (هوشمند)', source_openmeteo: 'فقط Open-Meteo', source_wttr: 'فقط wttr.in',
                 haptic_feedback: 'بازخورد لمسی', haptic_feedback_desc: 'لرزش هنگام اقدامات (موبایل)',
                 air_quality: 'کیفیت هوا', aqi_scale: 'مقیاس AQI', aqi_scale_desc: 'کدام استاندارد استفاده شود',
                 aqi_eu: 'اروپایی', aqi_us: 'آمریکایی', aqi_tint: 'رنگ‌آمیزی کارت', aqi_tint_desc: 'کارت‌های AQI را بر اساس سطح رنگ کن',
@@ -1927,7 +1895,6 @@
             });
         }
 
-        // --- 20.8 SETTINGS & STORAGE ---
         const SETTINGS_KEY = 'iran_weather_settings';
         const DEFAULT_SETTINGS = {
             theme: 'dark', glass: false, glassIntensity: 65, blurIntensity: 12,
@@ -2057,17 +2024,24 @@
             document.getElementById('setting-aqi-trend').addEventListener('change', (e) => { settings.showAqiTrend = e.target.checked; saveSettings(); renderAQIList(); });
         }
 
-        // --- 20.9 TAB NAVIGATION ---
         let currentTab = 'weather';
         function updateNavPill(animate = true) {
             const pill = document.getElementById('navPill');
             const active = document.querySelector('.nav-item.active');
             if (!pill || !active) return;
             if (!animate) pill.classList.add('no-anim');
-            pill.style.left = active.offsetLeft + 'px';
-            pill.style.top = active.offsetTop + 'px';
-            pill.style.width = active.offsetWidth + 'px';
-            pill.style.height = active.offsetHeight + 'px';
+            
+            const parentRect = active.parentElement.getBoundingClientRect();
+            const rect = active.getBoundingClientRect();
+            
+            const left = rect.left - parentRect.left;
+            const top = rect.top - parentRect.top;
+            
+            pill.style.left = left + 'px';
+            pill.style.top = top + 'px';
+            pill.style.width = rect.width + 'px';
+            pill.style.height = rect.height + 'px';
+            
             if (!animate) { void pill.offsetWidth; requestAnimationFrame(() => pill.classList.remove('no-anim')); }
         }
 
@@ -2096,7 +2070,6 @@
             if (document.fonts && document.fonts.ready) { document.fonts.ready.then(() => updateNavPill(false)); }
         }
 
-        // --- 20.10 CONSTANTS & API SETUP ---
         const REFRESH_HOURS = Core.device.isMobile ? 2 : 1;
         const GEO_API = 'https://geocoding-api.open-meteo.com/v1/search';
         const WEATHER_API = 'https://api.open-meteo.com/v1/forecast';
@@ -2219,10 +2192,115 @@
             { name: 'Dogonbadan', name_fa: 'دوگنبدان', lat: 30.3600, lon: 50.7953, admin: 'Kohgiluyeh', country: 'Iran', country_code: 'IR' },
             { name: 'Borujen', name_fa: 'بروجن', lat: 31.9667, lon: 51.2833, admin: 'Chaharmahal', country: 'Iran', country_code: 'IR' },
             { name: 'Lordegan', name_fa: 'لردگان', lat: 31.5167, lon: 50.8167, admin: 'Chaharmahal', country: 'Iran', country_code: 'IR' },
-            { name: 'Farsan', name_fa: 'فارسان', lat: 32.2500, lon: 50.5667, admin: 'Chaharmahal', country: 'Iran', country_code: 'IR' }
+            { name: 'Farsan', name_fa: 'فارسان', lat: 32.2500, lon: 50.5667, admin: 'Chaharmahal', country: 'Iran', country_code: 'IR' },
+            { name: 'Bandar Mahshahr', name_fa: 'بندر ماهشهر', lat: 30.5589, lon: 49.1981, admin: 'Khuzestan', country: 'Iran', country_code: 'IR' },
+            { name: 'Shush', name_fa: 'شوش', lat: 32.1942, lon: 48.2436, admin: 'Khuzestan', country: 'Iran', country_code: 'IR' },
+            { name: 'Susangerd', name_fa: 'سوسنگرد', lat: 31.5636, lon: 48.1794, admin: 'Khuzestan', country: 'Iran', country_code: 'IR' },
+            { name: 'Ramhormoz', name_fa: 'رامهرمز', lat: 31.2781, lon: 49.6036, admin: 'Khuzestan', country: 'Iran', country_code: 'IR' },
+            { name: 'Izeh', name_fa: 'ایذه', lat: 31.8319, lon: 49.8689, admin: 'Khuzestan', country: 'Iran', country_code: 'IR' },
+            { name: 'Baghmalek', name_fa: 'باغملک', lat: 31.5231, lon: 49.8869, admin: 'Khuzestan', country: 'Iran', country_code: 'IR' },
+            { name: 'Omidiyeh', name_fa: 'امیدیه', lat: 30.7456, lon: 49.7058, admin: 'Khuzestan', country: 'Iran', country_code: 'IR' },
+            { name: 'Hendijan', name_fa: 'هندیجان', lat: 30.2364, lon: 49.7119, admin: 'Khuzestan', country: 'Iran', country_code: 'IR' },
+            { name: 'Shadegan', name_fa: 'شادگان', lat: 30.6497, lon: 48.6647, admin: 'Khuzestan', country: 'Iran', country_code: 'IR' },
+            { name: 'Assaluyeh', name_fa: 'عسلویه', lat: 27.4761, lon: 52.6072, admin: 'Bushehr', country: 'Iran', country_code: 'IR' },
+            { name: 'Lar', name_fa: 'لار', lat: 27.6833, lon: 54.3333, admin: 'Fars', country: 'Iran', country_code: 'IR' },
+            { name: 'Lamerd', name_fa: 'لامرد', lat: 27.3333, lon: 53.1833, admin: 'Fars', country: 'Iran', country_code: 'IR' },
+            { name: 'Astara', name_fa: 'آستارا', lat: 38.4292, lon: 48.8719, admin: 'Gilan', country: 'Iran', country_code: 'IR' },
+            { name: 'Talesh', name_fa: 'تالش', lat: 37.8006, lon: 48.9050, admin: 'Gilan', country: 'Iran', country_code: 'IR' },
+            { name: 'Fuman', name_fa: 'فومن', lat: 37.2239, lon: 49.3117, admin: 'Gilan', country: 'Iran', country_code: 'IR' },
+            { name: 'Sowme\'eh Sara', name_fa: 'صومعه‌سرا', lat: 37.3114, lon: 49.3214, admin: 'Gilan', country: 'Iran', country_code: 'IR' },
+            { name: 'Masal', name_fa: 'ماسال', lat: 37.3622, lon: 49.1319, admin: 'Gilan', country: 'Iran', country_code: 'IR' },
+            { name: 'Rudsar', name_fa: 'رودسر', lat: 37.1375, lon: 50.2889, admin: 'Gilan', country: 'Iran', country_code: 'IR' },
+            { name: 'Ramsar', name_fa: 'رامسر', lat: 36.9178, lon: 50.6583, admin: 'Mazandaran', country: 'Iran', country_code: 'IR' },
+            { name: 'Tonekabon', name_fa: 'تنکابن', lat: 36.8164, lon: 50.8739, admin: 'Mazandaran', country: 'Iran', country_code: 'IR' },
+            { name: 'Abbasabad', name_fa: 'عباس‌آباد', lat: 36.7264, lon: 51.1058, admin: 'Mazandaran', country: 'Iran', country_code: 'IR' },
+            { name: 'Nashtarud', name_fa: 'نشتارود', lat: 36.7514, lon: 51.0172, admin: 'Mazandaran', country: 'Iran', country_code: 'IR' },
+            { name: 'Kelardasht', name_fa: 'کلاردشت', lat: 36.4931, lon: 51.1561, admin: 'Mazandaran', country: 'Iran', country_code: 'IR' },
+            { name: 'Chalus', name_fa: 'چالوس', lat: 36.6550, lon: 51.4203, admin: 'Mazandaran', country: 'Iran', country_code: 'IR' },
+            { name: 'Nowshahr', name_fa: 'نوشهر', lat: 36.6478, lon: 51.4964, admin: 'Mazandaran', country: 'Iran', country_code: 'IR' },
+            { name: 'Babolsar', name_fa: 'بابلسر', lat: 36.7022, lon: 52.6542, admin: 'Mazandaran', country: 'Iran', country_code: 'IR' },
+            { name: 'Fereydunkenar', name_fa: 'فریدونکنار', lat: 36.6864, lon: 52.5189, admin: 'Mazandaran', country: 'Iran', country_code: 'IR' },
+            { name: 'Mahmudabad', name_fa: 'محمودآباد', lat: 36.6303, lon: 52.2622, admin: 'Mazandaran', country: 'Iran', country_code: 'IR' },
+            { name: 'Nur', name_fa: 'نور', lat: 36.5731, lon: 52.0142, admin: 'Mazandaran', country: 'Iran', country_code: 'IR' },
+            { name: 'Qaem Shahr', name_fa: 'قائم‌شهر', lat: 36.4631, lon: 52.8600, admin: 'Mazandaran', country: 'Iran', country_code: 'IR' },
+            { name: 'Juybar', name_fa: 'جویبار', lat: 36.6422, lon: 52.9119, admin: 'Mazandaran', country: 'Iran', country_code: 'IR' },
+            { name: 'Eslamabad-e Gharb', name_fa: 'اسلام‌آباد غرب', lat: 34.1114, lon: 46.5272, admin: 'Kermanshah', country: 'Iran', country_code: 'IR' },
+            { name: 'Gilan-e Gharb', name_fa: 'گیلانغرب', lat: 34.1422, lon: 45.9203, admin: 'Kermanshah', country: 'Iran', country_code: 'IR' },
+            { name: 'Qasr-e Shirin', name_fa: 'قصر شیرین', lat: 34.5156, lon: 45.5792, admin: 'Kermanshah', country: 'Iran', country_code: 'IR' },
+            { name: 'Sarpol-e Zahab', name_fa: 'سرپل ذهاب', lat: 34.4639, lon: 45.8647, admin: 'Kermanshah', country: 'Iran', country_code: 'IR' },
+            { name: 'Javanrud', name_fa: 'جوانرود', lat: 34.8067, lon: 46.4922, admin: 'Kermanshah', country: 'Iran', country_code: 'IR' },
+            { name: 'Ravansar', name_fa: 'روانسر', lat: 34.7136, lon: 46.6533, admin: 'Kermanshah', country: 'Iran', country_code: 'IR' },
+            { name: 'Paveh', name_fa: 'پاوه', lat: 35.0433, lon: 46.3564, admin: 'Kermanshah', country: 'Iran', country_code: 'IR' },
+            { name: 'Marivan', name_fa: 'مریوان', lat: 35.5269, lon: 46.1761, admin: 'Kurdistan', country: 'Iran', country_code: 'IR' },
+            { name: 'Baneh', name_fa: 'بانه', lat: 35.9975, lon: 45.8853, admin: 'Kurdistan', country: 'Iran', country_code: 'IR' },
+            { name: 'Divandarreh', name_fa: 'دیواندره', lat: 35.9139, lon: 47.0239, admin: 'Kurdistan', country: 'Iran', country_code: 'IR' },
+            { name: 'Qorveh', name_fa: 'قروه', lat: 35.1664, lon: 47.8053, admin: 'Kurdistan', country: 'Iran', country_code: 'IR' },
+            { name: 'Bijar', name_fa: 'بیجار', lat: 35.8667, lon: 47.6000, admin: 'Kurdistan', country: 'Iran', country_code: 'IR' },
+            { name: 'Malayer', name_fa: 'ملایر', lat: 34.3019, lon: 48.8214, admin: 'Hamadan', country: 'Iran', country_code: 'IR' },
+            { name: 'Nahavand', name_fa: 'نهاوند', lat: 34.1886, lon: 48.3769, admin: 'Hamadan', country: 'Iran', country_code: 'IR' },
+            { name: 'Tuyserkan', name_fa: 'تویسرکان', lat: 34.5531, lon: 48.4458, admin: 'Hamadan', country: 'Iran', country_code: 'IR' },
+            { name: 'Asadabad', name_fa: 'اسدآباد', lat: 34.7811, lon: 48.1197, admin: 'Hamadan', country: 'Iran', country_code: 'IR' },
+            { name: 'Bahar', name_fa: 'بهار', lat: 34.9072, lon: 48.4414, admin: 'Hamadan', country: 'Iran', country_code: 'IR' },
+            { name: 'Sabzevar', name_fa: 'سبزوار', lat: 36.2126, lon: 57.6819, admin: 'Razavi Khorasan', country: 'Iran', country_code: 'IR' },
+            { name: 'Torbat-e Heydarieh', name_fa: 'تربت حیدریه', lat: 35.2740, lon: 59.2197, admin: 'Razavi Khorasan', country: 'Iran', country_code: 'IR' },
+            { name: 'Kashmar', name_fa: 'کاشمر', lat: 35.2383, lon: 58.4656, admin: 'Razavi Khorasan', country: 'Iran', country_code: 'IR' },
+            { name: 'Gonabad', name_fa: 'گناباد', lat: 34.3528, lon: 58.6836, admin: 'Razavi Khorasan', country: 'Iran', country_code: 'IR' },
+            { name: 'Qaen', name_fa: 'قائنات', lat: 33.7267, lon: 59.1844, admin: 'South Khorasan', country: 'Iran', country_code: 'IR' },
+            { name: 'Tabas', name_fa: 'طبس', lat: 33.5958, lon: 56.9244, admin: 'South Khorasan', country: 'Iran', country_code: 'IR' },
+            { name: 'Ferdows', name_fa: 'فردوس', lat: 34.0186, lon: 58.1711, admin: 'South Khorasan', country: 'Iran', country_code: 'IR' },
+            { name: 'Boshruyeh', name_fa: 'بشرویه', lat: 33.8686, lon: 57.4244, admin: 'South Khorasan', country: 'Iran', country_code: 'IR' },
+            { name: 'Nehbandan', name_fa: 'نهبندان', lat: 31.5422, lon: 60.0361, admin: 'South Khorasan', country: 'Iran', country_code: 'IR' },
+            { name: 'Fouladshahr', name_fa: 'فولادشهر', lat: 32.5000, lon: 51.3833, admin: 'Isfahan', country: 'Iran', country_code: 'IR' },
+            { name: 'Zarrinshahr', name_fa: 'زرین‌شهر', lat: 32.3833, lon: 51.3667, admin: 'Isfahan', country: 'Iran', country_code: 'IR' },
+            { name: 'Khansar', name_fa: 'خوانسار', lat: 33.2214, lon: 50.3150, admin: 'Isfahan', country: 'Iran', country_code: 'IR' },
+            { name: 'Golpayegan', name_fa: 'گلپایگان', lat: 33.4531, lon: 50.2886, admin: 'Isfahan', country: 'Iran', country_code: 'IR' },
+            { name: 'Semirom', name_fa: 'سمیرم', lat: 31.4167, lon: 51.5667, admin: 'Isfahan', country: 'Iran', country_code: 'IR' },
+            { name: 'Dehaqan', name_fa: 'دهاقان', lat: 32.0583, lon: 51.6417, admin: 'Isfahan', country: 'Iran', country_code: 'IR' },
+            { name: 'Marvdasht', name_fa: 'مرودشت', lat: 29.8742, lon: 52.8025, admin: 'Fars', country: 'Iran', country_code: 'IR' },
+            { name: 'Kazerun', name_fa: 'کازرون', lat: 29.6167, lon: 51.6500, admin: 'Fars', country: 'Iran', country_code: 'IR' },
+            { name: 'Fasa', name_fa: 'فسا', lat: 28.9383, lon: 53.6483, admin: 'Fars', country: 'Iran', country_code: 'IR' },
+            { name: 'Darab', name_fa: 'داراب', lat: 28.7519, lon: 54.5406, admin: 'Fars', country: 'Iran', country_code: 'IR' },
+            { name: 'Abadeh', name_fa: 'آباده', lat: 31.1608, lon: 52.6506, admin: 'Fars', country: 'Iran', country_code: 'IR' },
+            { name: 'Safashahr', name_fa: 'صفاشهر', lat: 30.6167, lon: 53.1833, admin: 'Fars', country: 'Iran', country_code: 'IR' },
+            { name: 'Eqlid', name_fa: 'اقلید', lat: 30.9000, lon: 52.6833, admin: 'Fars', country: 'Iran', country_code: 'IR' },
+            { name: 'Arsanjan', name_fa: 'ارسنجان', lat: 29.9125, lon: 53.3086, admin: 'Fars', country: 'Iran', country_code: 'IR' },
+            { name: 'Estahban', name_fa: 'استهبان', lat: 29.1250, lon: 54.0417, admin: 'Fars', country: 'Iran', country_code: 'IR' },
+            { name: 'Neyriz', name_fa: 'نیریز', lat: 29.2000, lon: 54.3333, admin: 'Fars', country: 'Iran', country_code: 'IR' },
+            { name: 'Firuzabad', name_fa: 'فیروزآباد', lat: 28.8500, lon: 52.5667, admin: 'Fars', country: 'Iran', country_code: 'IR' },
+            { name: 'Mianeh', name_fa: 'میانه', lat: 37.4211, lon: 47.7094, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Kaleybar', name_fa: 'کلیبر', lat: 38.8667, lon: 47.0333, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Heris', name_fa: 'هریس', lat: 38.2500, lon: 47.1167, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Hashtrud', name_fa: 'هشترود', lat: 37.4778, lon: 47.0539, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Malekan', name_fa: 'ملکان', lat: 37.1417, lon: 46.1056, admin: 'East Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Miandoab', name_fa: 'میاندوآب', lat: 36.9667, lon: 46.1000, admin: 'West Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Salmas', name_fa: 'سلماس', lat: 38.1972, lon: 44.7667, admin: 'West Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Naqadeh', name_fa: 'نقده', lat: 36.9500, lon: 45.3833, admin: 'West Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Piranshahr', name_fa: 'پیرانشهر', lat: 36.7000, lon: 45.1333, admin: 'West Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Maku', name_fa: 'ماکو', lat: 39.2833, lon: 44.5167, admin: 'West Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Showt', name_fa: 'شوط', lat: 39.2167, lon: 44.7667, admin: 'West Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Poldasht', name_fa: 'پلدشت', lat: 39.3500, lon: 45.0667, admin: 'West Azerbaijan', country: 'Iran', country_code: 'IR' },
+            { name: 'Eslamshahr', name_fa: 'اسلامشهر', lat: 35.5500, lon: 51.2333, admin: 'Tehran', country: 'Iran', country_code: 'IR' },
+            { name: 'Shahriar', name_fa: 'شهریار', lat: 35.6594, lon: 51.0597, admin: 'Tehran', country: 'Iran', country_code: 'IR' },
+            { name: 'Qods', name_fa: 'قدس', lat: 35.7214, lon: 51.1092, admin: 'Tehran', country: 'Iran', country_code: 'IR' },
+            { name: 'Malard', name_fa: 'ملارد', lat: 35.6667, lon: 50.9833, admin: 'Tehran', country: 'Iran', country_code: 'IR' },
+            { name: 'Baharestan', name_fa: 'بهارستان', lat: 35.5167, lon: 51.1667, admin: 'Tehran', country: 'Iran', country_code: 'IR' },
+            { name: 'Robat Karim', name_fa: 'رباط‌کریم', lat: 35.4667, lon: 51.0833, admin: 'Tehran', country: 'Iran', country_code: 'IR' },
+            { name: 'Varamin', name_fa: 'ورامین', lat: 35.3242, lon: 51.6456, admin: 'Tehran', country: 'Iran', country_code: 'IR' },
+            { name: 'Pakdasht', name_fa: 'پاکدشت', lat: 35.4786, lon: 51.6814, admin: 'Tehran', country: 'Iran', country_code: 'IR' },
+            { name: 'Pardis', name_fa: 'پردیس', lat: 35.7414, lon: 51.8086, admin: 'Tehran', country: 'Iran', country_code: 'IR' },
+            { name: 'Damavand', name_fa: 'دماوند', lat: 35.7178, lon: 51.9919, admin: 'Tehran', country: 'Iran', country_code: 'IR' },
+            { name: 'Firuzkuh', name_fa: 'فیروزکوه', lat: 35.7569, lon: 52.7714, admin: 'Tehran', country: 'Iran', country_code: 'IR' },
+            { name: 'Rudehen', name_fa: 'رودهن', lat: 35.7431, lon: 51.9114, admin: 'Tehran', country: 'Iran', country_code: 'IR' },
+            { name: 'Lavasan', name_fa: 'لواسان', lat: 35.8222, lon: 51.6319, admin: 'Tehran', country: 'Iran', country_code: 'IR' },
+            { name: 'Masjed Soleyman', name_fa: 'مسجد سلیمان', lat: 31.9364, lon: 49.3039, admin: 'Khuzestan', country: 'Iran', country_code: 'IR' },
+            { name: 'Bandar Imam Khomeini', name_fa: 'بندر امام خمینی', lat: 30.5589, lon: 49.0736, admin: 'Khuzestan', country: 'Iran', country_code: 'IR' },
+            { name: 'Sepahan Shahr', name_fa: 'سپاهان‌شهر', lat: 32.5667, lon: 51.5667, admin: 'Isfahan', country: 'Iran', country_code: 'IR' },
+            { name: 'Parand', name_fa: 'پرند', lat: 35.3667, lon: 51.0333, admin: 'Tehran', country: 'Iran', country_code: 'IR' },
+            { name: 'Sadra', name_fa: 'صدرا', lat: 29.7833, lon: 52.5167, admin: 'Fars', country: 'Iran', country_code: 'IR' },
+            { name: 'Mehrshahr', name_fa: 'مهرشهر', lat: 35.7900, lon: 50.9100, admin: 'Alborz', country: 'Iran', country_code: 'IR' },
+            { name: 'Golbahar', name_fa: 'گلبهار', lat: 36.5667, lon: 59.2167, admin: 'Razavi Khorasan', country: 'Iran', country_code: 'IR' }
         ];
 
-        // OPTIMIZED: Pre-compute normalized values for instant local search
         const IRAN_CITIES_PREP = IRAN_CITIES.map(c => ({
             ...c,
             _nameEn: c.name.toLowerCase(),
@@ -2234,7 +2312,6 @@
         const WWW_TO_WMO = { 113: 0, 116: 2, 119: 3, 122: 3, 143: 45, 248: 45, 260: 48, 176: 80, 179: 71, 182: 56, 185: 56, 200: 95, 227: 71, 230: 75, 263: 51, 266: 53, 281: 56, 284: 57, 293: 61, 296: 61, 299: 63, 302: 63, 305: 65, 308: 65, 311: 66, 314: 67, 317: 71, 320: 73, 323: 71, 326: 71, 329: 73, 332: 73, 335: 75, 338: 75, 350: 77, 353: 80, 356: 81, 359: 82, 362: 85, 365: 86, 368: 85, 371: 86, 374: 85, 377: 86, 386: 95, 389: 96, 392: 95, 395: 99 };
         function convertWwwToWmo(c) { return WWW_TO_WMO[parseInt(c)] ?? 0; }
 
-        // --- 20.11 CACHE & COOKIE MANAGEMENT ---
         const memoryStore = Object.create(null);
         function setCookie(name, value, days = COOKIE_DAYS) { try { const expires = new Date(Date.now() + days * 864e5).toUTCString(); document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`; } catch (e) { } }
         function getCookie(name) { try { const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)')); return match ? decodeURIComponent(match[1]) : null; } catch (e) { return null; } }
@@ -2273,7 +2350,6 @@
         function rejectCookies() { setConsent('rejected'); storeDelete(COOKIE_CACHE_KEY); hideCookieBanner(); }
         function resetCookieConsent() { storeDelete(COOKIE_CONSENT_KEY); setTimeout(showCookieBanner, 100); }
 
-        // --- 20.12 STATE & HELPERS ---
         let cities = [...DEFAULT_CITIES];
         let weatherCache = null;
         let isFirstLoad = true;
@@ -2308,7 +2384,6 @@
             } catch (e) { }
         }
 
-        // DOM Elements
         const $ = id => document.getElementById(id);
         const cardsEl = $('cards');
         const aqiListEl = $('aqiList');
@@ -2376,7 +2451,6 @@
         function fmtTime(isoString) { try { return new Date(isoString).toLocaleTimeString(currentLang === 'fa' ? 'fa-IR' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: false }); } catch (e) { return '—'; } }
         function fmtDay(isoDate) { try { return new Date(isoDate + 'T12:00:00').toLocaleDateString(currentLang === 'fa' ? 'fa-IR' : 'en-US', { weekday: 'short' }); } catch (e) { return '—'; } }
 
-        // --- 20.13 SEARCH CACHE & SUGGESTIONS ---
         function loadSearchCache() {
             try {
                 const raw = storeGet(COOKIE_SEARCH_CACHE_KEY); if (!raw) return {};
@@ -2415,7 +2489,7 @@
 
         function sortResultsIranFirst(results) { if (!results || results.length === 0) return results; return [...results].sort((a, b) => { const aIR = a.country_code === 'IR' ? 0 : 1; const bIR = b.country_code === 'IR' ? 0 : 1; return aIR - bIR; }); }
 
-        function renderSuggestions(results, query) {
+        function renderSuggestions(results) {
             results = sortResultsIranFirst(results); currentSuggestions = results; activeSuggestionIndex = -1; suggestionsEl.innerHTML = '';
             if (!results || results.length === 0) { suggestionsEl.innerHTML = `<div class="suggestions-empty">${t('no_cities_found')}</div>`; suggestionsEl.classList.add('visible'); return; }
             const frag = document.createDocumentFragment();
@@ -2470,7 +2544,6 @@
             }, 800);
         }
 
-        // --- 20.14 API FETCHING & QUEUE ---
         async function addSingleCity(city) {
             const tempId = 'loading-' + Date.now();
             const tempCard = document.createElement('div');
@@ -2489,14 +2562,12 @@
 
                 tempCard.remove();
 
-                // Sync with weatherCache to prevent race with updateAll
                 if (finalWeather) {
                     const result = { city, weather: finalWeather, aqi };
                     if (!weatherCache) weatherCache = [];
                     const existing = weatherCache.findIndex(r => r.city.name === city.name);
                     if (existing >= 0) weatherCache[existing] = result; else weatherCache.push(result);
                     saveWeatherCacheToStorage(weatherCache);
-                    // Only append if not already rendered by updateAll
                     if (!cardsEl.querySelector(`.card[data-city="${CSS.escape(city.name)}"]`)) {
                         const newCard = createCard(result);
                         newCard.classList.add('city-add-pop');
@@ -2530,7 +2601,7 @@
             const q = searchInput.value.trim(); clearTimeout(suggestDebounce);
             if (q.length < 2) { hideSuggestions(); return; }
             const localResults = searchLocalIran(q);
-            if (localResults.length > 0) renderSuggestions(localResults, q);
+            if (localResults.length > 0) renderSuggestions(localResults);
             else { suggestionsEl.innerHTML = `<div class="suggestions-loading">${t('searching')}</div>`; suggestionsEl.classList.add('visible'); }
             const debounceMs = Core.device.isMobile ? 200 : 120;
             suggestDebounce = setTimeout(async () => {
@@ -2539,7 +2610,7 @@
                     if (searchInput.value.trim() === q) {
                         const seen = new Set(); const merged = [];
                         for (const r of [...localResults, ...results]) { const key = `${r.name}|${r.latitude ?? r.lat}`.toLowerCase(); if (!seen.has(key)) { seen.add(key); merged.push(r); } }
-                        renderSuggestions(merged, q);
+                        renderSuggestions(merged);
                     }
                 } catch (err) { if (err.name !== 'AbortError' && localResults.length === 0) suggestionsEl.innerHTML = `<div class="suggestions-empty">${t('search_failed')}</div>`; }
             }, debounceMs);
@@ -2604,7 +2675,6 @@
             }
         };
 
-        // OPTIMIZED: Parallel weather + AQI fetching
         async function fetchAllCitiesData(citiesList) {
             if (!citiesList || citiesList.length === 0) return [];
             const [weatherResults, aqiResults] = await Promise.all([
@@ -2616,8 +2686,8 @@
 
         async function fetchWeatherFromBestSource(citiesList) {
             const pref = settings.dataSource || 'auto';
-            const tryOM = pref === 'auto' || pref === 'openmeteo' || pref === 'both';
-            const tryWttr = pref === 'wttr' || pref === 'both' || (pref === 'auto' && !tryOM);
+            const tryOM = pref === 'auto' || pref === 'openmeteo';
+            const tryWttr = pref === 'wttr' || (pref === 'auto' && !tryOM);
             if (tryOM && !Core.isSourceSkipped('weather:openmeteo')) {
                 try {
                     const results = await omQueue.add(() => fetchBatch(citiesList), 'weather-batch');
@@ -2630,17 +2700,7 @@
                 try {
                     const results = await Promise.all(citiesList.map(city => fetchFromWttrIn(city)));
                     const ok = results.filter(r => r.weather && r.weather.current).length;
-                    if (ok > 0) {
-                        Core.markHealthy('weather:wttr');
-                        if (pref === 'both' && tryOM) {
-                            const omResults = await Promise.all(citiesList.map(city => fetchBatch([city]).then(r => r[0]).catch(() => null)));
-                            return citiesList.map((city, i) => {
-                                const omR = omResults[i];
-                                return (omR?.weather?.current) ? omR : results[i];
-                            });
-                        }
-                        return results;
-                    }
+                    if (ok > 0) { Core.markHealthy('weather:wttr'); return results; }
                     Core.markUnhealthy('weather:wttr');
                 } catch (err) { Core.markUnhealthy('weather:wttr'); }
             }
@@ -2738,7 +2798,6 @@
             } catch (err) { return { city, weather: null }; }
         }
 
-        // --- 20.15 UI RENDERING (CARDS) ---
         function convertTemp(celsius) { if (settings.tempUnit === 'F') return Math.round(celsius * 9 / 5 + 32); return Math.round(celsius); }
         function convertWind(kmh) { if (settings.windUnit === 'mph') return Math.round(kmh * 0.621371); if (settings.windUnit === 'ms') return (kmh / 3.6).toFixed(1); return kmh; }
         function tempSymbol() { return settings.tempUnit === 'F' ? '°F' : '°C'; }
@@ -2858,7 +2917,6 @@
             renderAQIList(); scrollToDefaultCity();
         }
 
-        // --- 20.16 UI RENDERING (AQI CARDS) ---
         function renderAQIList() {
             if (!aqiListEl) return; const aqiEmpty = document.getElementById('aqiEmpty');
             let data = weatherCache;
@@ -2934,7 +2992,6 @@
             aqiListEl.innerHTML = ''; aqiListEl.appendChild(fragment);
         }
 
-        // --- 20.17 UPDATE & REFRESH LOGIC ---
         async function updateAll(force = false) {
             if (document.hidden) return; if (isFetching) return lastFetchPromise;
             if (!force && lastFetchTimestamp > 0) {
@@ -3011,7 +3068,6 @@
         document.getElementById('cookieReject').addEventListener('click', rejectCookies);
         document.getElementById('cookieSettingsBtn').addEventListener('click', resetCookieConsent);
 
-        // --- 20.18 VISIBILITY CHANGE ---
         let hiddenAt = 0;
         document.addEventListener('visibilitychange', () => {
             Core.state.hidden = document.hidden;
@@ -3030,7 +3086,6 @@
         window.addEventListener('beforeunload', () => { abortAllRequests(); stopRefreshInterval(); if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; } });
         window.addEventListener('pagehide', () => { abortAllRequests(); stopRefreshInterval(); });
 
-        // --- 20.19 SELF-HEALING INTERVAL (OPTIMIZED: 30s -> 60s, trim repairs) ---
         setInterval(() => {
             if (document.hidden) return;
             if (!countdownTimer) { startCountdown(); Core.state.repairs.push({ type: 'countdown-restart', time: Date.now() }); }
@@ -3056,7 +3111,6 @@
             } catch (e) { }
         }, 3000);
 
-        // --- 20.20 INITIALIZATION ---
         async function init() {
             loadSettings(); loadFavorites(); applySettings();
             if (intervalLabelEl) intervalLabelEl.textContent = settings.refreshInterval || REFRESH_HOURS;
@@ -3067,13 +3121,13 @@
             if (getConsent()) {
                 const cacheResult = await cacheGet('weather-data');
                 if (cacheResult && cacheResult.data) {
-                    weatherCache = cacheResult.data;   // OPTIMIZED: sync weatherCache
+                    weatherCache = cacheResult.data;
                     renderCards(weatherCache);
                     lastFetchTimestamp = cacheResult.cachedAt || 0; Core.state.cacheHits++;
                 } else {
                     const sc = loadWeatherCacheFromStorage();
                     if (sc && sc.data) {
-                        weatherCache = sc.data;         // OPTIMIZED: sync weatherCache
+                        weatherCache = sc.data;
                         renderCards(weatherCache);
                         lastFetchTimestamp = sc.timestamp || 0; Core.state.cacheHits++;
                     }
