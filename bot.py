@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""ربات آب‌وهوا — نسخه نهایی"""
+"""ربات آب‌وهوا — نسخه کامل اصلاح‌شده"""
 
-import os, logging, asyncio, time, sqlite3, re
+import os, logging, asyncio, time, sqlite3, re, math
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import Optional
 from html import escape, unescape
+from urllib.parse import quote
 
 import httpx
 from telegram import (
@@ -18,36 +20,104 @@ from telegram.ext import (
 )
 
 # ==================== تنظیمات ====================
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "NASA2010")
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE").strip()
+# Only this Telegram account can view private bot diagnostics.
+# Set OWNER_ID to your numeric Telegram user ID in the hosting environment.
+OWNER_ID = os.environ.get("OWNER_ID", "").strip()
+OWNER_INFO_CODE = os.environ.get("OWNER_INFO_CODE", "6167").strip() or "6167"
+STATS_TIMEZONE = os.environ.get("STATS_TIMEZONE", "Asia/Tehran").strip() or "Asia/Tehran"
 WEB_APP_URL = os.environ.get("WEB_APP_URL", "")
 GEO_API = "https://geocoding-api.open-meteo.com/v1/search"
 WEATHER_API = "https://api.open-meteo.com/v1/forecast"
 AQI_API = "https://air-quality-api.open-meteo.com/v1/air-quality"
 WTTR_API = "https://wttr.in"
-DB_PATH = "weather_bot.db"
+# Railway: mount a persistent Volume at /data and set DB_PATH=/data/weather_bot.db.
+# Without a persistent volume SQLite data can disappear on redeploy/restart.
+DB_PATH = os.environ.get("DB_PATH", "/data/weather_bot.db" if os.path.isdir("/data") else "weather_bot.db")
 
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ==================== ادمین ====================
-_admin_sessions = {}
-ADMIN_SESSION_TTL = 3600
-
-def is_admin(uid: int) -> bool:
-    ts = _admin_sessions.get(uid)
-    if ts and time.time() - ts < ADMIN_SESSION_TTL: return True
-    if ts: _admin_sessions.pop(uid, None)
-    return False
-
-def login_admin(uid: int): _admin_sessions[uid] = time.time()
-def logout_admin(uid: int): _admin_sessions.pop(uid, None)
+# ==================== دسترسی مالک ====================
+def is_owner(uid: int) -> bool:
+    """Return True only for the configured Telegram account owner."""
+    return OWNER_ID.isdigit() and str(uid) == OWNER_ID
 
 # ==================== دیتابیس ====================
 def db():
-    c = sqlite3.connect(DB_PATH, check_same_thread=False)
+    """Open a short-lived SQLite connection with a small lock wait."""
+    parent = os.path.dirname(os.path.abspath(DB_PATH))
+    os.makedirs(parent, exist_ok=True)
+    c = sqlite3.connect(DB_PATH, timeout=8.0, check_same_thread=False)
     c.row_factory = sqlite3.Row
+    c.execute("PRAGMA busy_timeout=8000")
+    c.execute("PRAGMA foreign_keys=ON")
     return c
+
+
+def stats_date() -> str:
+    """Current reporting day in STATS_TIMEZONE; daily records are never reset."""
+    try:
+        return datetime.now(ZoneInfo(STATS_TIMEZONE)).date().isoformat()
+    except Exception:
+        return datetime.now(ZoneInfo("UTC")).date().isoformat()
+
+
+def record_activity(uid: int):
+    """Record one distinct user per reporting day and refresh their daily last_seen."""
+    try:
+        c = db()
+        c.execute(
+            """INSERT INTO daily_activity(activity_date,user_id,last_seen)
+               VALUES(?,?,CURRENT_TIMESTAMP)
+               ON CONFLICT(activity_date,user_id) DO UPDATE SET last_seen=CURRENT_TIMESTAMP""",
+            (stats_date(), int(uid)),
+        )
+        c.commit()
+        c.close()
+    except Exception as e:
+        logger.warning("record_activity failed: %s", e)
+
+
+def daily_stats(day: Optional[str] = None) -> dict:
+    day = day or stats_date()
+    try:
+        c = db()
+        rows = c.execute("SELECT key,value FROM daily_stats WHERE activity_date=?", (day,)).fetchall()
+        c.close()
+        return {r["key"]: int(r["value"]) for r in rows}
+    except Exception as e:
+        logger.warning("daily_stats failed: %s", e)
+        return {}
+
+
+def daily_user_history(days: int = 7) -> list:
+    """Return persisted distinct-user counts by date (newest first)."""
+    try:
+        c = db()
+        rows = c.execute(
+            """SELECT activity_date, COUNT(DISTINCT user_id) AS users
+               FROM daily_activity
+               GROUP BY activity_date ORDER BY activity_date DESC LIMIT ?""",
+            (max(1, min(int(days), 90)),),
+        ).fetchall()
+        c.close()
+        return [(r["activity_date"], int(r["users"])) for r in rows]
+    except Exception as e:
+        logger.warning("daily_user_history failed: %s", e)
+        return []
+
+
+def users_today(day: Optional[str] = None) -> int:
+    day = day or stats_date()
+    try:
+        c = db()
+        row = c.execute("SELECT COUNT(DISTINCT user_id) AS n FROM daily_activity WHERE activity_date=?", (day,)).fetchone()
+        c.close()
+        return int(row["n"] if row else 0)
+    except Exception as e:
+        logger.warning("users_today failed: %s", e)
+        return 0
 
 def init_db():
     c = db(); cur = c.cursor()
@@ -55,8 +125,22 @@ def init_db():
         user_id INTEGER PRIMARY KEY, lang TEXT DEFAULT 'fa', unit TEXT DEFAULT 'C',
         default_city TEXT, notify_enabled INTEGER DEFAULT 0, notify_time TEXT DEFAULT '07:00',
         pending_action TEXT, compare_temp TEXT, username TEXT, first_name TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        default_timezone TEXT, last_notify_date TEXT)""")
+    # Migrate existing SQLite databases without dropping user data.
+    user_columns = {row[1] for row in cur.execute("PRAGMA table_info(users)").fetchall()}
+    if "default_timezone" not in user_columns:
+        cur.execute("ALTER TABLE users ADD COLUMN default_timezone TEXT")
+    if "last_notify_date" not in user_columns:
+        cur.execute("ALTER TABLE users ADD COLUMN last_notify_date TEXT")
     cur.execute("""CREATE TABLE IF NOT EXISTS stats(key TEXT PRIMARY KEY, value INTEGER DEFAULT 0)""")
+    cur.execute("""CREATE TABLE IF NOT EXISTS daily_stats(
+        activity_date TEXT NOT NULL, key TEXT NOT NULL, value INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY(activity_date, key))""")
+    cur.execute("""CREATE TABLE IF NOT EXISTS daily_activity(
+        activity_date TEXT NOT NULL, user_id INTEGER NOT NULL,
+        last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY(activity_date, user_id))""")
     cur.execute("""CREATE TABLE IF NOT EXISTS errors(
         id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, error TEXT, context TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
@@ -64,11 +148,22 @@ def init_db():
     stat("bot_starts")
 
 def stat(key: str, inc: int = 1):
+    """Increment lifetime and per-day metrics in one transaction."""
     try:
         c = db()
-        c.execute("INSERT INTO stats(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=value+?", (key, inc, inc))
-        c.commit(); c.close()
-    except Exception: pass
+        c.execute(
+            "INSERT INTO stats(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=value+?",
+            (key, inc, inc),
+        )
+        c.execute(
+            """INSERT INTO daily_stats(activity_date,key,value) VALUES(?,?,?)
+               ON CONFLICT(activity_date,key) DO UPDATE SET value=value+excluded.value""",
+            (stats_date(), key, inc),
+        )
+        c.commit()
+        c.close()
+    except Exception as e:
+        logger.warning("stat(%s) failed: %s", key, e)
 
 def all_stats() -> dict:
     try:
@@ -112,6 +207,7 @@ def top_cities(limit=5):
 
 # ==================== کاربران ====================
 _u_cache = {}
+USER_CACHE_MAX = 5000
 
 def get_user(uid, update=None):
     if uid in _u_cache:
@@ -124,17 +220,23 @@ def get_user(uid, update=None):
             c.execute("INSERT INTO users(user_id) VALUES(?)", (uid,))
             c.commit()
             u = {"user_id": uid, "lang": "fa", "unit": "C", "default_city": None,
-                 "notify_enabled": 0, "notify_time": "07:00", "pending_action": None, "compare_temp": None}
+                 "notify_enabled": 0, "notify_time": "07:00", "pending_action": None,
+                 "compare_temp": None, "default_timezone": None, "last_notify_date": None}
             stat("new_users")
         c.close()
     if update:
+        record_activity(uid)
         try:
             c = db()
             c.execute("UPDATE users SET last_seen=CURRENT_TIMESTAMP, username=?, first_name=? WHERE user_id=?",
                       (update.effective_user.username or "", update.effective_user.first_name or "", uid))
             c.commit(); c.close()
         except Exception: pass
+    # Keep the in-memory cache bounded and refresh recently used entries.
+    _u_cache.pop(uid, None)
     _u_cache[uid] = u
+    if len(_u_cache) > USER_CACHE_MAX:
+        _u_cache.pop(next(iter(_u_cache)))
     return u.copy()
 
 def save_user(uid, **kw):
@@ -149,7 +251,7 @@ def save_user(uid, **kw):
 def notify_users():
     try:
         c = db()
-        r = c.execute("SELECT user_id,lang,unit,default_city,notify_time FROM users WHERE notify_enabled=1").fetchall()
+        r = c.execute("SELECT user_id,lang,unit,default_city,default_timezone,notify_time,last_notify_date FROM users WHERE notify_enabled=1").fetchall()
         c.close(); return [dict(x) for x in r]
     except Exception: return []
 
@@ -166,14 +268,14 @@ async def get_http():
         )
     return _http
 
-# کش
+# ✅ FIX #1: کش صحیح — timestamp cache جدا
 _geo_cache, _geo_t = {}, {}
 _wx_cache, _wx_t = {}, {}
 _aqi_cache, _aqi_t = {}, {}
 GEO_TTL = 86400
 WX_TTL = 900
 AQI_TTL = 900
-CACHE_MAX = 5000
+CACHE_MAX = 5000  # ✅ FIX #7: سقف کش
 
 def _cget(cache, tc, key, ttl):
     if key in cache:
@@ -185,6 +287,7 @@ def _cget(cache, tc, key, ttl):
 def _cset(cache, tc, key, value):
     cache[key] = value
     tc[key] = time.time()
+    # ✅ FIX #7: محدودیت کش
     if len(cache) > CACHE_MAX:
         oldest = sorted(tc.items(), key=lambda x: x[1])[:len(cache) - CACHE_MAX + 100]
         for k, _ in oldest:
@@ -202,6 +305,7 @@ async def safe_edit(msg, text, **kwargs):
             return await msg.get_bot().send_message(chat_id=msg.chat_id, text=text, **kwargs)
         except Exception:
             try:
+                # ✅ FIX #9: HTML unescape + tag removal
                 plain = re.sub(r'<[^>]+>', '', text)
                 plain = unescape(plain)
                 return await msg.get_bot().send_message(chat_id=msg.chat_id, text=plain[:4000])
@@ -323,13 +427,132 @@ IRAN = [
     ("Lordegan","لردگان",31.5167,50.8167),("Farsan","فارسان",32.2500,50.5667),
 ]
 
+def normalize_city_name(value: str) -> str:
+    """Normalize Latin/Persian/Arabic variants and whitespace for city lookup."""
+    value = str(value or "").strip().casefold()
+    value = value.replace("ي", "ی").replace("ك", "ک").replace("‌", " ")
+    return re.sub(r"\s+", " ", value).strip()
+
+
 CITY_INDEX = {}
+
+def _add_city(name_en, name_fa, lat, lon, timezone, country_code, *aliases):
+    entry = {"name": name_en, "name_fa": name_fa, "latitude": float(lat), "longitude": float(lon),
+             "country_code": country_code, "timezone": timezone}
+    for city_name in (name_en, name_fa, *aliases):
+        if city_name:
+            CITY_INDEX[normalize_city_name(city_name)] = entry
+
+
 for name_en, name_fa, lat, lon in IRAN:
-    entry = {"name": name_en, "name_fa": name_fa, "latitude": lat, "longitude": lon, "country_code": "IR"}
-    CITY_INDEX[name_en.lower()] = entry
-    CITY_INDEX[name_fa] = entry
-    CITY_INDEX[name_fa.replace("‌", "")] = entry
-    CITY_INDEX[name_fa.replace("ي", "ی").replace("ك", "ک")] = entry
+    _add_city(name_en, name_fa, lat, lon, "Asia/Tehran", "IR")
+
+# Common worldwide cities work quickly even when the geocoding API is unavailable.
+# Other locations are still supported dynamically by Open-Meteo geocoding.
+WORLD_CITIES = [
+    ("London", "لندن", 51.5072, -0.1276, "Europe/London", "GB", "Greater London"),
+    ("Paris", "پاریس", 48.8566, 2.3522, "Europe/Paris", "FR"),
+    ("Berlin", "برلین", 52.5200, 13.4050, "Europe/Berlin", "DE"),
+    ("Munich", "مونیخ", 48.1351, 11.5820, "Europe/Berlin", "DE", "München"),
+    ("Hamburg", "هامبورگ", 53.5488, 9.9872, "Europe/Berlin", "DE"),
+    ("Frankfurt", "فرانکفورت", 50.1109, 8.6821, "Europe/Berlin", "DE"),
+    ("Vienna", "وین", 48.2082, 16.3738, "Europe/Vienna", "AT", "Wien"),
+    ("Zurich", "زوریخ", 47.3769, 8.5417, "Europe/Zurich", "CH", "Zürich"),
+    ("Rome", "رم", 41.9028, 12.4964, "Europe/Rome", "IT", "Roma"),
+    ("Madrid", "مادرید", 40.4168, -3.7038, "Europe/Madrid", "ES"),
+    ("Barcelona", "بارسلونا", 41.3874, 2.1686, "Europe/Madrid", "ES"),
+    ("Amsterdam", "آمستردام", 52.3676, 4.9041, "Europe/Amsterdam", "NL"),
+    ("Lisbon", "لیسبون", 38.7223, -9.1393, "Europe/Lisbon", "PT"),
+    ("Stockholm", "استکهلم", 59.3293, 18.0686, "Europe/Stockholm", "SE"),
+    ("Oslo", "اسلو", 59.9139, 10.7522, "Europe/Oslo", "NO"),
+    ("Copenhagen", "کپنهاگ", 55.6761, 12.5683, "Europe/Copenhagen", "DK"),
+    ("Istanbul", "استانبول", 41.0082, 28.9784, "Europe/Istanbul", "TR", "İstanbul"),
+    ("Ankara", "آنکارا", 39.9334, 32.8597, "Europe/Istanbul", "TR"),
+    ("Dubai", "دبی", 25.2048, 55.2708, "Asia/Dubai", "AE"),
+    ("Abu Dhabi", "ابوظبی", 24.4539, 54.3773, "Asia/Dubai", "AE"),
+    ("Doha", "دوحه", 25.2854, 51.5310, "Asia/Qatar", "QA"),
+    ("Riyadh", "ریاض", 24.7136, 46.6753, "Asia/Riyadh", "SA"),
+    ("Baku", "باکو", 40.4093, 49.8671, "Asia/Baku", "AZ"),
+    ("Tbilisi", "تفلیس", 41.7151, 44.8271, "Asia/Tbilisi", "GE"),
+    ("Yerevan", "ایروان", 40.1792, 44.4991, "Asia/Yerevan", "AM"),
+    ("Moscow", "مسکو", 55.7558, 37.6173, "Europe/Moscow", "RU"),
+    ("Kyiv", "کی‌یف", 50.4501, 30.5234, "Europe/Kyiv", "UA", "Kiev"),
+    ("New York", "نیویورک", 40.7128, -74.0060, "America/New_York", "US", "NYC", "New York City"),
+    ("Los Angeles", "لس‌آنجلس", 34.0522, -118.2437, "America/Los_Angeles", "US", "LA"),
+    ("Chicago", "شیکاگو", 41.8781, -87.6298, "America/Chicago", "US"),
+    ("San Francisco", "سان‌فرانسیسکو", 37.7749, -122.4194, "America/Los_Angeles", "US"),
+    ("Miami", "میامی", 25.7617, -80.1918, "America/New_York", "US"),
+    ("Toronto", "تورنتو", 43.6532, -79.3832, "America/Toronto", "CA"),
+    ("Vancouver", "ونکوور", 49.2827, -123.1207, "America/Vancouver", "CA"),
+    ("Mexico City", "مکزیکوسیتی", 19.4326, -99.1332, "America/Mexico_City", "MX"),
+    ("Buenos Aires", "بوئنوس آیرس", -34.6037, -58.3816, "America/Argentina/Buenos_Aires", "AR"),
+    ("Sao Paulo", "سائوپائولو", -23.5505, -46.6333, "America/Sao_Paulo", "BR", "São Paulo"),
+    ("Cairo", "قاهره", 30.0444, 31.2357, "Africa/Cairo", "EG"),
+    ("Cape Town", "کیپ‌تاون", -33.9249, 18.4241, "Africa/Johannesburg", "ZA"),
+    ("Delhi", "دهلی", 28.6139, 77.2090, "Asia/Kolkata", "IN", "New Delhi"),
+    ("Mumbai", "بمبئی", 19.0760, 72.8777, "Asia/Kolkata", "IN", "Bombay"),
+    ("Karachi", "کراچی", 24.8607, 67.0011, "Asia/Karachi", "PK"),
+    ("Bangkok", "بانکوک", 13.7563, 100.5018, "Asia/Bangkok", "TH"),
+    ("Singapore", "سنگاپور", 1.3521, 103.8198, "Asia/Singapore", "SG"),
+    ("Tokyo", "توکیو", 35.6762, 139.6503, "Asia/Tokyo", "JP"),
+    ("Seoul", "سئول", 37.5665, 126.9780, "Asia/Seoul", "KR"),
+    ("Beijing", "پکن", 39.9042, 116.4074, "Asia/Shanghai", "CN"),
+    ("Hong Kong", "هنگ‌کنگ", 22.3193, 114.1694, "Asia/Hong_Kong", "HK"),
+    ("Sydney", "سیدنی", -33.8688, 151.2093, "Australia/Sydney", "AU"),
+    ("Melbourne", "ملبورن", -37.8136, 144.9631, "Australia/Melbourne", "AU"),
+    ("Auckland", "اوکلند", -36.8509, 174.7645, "Pacific/Auckland", "NZ"),
+    ("Brussels", "بروکسل", 50.8503, 4.3517, "Europe/Brussels", "BE"),
+    ("Prague", "پراگ", 50.0755, 14.4378, "Europe/Prague", "CZ"),
+    ("Warsaw", "ورشو", 52.2297, 21.0122, "Europe/Warsaw", "PL"),
+    ("Budapest", "بوداپست", 47.4979, 19.0402, "Europe/Budapest", "HU"),
+    ("Athens", "آتن", 37.9838, 23.7275, "Europe/Athens", "GR"),
+    ("Helsinki", "هلسینکی", 60.1699, 24.9384, "Europe/Helsinki", "FI"),
+    ("Dublin", "دوبلین", 53.3498, -6.2603, "Europe/Dublin", "IE"),
+    ("Edinburgh", "ادینبرو", 55.9533, -3.1883, "Europe/London", "GB"),
+    ("Tel Aviv", "تل‌آویو", 32.0853, 34.7818, "Asia/Jerusalem", "IL"),
+    ("Amman", "امان", 31.9539, 35.9106, "Asia/Amman", "JO"),
+    ("Kuwait City", "کویت", 29.3759, 47.9774, "Asia/Kuwait", "KW"),
+    ("Muscat", "مسقط", 23.5880, 58.3829, "Asia/Muscat", "OM"),
+    ("Tehran", "تهران", 35.6892, 51.3890, "Asia/Tehran", "IR"),
+    ("Baghdad", "بغداد", 33.3152, 44.3661, "Asia/Baghdad", "IQ"),
+    ("Islamabad", "اسلام‌آباد", 33.6844, 73.0479, "Asia/Karachi", "PK"),
+    ("Lahore", "لاهور", 31.5204, 74.3587, "Asia/Karachi", "PK"),
+    ("Dhaka", "داکا", 23.8103, 90.4125, "Asia/Dhaka", "BD"),
+    ("Jakarta", "جاکارتا", -6.2088, 106.8456, "Asia/Jakarta", "ID"),
+    ("Kuala Lumpur", "کوالالامپور", 3.1390, 101.6869, "Asia/Kuala_Lumpur", "MY"),
+    ("Manila", "مانیل", 14.5995, 120.9842, "Asia/Manila", "PH"),
+    ("Hanoi", "هانوی", 21.0278, 105.8342, "Asia/Ho_Chi_Minh", "VN"),
+    ("Taipei", "تایپه", 25.0330, 121.5654, "Asia/Taipei", "TW"),
+    ("Perth", "پرت", -31.9505, 115.8605, "Australia/Perth", "AU"),
+    ("Brisbane", "بریزبن", -27.4698, 153.0251, "Australia/Brisbane", "AU"),
+    ("Honolulu", "هونولولو", 21.3099, -157.8581, "Pacific/Honolulu", "US"),
+    ("Seattle", "سیاتل", 47.6062, -122.3321, "America/Los_Angeles", "US"),
+    ("Boston", "بوستون", 42.3601, -71.0589, "America/New_York", "US"),
+    ("Washington", "واشینگتن", 38.9072, -77.0369, "America/New_York", "US", "Washington DC", "Washington, D.C."),
+    ("Las Vegas", "لاس‌وگاس", 36.1699, -115.1398, "America/Los_Angeles", "US"),
+    ("Houston", "هیوستون", 29.7604, -95.3698, "America/Chicago", "US"),
+    ("Dallas", "دالاس", 32.7767, -96.7970, "America/Chicago", "US"),
+    ("Atlanta", "آتلانتا", 33.7490, -84.3880, "America/New_York", "US"),
+    ("Montreal", "مونترآل", 45.5019, -73.5674, "America/Toronto", "CA"),
+    ("Lima", "لیما", -12.0464, -77.0428, "America/Lima", "PE"),
+    ("Santiago", "سانتیاگو", -33.4489, -70.6693, "America/Santiago", "CL"),
+    ("Bogota", "بوگوتا", 4.7110, -74.0721, "America/Bogota", "CO"),
+    ("Nairobi", "نایروبی", -1.2921, 36.8211, "Africa/Nairobi", "KE"),
+    ("Lagos", "لاگوس", 6.5244, 3.3792, "Africa/Lagos", "NG"),
+    ("Casablanca", "کازابلانکا", 33.5731, -7.5898, "Africa/Casablanca", "MA"),
+    ("Tunis", "تونس", 36.8065, 10.1815, "Africa/Tunis", "TN"),
+    ("Addis Ababa", "آدیس‌آبابا", 8.9806, 38.7578, "Africa/Addis_Ababa", "ET"),
+    ("Kolkata", "کلکته", 22.5726, 88.3639, "Asia/Kolkata", "IN"),
+    ("Chennai", "چنای", 13.0827, 80.2707, "Asia/Kolkata", "IN"),
+    ("Bengaluru", "بنگلور", 12.9716, 77.5946, "Asia/Kolkata", "IN", "Bangalore"),
+    ("Pune", "پونه", 18.5204, 73.8567, "Asia/Kolkata", "IN"),
+    ("Chengdu", "چنگدو", 30.5728, 104.0668, "Asia/Shanghai", "CN"),
+    ("Shenzhen", "شنژن", 22.5431, 114.0579, "Asia/Shanghai", "CN"),
+    ("Osaka", "اوساکا", 34.6937, 135.5023, "Asia/Tokyo", "JP"),
+    ("Kyoto", "کیوتو", 35.0116, 135.7681, "Asia/Tokyo", "JP"),
+]
+for city_data in WORLD_CITIES:
+    _add_city(*city_data)
 
 WMO = {
     0: {"fa":"آسمان صاف","en":"Clear","ic":"☀️"},1: {"fa":"تقریباً صاف","en":"Mainly clear","ic":"🌤️"},
@@ -341,8 +564,12 @@ WMO = {
     71: {"fa":"برف سبک","en":"Slight snow","ic":"🌨️"},73: {"fa":"برف","en":"Snow","ic":"🌨️"},
     75: {"fa":"برف شدید","en":"Heavy snow","ic":"❄️"},80: {"fa":"رگبار","en":"Showers","ic":"🌦️"},
     81: {"fa":"رگبار","en":"Showers","ic":"🌧️"},82: {"fa":"رگبار شدید","en":"Violent","ic":"⛈️"},
-    95: {"fa":"رعد و برق","en":"Thunder","ic":"⛈️"},96: {"fa":"رعد و تگرگ","en":"Thunder+hail","ic":"⛈️"},
-    99: {"fa":"طوفان شدید","en":"Severe","ic":"⛈️"},
+    56: {"fa":"نم‌نم یخ‌زده","en":"Freezing drizzle","ic":"🌧️"},57: {"fa":"نم‌نم یخ‌زده شدید","en":"Heavy freezing drizzle","ic":"🌧️"},
+    66: {"fa":"باران یخ‌زده سبک","en":"Light freezing rain","ic":"🌧️"},67: {"fa":"باران یخ‌زده شدید","en":"Heavy freezing rain","ic":"🌧️"},
+    77: {"fa":"دانه‌های برف","en":"Snow grains","ic":"🌨️"},
+    95: {"fa":"رعد و برق","en":"Thunderstorm","ic":"⛈️"},96: {"fa":"رعد و برق همراه تگرگ سبک","en":"Thunderstorm with slight hail","ic":"⛈️"},
+    85: {"fa":"رگبار برف سبک","en":"Slight snow showers","ic":"🌨️"},86: {"fa":"رگبار برف شدید","en":"Heavy snow showers","ic":"🌨️"},
+    99: {"fa":"طوفان شدید همراه تگرگ","en":"Severe thunderstorm with hail","ic":"⛈️"},
 }
 
 WWW_TO_WMO = {113:0,116:2,119:3,122:3,143:45,248:45,260:48,176:80,179:71,182:56,185:56,
@@ -380,25 +607,54 @@ def aqi_i(v, lang):
         if v <= t: return i
     return levels[-1][1]
 
+# Concentration-band upper limits for the European AQI (EEA bands revised in 2024).
+# CO is available as a measured concentration, but is not one of the five pollutants
+# used to calculate the European AQI; it is intentionally left unclassified here.
+_EU_AQI_POLLUTANT_LIMITS = {
+    "pm2_5": [5, 15, 50, 90, 140],
+    "pm10": [15, 45, 120, 195, 270],
+    "no2": [10, 25, 60, 100, 150],
+    "o3": [60, 100, 120, 160, 180],
+    "so2": [20, 40, 125, 190, 275],
+}
+
+
+def _pollutant_band(v, k):
+    limits = _EU_AQI_POLLUTANT_LIMITS.get(k)
+    if v is None or not limits:
+        return None
+    for i, limit in enumerate(limits):
+        if v <= limit:
+            return i
+    return 5
+
+
 def pol_lvl(v, k):
-    if v is None: return "⚪"
-    th = {"pm2_5":[10,25,50,75,100],"pm10":[20,50,100,150,200],"no2":[40,90,120,230,340],
-          "so2":[20,80,250,350,500],"o3":[60,100,140,180,240],"co":[4000,10000,20000,35000,50000]}.get(k,[50,100,150,200,300])
-    for i, t in enumerate(th):
-        if v <= t: return ["🟢","🟡","🟠","🔴","🟣"][i]
-    return "⚫"
+    band = _pollutant_band(v, k)
+    return "⚪" if band is None else ["🟢", "🟡", "🟠", "🔴", "🟣", "⚫"][band]
+
 
 def pol_quality(v, k, lang):
-    if v is None: return ""
-    th = {"pm2_5":[10,25,50,75,100],"pm10":[20,50,100,150,200],"no2":[40,90,120,230,340],
-          "so2":[20,80,250,350,500],"o3":[60,100,140,180,240],"co":[4000,10000,20000,35000,50000]}.get(k,[50,100,150,200,300])
-    fa = ["عالی","قابل قبول","متوسط","ضعیف","خیلی ضعیف","خطرناک"]
-    en = ["Excellent","Acceptable","Moderate","Poor","Very Poor","Hazardous"]
-    for i, t in enumerate(th):
-        if v <= t: return fa[i] if lang=="fa" else en[i]
-    return fa[-1] if lang=="fa" else en[-1]
+    if v is None:
+        return ""
+    if k == "co":
+        return "در دسته‌بندی EU-AQI نیست" if lang == "fa" else "Not classified by EU AQI"
+    band = _pollutant_band(v, k)
+    if band is None:
+        return "نامشخص" if lang == "fa" else "Unclassified"
+    fa = ["خوب", "قابل قبول", "متوسط", "ضعیف", "خیلی ضعیف", "بسیار ضعیف"]
+    en = ["Good", "Fair", "Moderate", "Poor", "Very poor", "Extremely poor"]
+    return fa[band] if lang == "fa" else en[band]
 
-def fmt_t(c, u): return f"{round(c*9/5+32)}°F" if u=="F" else f"{round(c)}°C"
+
+def fmt_t(c, u):
+    try:
+        c = float(c)
+    except (TypeError, ValueError):
+        return "—"
+    if not math.isfinite(c):
+        return "—"
+    return f"{round(c * 9 / 5 + 32)}°F" if u == "F" else f"{round(c)}°C"
 
 def smart_tips(w, a, lang):
     t = []
@@ -426,10 +682,13 @@ def smart_tips(w, a, lang):
 
 # ==================== API ====================
 async def geocode(q, lang="fa"):
-    key = q.strip().lower()
+    query = str(q or "").strip()
+    if not query:
+        return None
+    key = normalize_city_name(query)
     c = _cget(_geo_cache, _geo_t, key, GEO_TTL)
     if c: return c
-    entry = CITY_INDEX.get(q.strip())
+    entry = CITY_INDEX.get(key)
     if entry:
         _cset(_geo_cache, _geo_t, key, entry)
         return entry
@@ -439,7 +698,25 @@ async def geocode(q, lang="fa"):
         r.raise_for_status()
         res = r.json().get("results", [])
         if not res: return None
-        res.sort(key=lambda x: 0 if x.get("country_code") == "IR" else 1)
+        target_name = query.split(",", 1)[0].strip().casefold()
+        if "," in query:
+            # Respect explicit country/region qualifiers rather than forcing an Iranian match.
+            res.sort(key=lambda x: (
+                0 if str(x.get("name", "")).casefold() == target_name else 1,
+                -(x.get("population") or 0),
+            ))
+        elif lang == "fa":
+            # For unqualified Persian searches, prefer Iranian results, then exact/common matches.
+            res.sort(key=lambda x: (
+                0 if x.get("country_code") == "IR" else 1,
+                0 if str(x.get("name", "")).casefold() == target_name else 1,
+                -(x.get("population") or 0),
+            ))
+        else:
+            res.sort(key=lambda x: (
+                0 if str(x.get("name", "")).casefold() == target_name else 1,
+                -(x.get("population") or 0),
+            ))
         out = res[0]
         _cset(_geo_cache, _geo_t, key, out)
         return out
@@ -449,6 +726,7 @@ async def geocode(q, lang="fa"):
 
 async def fetch_weather_only(la, lo, city_name=""):
     k = f"{la:.3f},{lo:.3f}"
+    # ✅ FIX #1: کش صحیح
     c = _cget(_wx_cache, _wx_t, k, WX_TTL)
     if c: return c
     w = None
@@ -460,13 +738,25 @@ async def fetch_weather_only(la, lo, city_name=""):
         cl = await get_http()
         r = await cl.get(WEATHER_API, params=p)
         r.raise_for_status()
-        w = r.json()
+        candidate = r.json()
+        if isinstance(candidate, dict) and isinstance(candidate.get("current"), dict) and isinstance(candidate.get("daily"), dict):
+            w = candidate
+            # past_days=1 means daily[0] is yesterday and daily[1] is today.
+            # Use today's precipitation probability for advice.
+            daily = w.get("daily") or {}
+            probs = daily.get("precipitation_probability_max") or []
+            w["rain_prob"] = probs[1] if len(probs) > 1 and probs[1] is not None else (
+                probs[0] if probs and probs[0] is not None else 0
+            )
+        else:
+            logger.warning("OM W returned an unexpected payload")
+            w = None
     except Exception as e:
         logger.warning(f"OM W failed: {e}"); w = None
     if not w and city_name:
         try:
             cl = await get_http()
-            r = await cl.get(f"{WTTR_API}/{city_name}?format=j1")
+            r = await cl.get(f"{WTTR_API}/{quote(str(city_name), safe='')}?format=j1")
             r.raise_for_status()
             data = r.json()
             cur = data.get("current_condition", [{}])[0]
@@ -493,16 +783,19 @@ async def fetch_weather_only(la, lo, city_name=""):
                         "precipitation_probability_max": [int(d.get("hourly", [{}])[4].get("chanceofrain", 0)) if len(d.get("hourly", [])) > 4 else 0 for d in days],
                         "sunrise": [None] * len(days), "sunset": [None] * len(days),
                     },
-                    "rain_prob": int(days[0].get("hourly", [{}])[4].get("chanceofrain", 0)) if days and len(days[0].get("hourly", [])) > 4 else 0
+                    "rain_prob": int(days[0].get("hourly", [{}])[4].get("chanceofrain", 0)) if days and len(days[0].get("hourly", [])) > 4 else 0,
+                    "_fallback_source": "wttr"
                 }
         except Exception as e:
             logger.warning(f"wttr failed: {e}"); w = None
+    # ✅ FIX #1: کش صحیح
     if w: _cset(_wx_cache, _wx_t, k, w)
     return w
 
 
 async def fetch_aqi_only(la, lo):
     k = f"{la:.3f},{lo:.3f}"
+    # ✅ FIX #1: کش صحیح
     c = _cget(_aqi_cache, _aqi_t, k, AQI_TTL)
     if c: return c
     try:
@@ -519,14 +812,29 @@ async def fetch_aqi_only(la, lo):
 
 
 async def fetch_all_parallel(la, lo, city_name=""):
-    wx_task = asyncio.create_task(fetch_weather_only(la, lo, city_name))
-    aqi_task = asyncio.create_task(fetch_aqi_only(la, lo))
-    w = await wx_task
-    a = None
+    """Fetch weather and AQI concurrently; AQI is optional and must not stall weather."""
+    wx_task = asyncio.create_task(asyncio.wait_for(fetch_weather_only(la, lo, city_name), timeout=10.0))
+    aqi_task = asyncio.create_task(asyncio.wait_for(fetch_aqi_only(la, lo), timeout=3.0))
     try:
-        a = await asyncio.wait_for(aqi_task, timeout=2.0)
-    except Exception:
-        a = None
+        w = await wx_task
+    except asyncio.CancelledError:
+        raise
+    except Exception as e:
+        logger.warning("weather fetch timed out/failed: %s", e)
+        w = None
+    a = None
+    if aqi_task.done():
+        try:
+            a = aqi_task.result()
+        except Exception:
+            a = None
+    else:
+        try:
+            a = await asyncio.wait_for(aqi_task, timeout=0.35)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            aqi_task.cancel()
     return w, a
 
 
@@ -535,7 +843,7 @@ def build_w(city, w, a, lang, unit):
     c = w["current"]; d = w.get("daily", {})
     code = c.get("weather_code", 0)
     wm = WMO.get(code, {"fa":"نامشخص","en":"Unknown","ic":"❓"})
-    cn = (city.get("name_fa") or city["name"]) if lang == "fa" else city["name"]
+    cn = escape(str((city.get("name_fa") or city["name"]) if lang == "fa" else city["name"]))
     desc = wm["fa"] if lang == "fa" else wm["en"]
     ic = wm["ic"]
     tmp = fmt_t(c.get("temperature_2m", 0), unit)
@@ -555,10 +863,14 @@ def build_w(city, w, a, lang, unit):
     if lang == "fa":
         L.append(f"{ic} <b>{cn}</b>")
         L.append(f"<i>{desc}</i>")
+        L.append(f"✨ {ic} ━━━━━━━━━━━ {ic} ✨")
+        observed_at = c.get("time")
+        if observed_at:
+            L.append(f"🕒 آخرین زمان داده: <b>{escape(str(observed_at).replace('T', ' '))}</b>")
         L.append("")
         L.append(f"🌡️ <b>{tmp}</b>  •  حس واقعی: <b>{fls}</b>")
         try:
-            if d.get("temperature_2m_max") and len(d["temperature_2m_max"]) >= 2:
+            if not w.get("_fallback_source") and d.get("temperature_2m_max") and len(d["temperature_2m_max"]) >= 2:
                 diff = d["temperature_2m_max"][1] - d["temperature_2m_max"][0]
                 if abs(diff) >= 1:
                     ar = "📈" if diff > 0 else "📉"
@@ -603,10 +915,14 @@ def build_w(city, w, a, lang, unit):
     else:
         L.append(f"{ic} <b>{cn}</b>")
         L.append(f"<i>{desc}</i>")
+        L.append(f"✨ {ic} ━━━━━━━━━━━ {ic} ✨")
+        observed_at = c.get("time")
+        if observed_at:
+            L.append(f"🕒 Data time: <b>{escape(str(observed_at).replace('T', ' '))}</b>")
         L.append("")
         L.append(f"🌡️ <b>{tmp}</b>  •  Feels like: <b>{fls}</b>")
         try:
-            if d.get("temperature_2m_max") and len(d["temperature_2m_max"]) >= 2:
+            if not w.get("_fallback_source") and d.get("temperature_2m_max") and len(d["temperature_2m_max"]) >= 2:
                 diff = d["temperature_2m_max"][1] - d["temperature_2m_max"][0]
                 if abs(diff) >= 1:
                     ar = "📈" if diff > 0 else "📉"
@@ -650,7 +966,8 @@ def build_w(city, w, a, lang, unit):
     return "\n".join(L)
 
 
-# ==================== ارسال ====================
+# ==================== ارسال — با کیبورد ====================
+# ✅ FIX #2: kb_main همیشه فرستاده می‌شه
 async def snd_weather(ctx, chat_id, uid, q, u):
     load = "⏳ در حال دریافت..." if u["lang"]=="fa" else "⏳ Fetching..."
     try:
@@ -675,7 +992,8 @@ async def snd_weather(ctx, chat_id, uid, q, u):
         stat("weather_requests")
     except Exception as e:
         log_err(uid, e, "snd_weather")
-        try: await safe_edit(msg, f"❌ {str(e)[:80]}")
+        err_text = "❌ خطا در دریافت اطلاعات؛ دوباره تلاش کن." if u["lang"] == "fa" else "❌ Could not load data. Please try again."
+        try: await safe_edit(msg, err_text)
         except Exception: pass
 
 
@@ -691,7 +1009,7 @@ async def snd_aqi(ctx, chat_id, uid, q, u):
             err = "⚠️ داده AQI در دسترس نیست" if u["lang"]=="fa" else "⚠️ AQI data unavailable"
             await safe_edit(msg, err); return
         v = a["european_aqi"]; info = aqi_i(v, u["lang"])
-        cn = (city.get("name_fa") or city["name"]) if u["lang"]=="fa" else city["name"]
+        cn = escape(str((city.get("name_fa") or city["name"]) if u["lang"]=="fa" else city["name"]))
         pollutants = {
             "pm2_5": (a.get("pm2_5"), "PM2.5", "ذرات ریز", "Fine particles"),
             "pm10": (a.get("pm10"), "PM10", "ذرات معلق", "Coarse particles"),
@@ -730,7 +1048,8 @@ async def snd_aqi(ctx, chat_id, uid, q, u):
         stat("aqi_requests")
     except Exception as e:
         log_err(uid, e, "snd_aqi")
-        try: await safe_edit(msg, f"❌ {str(e)[:80]}")
+        err_text = "❌ خطا در دریافت اطلاعات؛ دوباره تلاش کن." if u["lang"] == "fa" else "❌ Could not load data. Please try again."
+        try: await safe_edit(msg, err_text)
         except Exception: pass
 
 
@@ -743,7 +1062,7 @@ async def snd_forecast(ctx, chat_id, uid, q, u):
         w = await fetch_weather_only(city["latitude"], city["longitude"], city.get("name",""))
         if not w: await safe_edit(msg, "⚠️"); return
         d = w.get("daily", {})
-        cn = (city.get("name_fa") or city["name"]) if u["lang"]=="fa" else city["name"]
+        cn = escape(str((city.get("name_fa") or city["name"]) if u["lang"]=="fa" else city["name"]))
         if not d.get("time"): await safe_edit(msg, "⚠️"); return
         if u["lang"] == "fa":
             L = [f"📅 <b>پیش‌بینی — {cn}</b>", ""]
@@ -751,18 +1070,20 @@ async def snd_forecast(ctx, chat_id, uid, q, u):
         else:
             L = [f"📅 <b>Forecast — {cn}</b>", ""]
             days_fa = None
+        days_en = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         for i in range(1, min(8, len(d["time"]))):
-            wc = WMO.get(d["weather_code"][i], {"fa":"؟","en":"?","ic":"❓"})
+            wc = WMO.get(d["weather_code"][i], {"fa":"نامشخص","en":"Unknown","ic":"❓"})
             try:
                 dt = datetime.fromisoformat(d["time"][i])
-                dn = days_fa[dt.weekday()] if days_fa else dt.strftime("%A")
+                dn = days_fa[dt.weekday()] if days_fa else days_en[dt.weekday()]
             except Exception: continue
             L.append(f"{wc['ic']} <b>{dn}</b> — {fmt_t(d['temperature_2m_min'][i],u['unit'])} ~ {fmt_t(d['temperature_2m_max'][i],u['unit'])}")
         await safe_edit(msg, "\n".join(L), parse_mode=ParseMode.HTML)
         stat("forecast_requests")
     except Exception as e:
         log_err(uid, e, "snd_forecast")
-        try: await safe_edit(msg, f"❌ {str(e)[:80]}")
+        err_text = "❌ خطا در دریافت اطلاعات؛ دوباره تلاش کن." if u["lang"] == "fa" else "❌ Could not load data. Please try again."
+        try: await safe_edit(msg, err_text)
         except Exception: pass
 
 
@@ -779,28 +1100,31 @@ async def snd_compare(ctx, chat_id, uid, cities, u):
             fetch_all_parallel(c1["latitude"], c1["longitude"], c1.get("name","")),
             fetch_all_parallel(c2["latitude"], c2["longitude"], c2.get("name","")))
         if not w1 or not w2: await safe_edit(msg, "⚠️"); return
-        def nm(c): return (c.get("name_fa") or c["name"]) if u["lang"]=="fa" else c["name"]
+        def nm(c): return escape(str((c.get("name_fa") or c["name"]) if u["lang"]=="fa" else c["name"]))
         t1 = w1["current"]["temperature_2m"]; t2 = w2["current"]["temperature_2m"]
         diff = t1 - t2
+        diff_display = diff * 9 / 5 if u["unit"] == "F" else diff
+        diff_unit = "°F" if u["unit"] == "F" else "°C"
         if u["lang"] == "fa":
             L = [f"⚖️ <b>مقایسه دمای دو شهر</b>", "",
                  f"📍 <b>{nm(c1)}</b> — 🌡️ <b>{fmt_t(t1, u['unit'])}</b>",
                  f"📍 <b>{nm(c2)}</b> — 🌡️ <b>{fmt_t(t2, u['unit'])}</b>", ""]
             if abs(diff) < 0.5: L.append("🤝 دمای هر دو شهر یکسانه")
-            elif diff > 0: L.append(f"📈 <b>{nm(c1)}</b> {round(abs(diff))}° گرم‌تر از <b>{nm(c2)}</b>")
-            else: L.append(f"📈 <b>{nm(c2)}</b> {round(abs(diff))}° گرم‌تر از <b>{nm(c1)}</b>")
+            elif diff > 0: L.append(f"📈 <b>{nm(c1)}</b> {round(abs(diff_display))}{diff_unit} گرم‌تر از <b>{nm(c2)}</b>")
+            else: L.append(f"📈 <b>{nm(c2)}</b> {round(abs(diff_display))}{diff_unit} گرم‌تر از <b>{nm(c1)}</b>")
         else:
             L = [f"⚖️ <b>Compare City Temperatures</b>", "",
                  f"📍 <b>{nm(c1)}</b> — 🌡️ <b>{fmt_t(t1, u['unit'])}</b>",
                  f"📍 <b>{nm(c2)}</b> — 🌡️ <b>{fmt_t(t2, u['unit'])}</b>", ""]
             if abs(diff) < 0.5: L.append("🤝 Same temperature")
-            elif diff > 0: L.append(f"📈 <b>{nm(c1)}</b> is {round(abs(diff))}° warmer than <b>{nm(c2)}</b>")
-            else: L.append(f"📈 <b>{nm(c2)}</b> is {round(abs(diff))}° warmer than <b>{nm(c1)}</b>")
+            elif diff > 0: L.append(f"📈 <b>{nm(c1)}</b> is {round(abs(diff_display))}{diff_unit} warmer than <b>{nm(c2)}</b>")
+            else: L.append(f"📈 <b>{nm(c2)}</b> is {round(abs(diff_display))}{diff_unit} warmer than <b>{nm(c1)}</b>")
         await safe_edit(msg, "\n".join(L), parse_mode=ParseMode.HTML)
         stat("compare_requests")
     except Exception as e:
         log_err(uid, e, "snd_compare")
-        try: await safe_edit(msg, f"❌ {str(e)[:80]}")
+        err_text = "❌ خطا در دریافت اطلاعات؛ دوباره تلاش کن." if u["lang"] == "fa" else "❌ Could not load data. Please try again."
+        try: await safe_edit(msg, err_text)
         except Exception: pass
 
 
@@ -808,13 +1132,11 @@ async def snd_compare(ctx, chat_id, uid, cities, u):
 def kb_main(lang):
     if lang == "fa":
         rows = [[KeyboardButton("🌤️ آب‌وهوا"), KeyboardButton("🌫️ کیفیت هوا")],
-                [KeyboardButton("📅 پیش‌بینی"), KeyboardButton("🎛️ منو")],
-                [KeyboardButton("🔐 پنل مدیریت")]]
+                [KeyboardButton("📅 پیش‌بینی"), KeyboardButton("🎛️ منو")]]
         ph = "اسم شهر رو بنویس..."
     else:
         rows = [[KeyboardButton("🌤️ Weather"), KeyboardButton("🌫️ Air Quality")],
-                [KeyboardButton("📅 Forecast"), KeyboardButton("🎛️ Menu")],
-                [KeyboardButton("🔐 Admin Panel")]]
+                [KeyboardButton("📅 Forecast"), KeyboardButton("🎛️ Menu")]]
         ph = "Type a city name..."
     return ReplyKeyboardMarkup(rows, resize_keyboard=True, input_field_placeholder=ph)
 
@@ -823,7 +1145,7 @@ def build_menu(u):
     s = get_user(u["user_id"]); lang = u["lang"]
     nst = "✅ روشن" if s.get("notify_enabled") else "❌ خاموش"
     nst_en = "ON ✅" if s.get("notify_enabled") else "OFF ❌"
-    hd = s.get("default_city") or ("تنظیم نشده" if lang == "fa" else "not set")
+    hd = escape(str(s.get("default_city") or ("تنظیم نشده" if lang == "fa" else "not set")))
     if lang == "fa":
         txt = (f"🎛️ <b>منوی ربات</b>\n\n"
                f"🏙️ شهر پیش‌فرض: <b>{hd}</b>\n"
@@ -853,60 +1175,92 @@ def build_menu(u):
     return txt, rows
 
 
-def build_admin_panel(u):
-    lang = u["lang"]; s = all_stats()
-    total = total_users(); active = active_users_24h()
-    errs = recent_errors(5); tops = top_cities(5)
+def build_owner_report(u):
+    """Build private operational statistics for the configured owner."""
+    lang = u.get("lang", "fa")
+    stats = all_stats()
+    today_stats = daily_stats()
+    total = total_users()
+    active = active_users_24h()
+    today_active = users_today()
+    history = daily_user_history(7)
+    # Count only successful weather/AQI/forecast/compare requests. /start is
+    # tracked separately and must not inflate this number.
+    request_keys = ("weather_requests", "aqi_requests", "forecast_requests", "compare_requests")
+    today_requests = sum(today_stats.get(key, 0) for key in request_keys)
+    tops = top_cities(5)
+    errs = recent_errors(3)
+    try:
+        c = db()
+        row = c.execute("SELECT COUNT(*) AS n FROM users WHERE notify_enabled=1").fetchone()
+        enabled_notifications = int(row["n"] if row else 0)
+        c.close()
+    except Exception:
+        enabled_notifications = 0
+
     if lang == "fa":
-        txt = (f"🔐 <b>پنل مدیریت</b>\n\n"
-               f"👥 کاربران: <b>{total}</b>\n"
-               f"🟢 فعال ۲۴ ساعت: <b>{active}</b>\n"
-               f"🚀 تعداد اجرا: <b>{s.get('bot_starts',0)}</b>\n\n"
-               f"📈 استفاده:\n"
-               f"  🌤️ آب‌وهوا: <b>{s.get('weather_requests',0)}</b>\n"
-               f"  🌫️ AQI: <b>{s.get('aqi_requests',0)}</b>\n"
-               f"  📅 پیش‌بینی: <b>{s.get('forecast_requests',0)}</b>\n"
-               f"  ⚖️ مقایسه: <b>{s.get('compare_requests',0)}</b>\n\n"
-               f"🔔 اعلان فعال: <b>{s.get('notify_enabled',0)}</b>\n"
-               f"📨 اعلان ارسالی: <b>{s.get('notifications_sent',0)}</b>")
+        lines = [
+            "🔐 <b>اطلاعات خصوصی ربات</b>", "",
+            f"👥 کل کاربران ثبت‌شده: <b>{total}</b>",
+            f"📅 کاربران یکتای امروز ({stats_date()}): <b>{today_active}</b>",
+            f"📨 درخواست‌های موفق امروز: <b>{today_requests}</b>",
+            f"🟢 کاربران فعال در ۲۴ ساعت: <b>{active}</b>",
+            f"🆕 کاربران ثبت‌شده از زمان شروع شمارش: <b>{stats.get('new_users', 0)}</b>",
+            f"🚀 دفعات راه‌اندازی پردازش ربات: <b>{stats.get('bot_starts', 0)}</b>",
+            f"▶️ دفعات استفاده از /start: <b>{stats.get('start_requests', 0)} کل / {today_stats.get('start_requests', 0)} امروز</b>", "",
+            "📊 <b>تعداد درخواست‌ها</b>",
+            f"🌤️ آب‌وهوا: <b>{stats.get('weather_requests', 0)} کل / {today_stats.get('weather_requests', 0)} امروز</b>",
+            f"🌫️ کیفیت هوا: <b>{stats.get('aqi_requests', 0)} کل / {today_stats.get('aqi_requests', 0)} امروز</b>",
+            f"📅 پیش‌بینی: <b>{stats.get('forecast_requests', 0)} کل / {today_stats.get('forecast_requests', 0)} امروز</b>",
+            f"⚖️ مقایسه شهرها: <b>{stats.get('compare_requests', 0)} کل / {today_stats.get('compare_requests', 0)} امروز</b>", "",
+            f"🔔 کاربران با اعلان فعال: <b>{enabled_notifications}</b>",
+            f"📨 اعلان‌های ارسال‌شده: <b>{stats.get('notifications_sent', 0)}</b>",
+        ]
+        if history:
+            lines.extend(["", "📈 <b>کاربران یکتای روزهای اخیر</b>"])
+            lines.extend(f"• {escape(day)}: <b>{count}</b>" for day, count in history)
         if tops:
-            txt += "\n\n🏆 <b>محبوب‌ترین شهرها:</b>\n"
-            m = ["🥇","🥈","🥉","4️⃣","5️⃣"]
-            for i,(cn,cnt) in enumerate(tops): txt += f"  {m[i]} {cn} — <b>{cnt}</b>\n"
+            lines.extend(["", "🏙️ <b>شهرهای پیش‌فرض پرتکرار</b>"])
+            medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
+            lines.extend(f"{medals[i]} {escape(str(city))} — <b>{count}</b>" for i, (city, count) in enumerate(tops))
         if errs:
-            txt += "\n⚠️ <b>خطاهای اخیر:</b>\n"
-            for e in errs:
-                err_text = escape(e['error'][:60])
-                txt += f"  <code>{err_text}</code>\n"
-        rows = [[InlineKeyboardButton("🔄 رفرش آمار", callback_data="a:refresh")],
-                [InlineKeyboardButton("🚪 خروج از پنل", callback_data="a:logout")]]
+            lines.extend(["", "⚠️ <b>آخرین خطاها</b>"])
+            lines.extend(f"• <code>{escape(str(e['error'])[:100])}</code> ({escape(str(e['created_at']))})" for e in errs)
     else:
-        txt = (f"🔐 <b>Admin Panel</b>\n\n"
-               f"👥 Users: <b>{total}</b>\n"
-               f"🟢 Active 24h: <b>{active}</b>\n"
-               f"🚀 Starts: <b>{s.get('bot_starts',0)}</b>\n\n"
-               f"📈 Usage:\n"
-               f"  🌤️ Weather: <b>{s.get('weather_requests',0)}</b>\n"
-               f"  🌫️ AQI: <b>{s.get('aqi_requests',0)}</b>\n"
-               f"  📅 Forecast: <b>{s.get('forecast_requests',0)}</b>\n"
-               f"  ⚖️ Compare: <b>{s.get('compare_requests',0)}</b>")
+        lines = [
+            "🔐 <b>Private Bot Information</b>", "",
+            f"👥 Total registered users: <b>{total}</b>",
+            f"📅 Unique users today ({stats_date()}): <b>{today_active}</b>",
+            f"📨 Successful requests today: <b>{today_requests}</b>",
+            f"🟢 Active in the last 24 hours: <b>{active}</b>",
+            f"🆕 Users registered since tracking began: <b>{stats.get('new_users', 0)}</b>",
+            f"🚀 Bot process starts: <b>{stats.get('bot_starts', 0)}</b>",
+            f"▶️ /start uses: <b>{stats.get('start_requests', 0)} total / {today_stats.get('start_requests', 0)} today</b>", "",
+            "📊 <b>Requests</b>",
+            f"🌤️ Weather: <b>{stats.get('weather_requests', 0)} total / {today_stats.get('weather_requests', 0)} today</b>",
+            f"🌫️ Air quality: <b>{stats.get('aqi_requests', 0)} total / {today_stats.get('aqi_requests', 0)} today</b>",
+            f"📅 Forecast: <b>{stats.get('forecast_requests', 0)} total / {today_stats.get('forecast_requests', 0)} today</b>",
+            f"⚖️ City comparisons: <b>{stats.get('compare_requests', 0)} total / {today_stats.get('compare_requests', 0)} today</b>", "",
+            f"🔔 Users with notifications enabled: <b>{enabled_notifications}</b>",
+            f"📨 Notifications sent: <b>{stats.get('notifications_sent', 0)}</b>",
+        ]
+        if history:
+            lines.extend(["", "📈 <b>Unique users in recent days</b>"])
+            lines.extend(f"• {escape(day)}: <b>{count}</b>" for day, count in history)
         if tops:
-            txt += "\n\n🏆 <b>Top Cities:</b>\n"
-            m = ["🥇","🥈","🥉","4️⃣","5️⃣"]
-            for i,(cn,cnt) in enumerate(tops): txt += f"  {m[i]} {cn} — <b>{cnt}</b>\n"
+            lines.extend(["", "🏙️ <b>Most common default cities</b>"])
+            medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
+            lines.extend(f"{medals[i]} {escape(str(city))} — <b>{count}</b>" for i, (city, count) in enumerate(tops))
         if errs:
-            txt += "\n⚠️ <b>Recent errors:</b>\n"
-            for e in errs:
-                err_text = escape(e['error'][:60])
-                txt += f"  <code>{err_text}</code>\n"
-        rows = [[InlineKeyboardButton("🔄 Refresh", callback_data="a:refresh")],
-                [InlineKeyboardButton("🚪 Logout", callback_data="a:logout")]]
-    return txt, rows
+            lines.extend(["", "⚠️ <b>Recent errors</b>"])
+            lines.extend(f"• <code>{escape(str(e['error'])[:100])}</code> ({escape(str(e['created_at']))})" for e in errs)
+    return "\n".join(lines)
 
 
 # ==================== دستورات ====================
 async def cmd_start(update, ctx):
     u = get_user(update.effective_user.id, update)
+    stat("start_requests")
     save_user(u["user_id"], pending_action=None)
     if u["lang"] == "fa":
         txt = ("🌤️ <b>به ربات آب‌وهوا خوش آمدید!</b>\n\n"
@@ -953,7 +1307,14 @@ async def cmd_forecast(update, ctx):
 
 async def cmd_compare(update, ctx):
     u = get_user(update.effective_user.id, update)
-    await snd_compare(ctx, update.effective_chat.id, u["user_id"], ctx.args, u)
+    raw = (update.message.text or "").partition(" ")[2].strip()
+    if "|" in raw:
+        cities = [part.strip() for part in raw.split("|", 1)]
+    elif ";" in raw:
+        cities = [part.strip() for part in raw.split(";", 1)]
+    else:
+        cities = ctx.args
+    await snd_compare(ctx, update.effective_chat.id, u["user_id"], cities, u)
 
 
 async def cmd_default(update, ctx):
@@ -963,8 +1324,9 @@ async def cmd_default(update, ctx):
                                         reply_markup=kb_main(u["lang"])); return
     city = await geocode(" ".join(ctx.args), u["lang"])
     if not city: await update.message.reply_text("❌"); return
-    save_user(u["user_id"], default_city=city["name"])
-    await update.message.reply_text(f"✅ <b>{city['name']}</b>", parse_mode=ParseMode.HTML,
+    save_user(u["user_id"], default_city=city["name"],
+              default_timezone=city.get("timezone"), last_notify_date=None)
+    await update.message.reply_text(f"✅ <b>{escape(str(city['name']))}</b>", parse_mode=ParseMode.HTML,
                                     reply_markup=kb_main(u["lang"]))
 
 
@@ -979,7 +1341,9 @@ async def cmd_notify(update, ctx):
         if not u.get("default_city"):
             msg = "اول /default تهران" if u["lang"]=="fa" else "First /default Tehran"
             await update.message.reply_text(msg); return
-        save_user(u["user_id"], notify_enabled=1); stat("notify_enabled")
+        changed = not bool(u.get("notify_enabled"))
+        save_user(u["user_id"], notify_enabled=1)
+        if changed: stat("notify_enabled")
         await update.message.reply_text("✅", reply_markup=kb_main(u["lang"]))
     elif a in ("off","خاموش"):
         save_user(u["user_id"], notify_enabled=0)
@@ -989,7 +1353,8 @@ async def cmd_notify(update, ctx):
 async def cmd_settime(update, ctx):
     u = get_user(update.effective_user.id, update)
     if not ctx.args:
-        await update.message.reply_text("/settime 07:30"); return
+        hint = "نمونه: /settime 07:30" if u["lang"] == "fa" else "Example: /settime 07:30"
+        await update.message.reply_text(hint); return
     try:
         h, m = map(int, ctx.args[0].split(":"))
         if not (0<=h<24 and 0<=m<60): raise ValueError
@@ -1012,7 +1377,13 @@ async def on_location(update, ctx):
         city = {"name": "موقعیت شما" if u["lang"]=="fa" else "Your Location",
                 "latitude": loc.latitude, "longitude": loc.longitude}
         await safe_edit(msg, build_w(city, w, a, u["lang"], u["unit"]), parse_mode=ParseMode.HTML)
-    except Exception as e: log_err(u["user_id"], e, "loc")
+    except Exception as e:
+        log_err(u["user_id"], e, "loc")
+        err = "❌ دریافت اطلاعات موقعیت ناموفق بود؛ دوباره تلاش کن." if u["lang"] == "fa" else "❌ Could not load weather for this location. Please try again."
+        try:
+            await safe_edit(msg, err)
+        except Exception:
+            pass
 
 
 # ==================== متن ====================
@@ -1021,26 +1392,30 @@ async def on_text(update, ctx):
     t = update.message.text.strip(); lang = u["lang"]
     chat_id = update.effective_chat.id
 
-    if t in ["🔐 پنل مدیریت", "🔐 Admin Panel"]:
+    # The code is handled before pending city/menu actions so it always works.
+    # It is not sufficient by itself: the sender must also match OWNER_ID.
+    if t == OWNER_INFO_CODE:
+        # The trigger is not a password by itself: it only works for OWNER_ID in private chat.
+        if update.effective_chat.type != "private" or not is_owner(u["user_id"]):
+            return
         try: await update.message.delete()
         except Exception: pass
-        if is_admin(u["user_id"]):
-            txt, rows = build_admin_panel(u)
-            await ctx.bot.send_message(chat_id=chat_id, text=txt, parse_mode=ParseMode.HTML,
-                                       reply_markup=InlineKeyboardMarkup(rows))
-            return
-        save_user(u["user_id"], pending_action="admin_pass")
-        msg = "🔐 رمز عبور رو وارد کن:" if lang=="fa" else "🔐 Enter password:"
-        await ctx.bot.send_message(chat_id=chat_id, text=msg)
+        save_user(u["user_id"], pending_action=None, compare_temp=None)
+        report = build_owner_report(get_user(u["user_id"]))
+        await ctx.bot.send_message(chat_id=chat_id, text=report,
+                                   parse_mode=ParseMode.HTML, reply_markup=kb_main(lang))
         return
 
     if t in ["🎛️ منو","🎛️ Menu"]:
         try: await update.message.delete()
         except Exception: pass
-        # ✅ فقط منو، بدون پیام 🔽 اضافه
+        # ✅ FIX #3: کیبورد پایین هم رفرش می‌شه
         txt, rows = build_menu(u)
         await ctx.bot.send_message(chat_id=chat_id, text=txt, parse_mode=ParseMode.HTML,
                                    reply_markup=InlineKeyboardMarkup(rows))
+        # کیبورد پایین جدا
+        await ctx.bot.send_message(chat_id=chat_id, text="🔽", reply_markup=kb_main(lang),
+                                   disable_notification=True)
         return
 
     if t in ["🌤️ آب‌وهوا","🌤️ Weather"]:
@@ -1072,23 +1447,6 @@ async def on_text(update, ctx):
 
     u2 = get_user(u["user_id"]); act = u2.get("pending_action")
 
-    if act == "admin_pass":
-        save_user(u["user_id"], pending_action=None)
-        try: await update.message.delete()
-        except Exception: pass
-        if t == ADMIN_PASSWORD:
-            login_admin(u["user_id"])
-            ok = "✅ ورود موفق" if lang=="fa" else "✅ Login successful"
-            await ctx.bot.send_message(chat_id=chat_id, text=ok)
-            u3 = get_user(u["user_id"])
-            txt, rows = build_admin_panel(u3)
-            await ctx.bot.send_message(chat_id=chat_id, text=txt, parse_mode=ParseMode.HTML,
-                                       reply_markup=InlineKeyboardMarkup(rows))
-        else:
-            msg = "❌ رمز اشتباه" if lang=="fa" else "❌ Wrong password"
-            await ctx.bot.send_message(chat_id=chat_id, text=msg)
-        return
-
     if act:
         save_user(u["user_id"], pending_action=None)
         try: await update.message.delete()
@@ -1096,10 +1454,11 @@ async def on_text(update, ctx):
         if act == "def":
             c = await geocode(t, lang)
             if not c: await ctx.bot.send_message(chat_id=chat_id, text="❌"); return
-            save_user(u["user_id"], default_city=c["name"])
+            save_user(u["user_id"], default_city=c["name"],
+                      default_timezone=c.get("timezone"), last_notify_date=None)
             u3 = get_user(u["user_id"])
             txt, rows = build_menu(u3)
-            await ctx.bot.send_message(chat_id=chat_id, text=f"✅ <b>{c['name']}</b>\n\n{txt}",
+            await ctx.bot.send_message(chat_id=chat_id, text=f"✅ <b>{escape(str(c['name']))}</b>\n\n{txt}",
                                        parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(rows))
             return
         if act == "c1":
@@ -1108,6 +1467,7 @@ async def on_text(update, ctx):
             await ctx.bot.send_message(chat_id=chat_id, text=msg); return
         if act == "c2":
             c1 = u2.get("compare_temp")
+            # ✅ FIX #5: چک کردن c1
             if not c1:
                 msg = "⚠️ یه بار دیگه از منو شروع کن" if lang=="fa" else "⚠️ Restart from Menu"
                 await ctx.bot.send_message(chat_id=chat_id, text=msg); return
@@ -1117,6 +1477,7 @@ async def on_text(update, ctx):
         if act == "a": await snd_aqi(ctx, chat_id, u["user_id"], t, u); return
         if act == "f": await snd_forecast(ctx, chat_id, u["user_id"], t, u); return
 
+    # ✅ FIX #4: پیام کاربر حذف می‌شه ولی بعدش درخواست می‌ره
     try: await update.message.delete()
     except Exception: pass
     await snd_weather(ctx, chat_id, u["user_id"], t, u)
@@ -1128,19 +1489,10 @@ async def on_cb(update, ctx):
     u = get_user(q.from_user.id, update)
     d = q.data; lang = u["lang"]; chat_id = q.message.chat.id
 
-    if d == "a:refresh":
-        if not is_admin(u["user_id"]): await q.answer("⛔", show_alert=True); return
-        await q.answer("🔄")
-        txt, rows = build_admin_panel(u)
-        try: await q.edit_message_text(txt, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(rows))
-        except Exception: pass
-        return
-
-    if d == "a:logout":
-        logout_admin(u["user_id"]); await q.answer("🚪")
-        msg = "🚪 از پنل خارج شدی" if lang=="fa" else "🚪 Logged out"
-        try: await q.edit_message_text(msg)
-        except Exception: pass
+    # Old inline admin-panel buttons can remain in chat history after deployment.
+    if d.startswith("a:"):
+        alert = "پنل قدیمی حذف شده؛ کد 6167 را در گفت‌وگوی خصوصی بفرست." if lang == "fa" else "The old admin panel was removed; send 6167 in the private chat."
+        await q.answer(alert, show_alert=True)
         return
 
     if d.startswith("lang:"):
@@ -1150,7 +1502,8 @@ async def on_cb(update, ctx):
         txt, rows = build_menu(u2)
         try: await q.edit_message_text(txt, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup(rows))
         except Exception: pass
-        # ✅ بدون پیام 🔽 اضافه
+        # ✅ FIX #3: بدون نوتیفیکیشن
+        await ctx.bot.send_message(chat_id=chat_id, text="🔽", reply_markup=kb_main(nl), disable_notification=True)
         return
 
     if d.startswith("unit:"):
@@ -1244,27 +1597,53 @@ async def on_cb(update, ctx):
 
 # ==================== notify ====================
 async def notify_job(ctx):
-    now = datetime.now().strftime("%H:%M")
+    fallback_now = datetime.now()
     for ud in notify_users():
-        if ud.get("notify_time") != now: continue
+        city_name = ud.get("default_city")
+        if not city_name:
+            continue
+
+        city = None
+        tz_name = ud.get("default_timezone")
+        # Backfill timezone for users who already had a saved city before this update.
+        if not tz_name:
+            city = await geocode(city_name, ud["lang"])
+            if not city:
+                continue
+            tz_name = city.get("timezone")
+            if tz_name:
+                save_user(ud["user_id"], default_timezone=tz_name)
+
         try:
-            cn = ud["default_city"]
-            if not cn: continue
-            lg, un = ud["lang"], ud["unit"]
-            city = await geocode(cn, lg)
-            if not city: continue
-            w, a = await fetch_all_parallel(city["latitude"], city["longitude"], city.get("name",""))
-            if not w: continue
-            c = w["current"]; ic = WMO.get(c.get("weather_code",0), {"ic":"❓"})["ic"]
-            cname = (city.get("name_fa") or city["name"]) if lg=="fa" else city["name"]
-            if lg == "fa":
-                L = [f"☀️ <b>صبح بخیر!</b>", "",
-                     f"{ic} <b>{cname}</b>", f"🌡️ <b>{fmt_t(c.get('temperature_2m',0),un)}</b>"]
+            local_now = datetime.now(ZoneInfo(tz_name)) if tz_name else fallback_now
+        except Exception:
+            local_now = fallback_now
+        if ud.get("notify_time") != local_now.strftime("%H:%M"):
+            continue
+        today = local_now.date().isoformat()
+        if ud.get("last_notify_date") == today:
+            continue
+
+        try:
+            if city is None:
+                city = await geocode(city_name, ud["lang"])
+            if not city:
+                continue
+            w, a = await fetch_all_parallel(city["latitude"], city["longitude"], city.get("name", ""))
+            if not w:
+                continue
+            c = w["current"]
+            ic = WMO.get(c.get("weather_code", 0), {"ic": "❓"})["ic"]
+            cname = escape(str((city.get("name_fa") or city["name"]) if ud["lang"] == "fa" else city["name"]))
+            if ud["lang"] == "fa":
+                lines = ["☀️ <b>صبح بخیر!</b>", "", f"{ic} <b>{cname}</b>",
+                         f"🌡️ <b>{fmt_t(c.get('temperature_2m', 0), ud['unit'])}</b>"]
             else:
-                L = [f"☀️ <b>Good morning!</b>", "",
-                     f"{ic} <b>{cname}</b>", f"🌡️ <b>{fmt_t(c.get('temperature_2m',0),un)}</b>"]
-            await ctx.bot.send_message(chat_id=ud["user_id"], text="\n".join(L),
-                                       parse_mode=ParseMode.HTML, reply_markup=kb_main(lg))
+                lines = ["☀️ <b>Good morning!</b>", "", f"{ic} <b>{cname}</b>",
+                         f"🌡️ <b>{fmt_t(c.get('temperature_2m', 0), ud['unit'])}</b>"]
+            await ctx.bot.send_message(chat_id=ud["user_id"], text="\n".join(lines), parse_mode=ParseMode.HTML)
+            # Persist only after successful delivery, preventing duplicate messages in the same local day.
+            save_user(ud["user_id"], last_notify_date=today)
             stat("notifications_sent")
         except Exception as e:
             logger.error(f"notify: {e}")
@@ -1275,14 +1654,25 @@ async def post_init(app):
     init_db()
     await get_http()
     if app.job_queue:
+        # A minute-level schedule is enough; date guard prevents duplicates across runs.
         app.job_queue.run_repeating(notify_job, interval=30, first=10)
     logger.info("✅ Bot started")
 
 
+async def post_shutdown(app):
+    global _http
+    if _http is not None and not _http.is_closed:
+        await _http.aclose()
+    _http = None
+
+
 def main():
-    if BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
-        print("⚠️ BOT_TOKEN set کن!"); return
-    app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
+    if not BOT_TOKEN or BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
+        print("⚠️ BOT_TOKEN set کن!")
+        return
+    if not OWNER_ID.isdigit():
+        logger.warning("OWNER_ID is not configured; the 6167 owner report is disabled until OWNER_ID is set.")
+    app = Application.builder().token(BOT_TOKEN).post_init(post_init).post_shutdown(post_shutdown).build()
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("help", cmd_start))
     app.add_handler(CommandHandler("weather", cmd_weather))
