@@ -325,7 +325,7 @@
             scroll-margin-top: 90px;
             transform: translateZ(0);
             backface-visibility: hidden;
-            contain: layout style paint;
+            contain: layout style; /* ✅ Removed paint to fix backdrop-filter */
             content-visibility: auto;
             contain-intrinsic-size: 280px;
         }
@@ -564,7 +564,7 @@
             transition: transform 0.25s;
             transform: translateZ(0);
             backface-visibility: hidden;
-            contain: layout style paint;
+            contain: layout style; /* ✅ Removed paint to fix backdrop-filter */
             content-visibility: auto;
             contain-intrinsic-size: 120px;
         }
@@ -824,6 +824,7 @@
         .setting-row {
             display: flex; align-items: center; justify-content: space-between;
             gap: 1rem; padding: 0.7rem 0; border-bottom: 1px solid var(--border);
+            transition: opacity 0.2s;
         }
         .setting-row:last-child { border-bottom: none; padding-bottom: 0; }
         .setting-row:first-child { padding-top: 0; }
@@ -1426,7 +1427,7 @@
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
-                        <div class="setting-row">
+                        <div class="setting-row" id="row-glass-intensity">
                             <div class="setting-label">
                                 <div class="setting-label-main" data-i18n="glass_intensity">Glass Intensity</div>
                             </div>
@@ -1435,7 +1436,7 @@
                                 <span class="slider-value" id="glass-intensity-value">65%</span>
                             </div>
                         </div>
-                        <div class="setting-row">
+                        <div class="setting-row" id="row-blur-intensity">
                             <div class="setting-label">
                                 <div class="setting-label-main" data-i18n="blur_intensity">Blur Intensity</div>
                             </div>
@@ -1750,7 +1751,6 @@
             document.getElementById('manifestLink').href = URL.createObjectURL(manifestBlob);
 
             // 2. Service Worker Registration (Safely commented out to prevent errors)
-            // Note: For true offline support on GitHub Pages, create a 'sw.js' file next to index.html
             /*
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./sw.js').catch(e => console.log('SW error', e));
@@ -2204,8 +2204,19 @@
 
         function applyGlass() {
             const body = document.body;
+            const glassRow = document.getElementById('row-glass-intensity');
+            const blurRow = document.getElementById('row-blur-intensity');
+            const glassInput = document.getElementById('setting-glass-intensity');
+            const blurInput = document.getElementById('setting-blur-intensity');
+
             if (settings.glass) {
                 body.setAttribute('data-glass', 'true');
+                // Enable sliders
+                if (glassRow) { glassRow.style.opacity = '1'; glassRow.style.pointerEvents = 'auto'; }
+                if (blurRow) { blurRow.style.opacity = '1'; blurRow.style.pointerEvents = 'auto'; }
+                if (glassInput) glassInput.disabled = false;
+                if (blurInput) blurInput.disabled = false;
+
                 const intensity = settings.glassIntensity / 100;
                 const blurPx = settings.blurIntensity;
                 const isLight = document.documentElement.getAttribute('data-theme') === 'light';
@@ -2214,6 +2225,12 @@
                 document.documentElement.style.setProperty('--glass-blur', `${blurPx}px`);
             } else {
                 body.removeAttribute('data-glass');
+                // Disable sliders
+                if (glassRow) { glassRow.style.opacity = '0.5'; glassRow.style.pointerEvents = 'none'; }
+                if (blurRow) { blurRow.style.opacity = '0.5'; blurRow.style.pointerEvents = 'none'; }
+                if (glassInput) glassInput.disabled = true;
+                if (blurInput) blurInput.disabled = true;
+
                 document.documentElement.style.setProperty('--glass-bg', '');
                 document.documentElement.style.setProperty('--glass-blur', '0px');
             }
