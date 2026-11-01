@@ -768,7 +768,8 @@
             font-weight: 700;
             color: var(--accent);
             line-height: 1.1;
-            margin-bottom: 0.5rem; /* 🌟 کمی فاصله برای زیبایی بیشتر */
+            margin-bottom: 0.5rem;
+            /* 🌟 کمی فاصله برای زیبایی بیشتر */
         }
 
         .weather-desc {
@@ -881,8 +882,10 @@
             font-size: 0.82rem;
             color: var(--text-muted);
             border-top: 1px solid var(--border);
-            padding-top: 0.75rem; /* 🌟 فاصله بالای اطلاعات */
-            margin-top: 0; /* 🌟 حذف فاصله اضافی اضافی */
+            padding-top: 0.75rem;
+            /* 🌟 فاصله بالای اطلاعات */
+            margin-top: 0;
+            /* 🌟 حذف فاصله اضافی اضافی */
             margin-bottom: 0;
             line-height: 1.5;
         }
@@ -900,7 +903,8 @@
             gap: 0.35rem;
             padding-top: 0.75rem;
             border-top: 1px solid var(--border);
-            margin-top: auto; /* 🌟 هل دادن پیش‌بینی به پایین‌ترین قسمت کارت */
+            margin-top: auto;
+            /* 🌟 هل دادن پیش‌بینی به پایین‌ترین قسمت کارت */
         }
 
         .forecast-day {
@@ -2603,8 +2607,8 @@
                 <div class="welcome-icon-glow"></div>
                 <div class="welcome-icon">🌤️</div>
             </div>
-            <h1 class="welcome-title"><span>Welcome</span></h1>
-            <p class="welcome-subtitle">to Weather & Air Quality</p>
+            <h1 class="welcome-title"><span data-i18n="welcome_title">Welcome</span></h1>
+            <p class="welcome-subtitle" data-i18n="welcome_subtitle">to Weather & Air Quality</p>
             <div class="welcome-loader">
                 <div class="welcome-loader-fill"></div>
             </div>
@@ -3205,25 +3209,30 @@
 
         const AQI_HISTORY_KEY = 'iran_weather_aqi_history';
         function loadAQIHistory() { try { const raw = storeGet(AQI_HISTORY_KEY); return raw ? JSON.parse(raw) : {}; } catch (e) { return {}; } }
-        function saveAQIHistory(history) { if (!hasConsent()) return; try { storeSet(AQI_HISTORY_KEY, JSON.stringify(history), 30); } catch (e) { } }
+        function saveAQIHistory(history) {
+            const value = JSON.stringify(history);
+            try { localStorage.setItem(AQI_HISTORY_KEY, value); } catch (e) { }
+            memoryStore[AQI_HISTORY_KEY] = value;
+        }
         function updateAQIHistory(city, currentAQI) {
             if (currentAQI == null) return;
             const history = loadAQIHistory();
-            const entry = history[city] || { prev: null, prevTs: 0 };
+            const historyKey = `${city}::${settings.aqiScale || 'eu'}`;
+            const entry = history[historyKey] || { prev: null, prevTs: 0 };
             const now = Date.now();
             if (!entry.prevTs || (now - entry.prevTs) > 30 * 60 * 1000) {
                 entry.prev = entry.current ?? null; entry.prevTs = entry.currentTs ?? 0;
                 entry.current = currentAQI; entry.currentTs = now;
-                history[city] = entry; saveAQIHistory(history);
+                history[historyKey] = entry; saveAQIHistory(history);
             } else {
                 entry.current = currentAQI; entry.currentTs = now;
-                history[city] = entry; saveAQIHistory(history);
+                history[historyKey] = entry; saveAQIHistory(history);
             }
         }
         function getAQITrend(city, currentAQI) {
             if (currentAQI == null) return 'stable';
             const history = loadAQIHistory();
-            const entry = history[city];
+            const entry = history[`${city}::${settings.aqiScale || 'eu'}`];
             if (!entry || entry.prev == null) return 'stable';
             const diff = currentAQI - entry.prev;
             if (diff > 5) return 'up';
@@ -3368,7 +3377,8 @@
             if (!welcomeEl) return;
             let alreadyShown = false;
             try { alreadyShown = localStorage.getItem(WELCOME_KEY) === '1' || sessionStorage.getItem(WELCOME_KEY) === '1'; } catch (e) { }
-            if (alreadyShown) { welcomeEl.classList.add('gone'); return; }
+            if (alreadyShown) { welcomeEl.classList.add('gone'); welcomeEl.setAttribute('aria-hidden', 'true'); return; }
+            welcomeEl.setAttribute('aria-hidden', 'false');
             try { localStorage.setItem(WELCOME_KEY, '1'); } catch (e) { }
             try { sessionStorage.setItem(WELCOME_KEY, '1'); } catch (e) { }
             const originalOverflow = document.body.style.overflow;
@@ -3377,7 +3387,7 @@
             const finish = () => {
                 if (finished) return; finished = true;
                 welcomeEl.classList.add('hidden');
-                setTimeout(() => { welcomeEl.classList.add('gone'); document.body.style.overflow = originalOverflow || ''; }, WELCOME_FADE_DURATION);
+                setTimeout(() => { welcomeEl.classList.add('gone'); welcomeEl.setAttribute('aria-hidden', 'true'); document.body.style.overflow = originalOverflow || ''; }, WELCOME_FADE_DURATION);
             };
             setTimeout(finish, WELCOME_TOTAL_DURATION);
             welcomeEl.addEventListener('click', finish);
@@ -3387,7 +3397,7 @@
 
         const I18N = {
             en: {
-                app_title: 'Weather & Air Quality', auto_refresh: 'Auto refresh every', hour: 'hour',
+                app_title: 'Weather & Air Quality', welcome_title: 'Welcome', welcome_subtitle: 'to Weather & Air Quality', auto_refresh: 'Auto refresh every', hour: 'hour',
                 loading: 'Loading…', refreshing: 'Refreshing…', updated: 'Updated ✅', partial: 'Partial ⚠️',
                 offline: 'Offline 📦', failed: 'Failed ❌', ready: 'Ready ✅', last: 'Last:', cached: 'Cached:',
                 network_error: 'Network Error:', network_error_desc: 'Could not reach weather service.',
@@ -3443,7 +3453,7 @@
                 copy: 'Copy', copied: 'Copied!'
             },
             fa: {
-                app_title: 'آب‌وهوا و کیفیت هوا', auto_refresh: 'رفرش خودکار هر', hour: 'ساعت',
+                app_title: 'آب‌وهوا و کیفیت هوا', welcome_title: 'خوش آمدید', welcome_subtitle: 'به سامانه آب‌وهوا و کیفیت هوا', auto_refresh: 'رفرش خودکار هر', hour: 'ساعت',
                 loading: 'در حال بارگذاری…', refreshing: 'در حال رفرش…', updated: 'به‌روزرسانی شد ✅',
                 partial: 'ناقص ⚠️', offline: 'آفلاین 📦', failed: 'ناموفق ❌', ready: 'آماده ✅',
                 last: 'آخرین:', cached: 'کش‌شده:', network_error: 'خطای شبکه:',
@@ -3580,8 +3590,18 @@
         const FAVORITES_KEY = 'iran_weather_favorites';
         let favorites = [];
 
-        function loadFavorites() { try { const raw = storeGet(FAVORITES_KEY); if (raw) favorites = JSON.parse(raw) || []; } catch (e) { favorites = []; } return favorites; }
-        function saveFavorites() { if (!hasConsent()) return; try { storeSet(FAVORITES_KEY, JSON.stringify(favorites), COOKIE_DAYS); } catch (e) { } }
+        function loadFavorites() {
+            try {
+                const raw = localStorage.getItem(FAVORITES_KEY) || storeGet(FAVORITES_KEY);
+                if (raw) { const parsed = JSON.parse(raw); favorites = Array.isArray(parsed) ? parsed.filter(v => typeof v === 'string') : []; }
+            } catch (e) { favorites = []; }
+            return favorites;
+        }
+        function saveFavorites() {
+            const value = JSON.stringify(favorites);
+            try { localStorage.setItem(FAVORITES_KEY, value); } catch (e) { }
+            memoryStore[FAVORITES_KEY] = value;
+        }
         function isFavorite(cityName) { return favorites.includes(cityName); }
         function toggleFavorite(cityName) { if (isFavorite(cityName)) favorites = favorites.filter(n => n !== cityName); else favorites.push(cityName); saveFavorites(); }
 
@@ -3706,7 +3726,18 @@
             document.getElementById('setting-blur-intensity').addEventListener('input', (e) => { settings.blurIntensity = parseInt(e.target.value); document.getElementById('blur-intensity-value').textContent = settings.blurIntensity + 'px'; saveSettingsDebounced(); applyGlass(); });
             document.getElementById('setting-language').addEventListener('change', (e) => {
                 settings.language = e.target.value; currentLang = settings.language; saveSettings(); lastAppliedLang = null; applyTranslations();
-                requestAnimationFrame(() => { if (weatherCache && weatherCache.length > 0) renderCards(weatherCache); renderAQIList(); applyDefaultCityDropdown(); });
+                hideSuggestions();
+                requestAnimationFrame(() => {
+                    if (weatherCache && weatherCache.length > 0) renderCards(weatherCache);
+                    renderAQIList(); applyDefaultCityDropdown();
+                    const welcome = document.getElementById('welcomeScreen');
+                    if (welcome && !welcome.classList.contains('gone')) {
+                        const title = welcome.querySelector('[data-i18n="welcome_title"]');
+                        const subtitle = welcome.querySelector('[data-i18n="welcome_subtitle"]');
+                        if (title) title.textContent = t('welcome_title');
+                        if (subtitle) subtitle.textContent = t('welcome_subtitle');
+                    }
+                });
             });
             document.getElementById('setting-temp-unit').addEventListener('change', (e) => { settings.tempUnit = e.target.value; saveSettings(); if (weatherCache) renderCards(weatherCache); });
             document.getElementById('setting-wind-unit').addEventListener('change', (e) => { settings.windUnit = e.target.value; saveSettings(); if (weatherCache) renderCards(weatherCache); });
@@ -3742,11 +3773,11 @@
                             document.execCommand('copy');
                             textArea.remove();
                         }
-                        
+
                         this.setAttribute('data-i18n', 'copied');
                         this.textContent = t('copied');
                         this.disabled = true;
-                        
+
                         clearTimeout(copyTimeout);
                         copyTimeout = setTimeout(() => {
                             this.setAttribute('data-i18n', 'copy');
@@ -4093,13 +4124,11 @@
         function hideCookieBanner() { const banner = document.getElementById('cookieBanner'); banner.classList.remove('visible'); setTimeout(() => { banner.style.display = 'none'; }, 400); }
         function acceptCookies() { setConsent('accepted'); hideCookieBanner(); }
         function rejectCookies() {
+            // Keep essential user-created data (cities and pins); clear optional caches only.
             setConsent('rejected');
             storeDelete(COOKIE_CACHE_KEY);
-            storeDelete(FAVORITES_KEY);
-            storeDelete(AQI_HISTORY_KEY);
             storeDelete(COOKIE_SEARCH_CACHE_KEY);
-            storeDelete(COOKIE_CITIES_KEY);
-            favorites = [];
+            try { if (cacheSupported) caches.delete(CACHE_NAME).catch(() => { }); } catch (e) { }
             hideCookieBanner();
         }
         function resetCookieConsent() { storeDelete(COOKIE_CONSENT_KEY); setTimeout(showCookieBanner, 100); }
@@ -4121,18 +4150,52 @@
             return city.name;
         }
 
-        function loadCities() { if (!hasConsent()) return [...DEFAULT_CITIES]; try { const raw = storeGet(COOKIE_CITIES_KEY); if (raw) { const parsed = JSON.parse(raw); if (Array.isArray(parsed)) return parsed; } } catch (e) { } return [...DEFAULT_CITIES]; }
-        function saveCities() { if (!hasConsent()) return; try { storeSet(COOKIE_CITIES_KEY, JSON.stringify(cities), COOKIE_DAYS); } catch (e) { } }
-        function loadWeatherCacheFromStorage() { if (!hasConsent()) return null; try { const raw = storeGet(COOKIE_CACHE_KEY); if (!raw) return null; const parsed = JSON.parse(raw); return (parsed && parsed.data) ? parsed : null; } catch (e) { return null; } }
-        function normalizeAqiData(aqi) { if (aqi == null) return null; if (typeof aqi === 'number') return { aqi, pm25: null, pm10: null }; return aqi; }
-
+        function loadCities() {
+            try {
+                const raw = localStorage.getItem(COOKIE_CITIES_KEY) || storeGet(COOKIE_CITIES_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) {
+                        const valid = parsed.filter(c => c && typeof c.name === 'string' && Number.isFinite(Number(c.lat)) && Number.isFinite(Number(c.lon)))
+                            .map(c => ({ ...c, lat: Number(c.lat), lon: Number(c.lon) }));
+                        if (valid.length) return valid;
+                    }
+                }
+            } catch (e) { }
+            return DEFAULT_CITIES.map(c => ({ ...c }));
+        }
+        function saveCities() {
+            const value = JSON.stringify(cities);
+            try { localStorage.setItem(COOKIE_CITIES_KEY, value); } catch (e) { }
+            memoryStore[COOKIE_CITIES_KEY] = value;
+        }
+        function loadWeatherCacheFromStorage() {
+            if (!hasConsent()) return null;
+            try {
+                const raw = storeGet(COOKIE_CACHE_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (!parsed || !Array.isArray(parsed.data)) return null;
+                // Migrate old broken entries with current/daily at the top level.
+                parsed.data = parsed.data.filter(item => item && item.city).map(item => ({
+                    ...item,
+                    weather: item.weather || ((item.current || item.daily) ? { current: item.current || null, daily: item.daily || null } : null),
+                    aqi: normalizeAqiData(item.aqi)
+                }));
+                return parsed;
+            } catch (e) { return null; }
+        }
+        function normalizeAqiData(aqi) {
+            if (aqi == null) return null;
+            if (typeof aqi === 'number') return { aqi, euAqi: null, usAqi: null, pm25: null, pm10: null };
+            return aqi;
+        }
         function saveWeatherCacheToStorage(results) {
             if (!hasConsent()) return;
             try {
                 const compact = results.map(r => ({
                     city: r.city, aqi: normalizeAqiData(r.aqi),
-                    current: r.weather?.current ? { temperature_2m: r.weather.current.temperature_2m, apparent_temperature: r.weather.current.apparent_temperature, relative_humidity_2m: r.weather.current.relative_humidity_2m, weather_code: r.weather.current.weather_code, wind_speed_10m: r.weather.current.wind_speed_10m, wind_direction_10m: r.weather.current.wind_direction_10m, pressure_msl: r.weather.current.pressure_msl, visibility: r.weather.current.visibility, dew_point_2m: r.weather.current.dew_point_2m, uv_index: r.weather.current.uv_index } : null,
-                    daily: r.weather?.daily ? { time: r.weather.daily.time, weather_code: r.weather.daily.weather_code, temperature_2m_max: r.weather.daily.temperature_2m_max, temperature_2m_min: r.weather.daily.temperature_2m_min, precipitation_probability_max: r.weather.daily.precipitation_probability_max, sunrise: r.weather.daily.sunrise, sunset: r.weather.daily.sunset } : null
+                    weather: r.weather ? { current: r.weather.current || null, daily: r.weather.daily || null } : null
                 }));
                 storeSet(COOKIE_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: compact }), 7);
             } catch (e) { }
@@ -4222,8 +4285,8 @@
                 storeSet(COOKIE_SEARCH_CACHE_KEY, JSON.stringify(cache), 1);
             } catch (e) { }
         }
-        function getCachedSearch(q) { return loadSearchCache()[q.toLowerCase()]?.results || null; }
-        function setCachedSearch(q, results) { const cache = loadSearchCache(); cache[q.toLowerCase()] = { results, ts: Date.now() }; saveSearchCache(cache); }
+        function getCachedSearch(q) { return loadSearchCache()[`${currentLang}:${q.toLowerCase()}`]?.results || null; }
+        function setCachedSearch(q, results) { const cache = loadSearchCache(); cache[`${currentLang}:${q.toLowerCase()}`] = { results, ts: Date.now() }; saveSearchCache(cache); }
 
         function searchLocalIran(query) {
             const q = query.toLowerCase().trim(); const qFa = normalizePersian(query);
@@ -4237,13 +4300,26 @@
             const isFa = hasPersianChars(query); const apiQuery = isFa ? translatePersianToEnglish(query) : query;
             const cached = getCachedSearch(apiQuery); if (cached) { Core.state.cacheHits++; return cached; }
             if (suggestAbort) suggestAbort.abort(); suggestAbort = new AbortController();
-            const lang = currentLang === 'fa' ? 'fa' : 'en';
+            const lang = 'en';
             const url = `${GEO_API}?name=${encodeURIComponent(apiQuery)}&count=10&language=${lang}&format=json`;
             const res = await fetch(url, { signal: suggestAbort.signal }); if (!res.ok) throw new Error('Geocoding failed');
             const data = await res.json(); const results = data.results || []; setCachedSearch(apiQuery, results); return results;
         }
 
         function sortResultsIranFirst(results) { if (!results || results.length === 0) return results; return [...results].sort((a, b) => { const aIR = a.country_code === 'IR' ? 0 : 1; const bIR = b.country_code === 'IR' ? 0 : 1; return aIR - bIR; }); }
+
+        function getSuggestionCityName(result) {
+            if (!result) return '';
+            const name = String(result.name || '');
+            const local = IRAN_CITIES_PREP.find(c =>
+                c._nameEn === name.toLowerCase() ||
+                (Number.isFinite(result.latitude) && Number.isFinite(result.longitude) &&
+                    Math.abs(c.lat - result.latitude) < 0.12 && Math.abs(c.lon - result.longitude) < 0.12)
+            );
+            if (currentLang === 'fa') return result.name_fa || local?.name_fa || name;
+            if (hasPersianChars(name)) return local?.name || translatePersianToEnglish(name);
+            return name;
+        }
 
         function renderSuggestions(results) {
             results = sortResultsIranFirst(results); currentSuggestions = results; activeSuggestionIndex = -1; suggestionsEl.innerHTML = '';
@@ -4255,8 +4331,14 @@
                 item.innerHTML = `
                     <div class="suggestion-left">
                         <span class="suggestion-flag">${flagEmoji(r.country_code)}</span>
-                        <div style="min-width:0;flex:1;"><div class="suggestion-name">${r.name}</div>${admin ? `<div class="suggestion-admin">${admin}</div>` : ''}</div>
-                    </div>${country ? `<span class="suggestion-country">${country}</span>` : ''}`;
+                        <div style="min-width:0;flex:1;"><div class="suggestion-name"></div><div class="suggestion-admin"></div></div>
+                    </div><span class="suggestion-country"></span>`;
+                const nameNode = item.querySelector('.suggestion-name');
+                if (nameNode) nameNode.textContent = getSuggestionCityName(r);
+                const adminNode = item.querySelector('.suggestion-admin');
+                if (adminNode) { adminNode.textContent = admin; adminNode.hidden = !admin; }
+                const countryNode = item.querySelector('.suggestion-country');
+                if (countryNode) { countryNode.textContent = country; countryNode.hidden = !country; }
                 item.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); selectSuggestion(index); });
                 frag.appendChild(item);
             });
@@ -4275,9 +4357,16 @@
             hideSuggestions(); searchInput.value = '';
             const lat = r.latitude ?? r.lat; const lon = r.longitude ?? r.lon;
             if (cities.some(c => c.name.toLowerCase() === r.name.toLowerCase() && Math.abs(c.lat - lat) < 0.01)) return;
-            lastAddedCityName = r.name;
-            const internalName = hasPersianChars(r.name) ? translatePersianToEnglish(r.name) : r.name;
-            const newCity = { name: internalName, name_fa: hasPersianChars(r.name) ? r.name : (PERSIAN_CITY_MAP[internalName] || null), lat, lon };
+            const localCity = IRAN_CITIES_PREP.find(c =>
+                Math.abs(c.lat - Number(lat)) < 0.12 && Math.abs(c.lon - Number(lon)) < 0.12
+            );
+            const internalName = hasPersianChars(r.name) ? (localCity?.name || translatePersianToEnglish(r.name)) : r.name;
+            lastAddedCityName = internalName;
+            const newCity = {
+                name: internalName,
+                name_fa: r.name_fa || localCity?.name_fa || PERSIAN_CITY_MAP[internalName] || null,
+                lat: Number(lat), lon: Number(lon)
+            };
             cities.push(newCity); saveCities(); haptic([10, 30, 10]); await addSingleCity(newCity);
         }
 
@@ -4303,55 +4392,60 @@
         }
 
         async function addSingleCity(city) {
-            const tempId = 'loading-' + Date.now();
+            const tempId = 'loading-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
             const tempCard = document.createElement('div');
             tempCard.className = 'card no-anim'; tempCard.id = tempId;
             tempCard.innerHTML = `<div class="card-content"><div class="card-header"><span class="city-name">${getCityDisplayName(city)}</span><span class="weather-icon">⏳</span></div><div class="temp-main" style="color:var(--text-muted);font-size:1.2rem;">${t('fetching_city')}</div></div>`;
             cardsEl.appendChild(tempCard);
+
+            const aqiPromise = omQueue.add(() => fetchAQIBatch([city]), 'single-aqi')
+                .then(result => result?.[0] ?? null).catch(() => null);
+
             try {
-                const [weatherRes, aqiRes] = await Promise.allSettled([
-                    omQueue.add(() => fetchBatch([city]), 'single-weather'),
-                    omQueue.add(() => fetchAQIBatch([city]), 'single-aqi')
-                ]);
-                const weather = weatherRes.status === 'fulfilled' && weatherRes.value[0] ? weatherRes.value[0].weather : null;
-                const aqi = aqiRes.status === 'fulfilled' && aqiRes.value ? aqiRes.value[0] : null;
-                let finalWeather = weather;
-                if (!finalWeather) { const wttrRes = await fetchFromWttrIn(city); if (wttrRes.weather) finalWeather = wttrRes.weather; }
+                let finalWeather = null;
+                try {
+                    const weatherRes = await omQueue.add(() => fetchBatch([city]), 'single-weather');
+                    finalWeather = weatherRes?.[0]?.weather || null;
+                } catch (e) { /* secondary provider below */ }
+
+                if (!finalWeather) {
+                    const wttrRes = await fetchFromWttrIn(city);
+                    if (wttrRes?.weather?.current) finalWeather = wttrRes.weather;
+                }
 
                 tempCard.remove();
+                if (!cities.some(c => c.name === city.name)) return;
+                const result = { city, weather: finalWeather, aqi: null };
+                if (!weatherCache) weatherCache = [];
+                const existing = weatherCache.findIndex(r => r.city.name === city.name);
+                if (existing >= 0) weatherCache[existing] = result; else weatherCache.push(result);
 
-                if (finalWeather) {
-                    const result = { city, weather: finalWeather, aqi };
-                    if (!weatherCache) weatherCache = [];
-                    const existing = weatherCache.findIndex(r => r.city.name === city.name);
-                    if (existing >= 0) weatherCache[existing] = result; else weatherCache.push(result);
-                    saveWeatherCacheToStorage(weatherCache);
-                    if (!cardsEl.querySelector(`.card[data-city="${CSS.escape(city.name)}"]`)) {
-                        const newCard = createCard(result);
-                        newCard.classList.add('city-add-pop');
-                        cardsEl.appendChild(newCard);
-                        setTimeout(() => newCard.classList.remove('city-add-pop'), 800);
-                        scrollToCard(newCard);
+                const newCard = createCard(result);
+                newCard.classList.add('city-add-pop');
+                cardsEl.appendChild(newCard);
+                setTimeout(() => newCard.classList.remove('city-add-pop'), 800);
+                scrollToCard(newCard);
+                saveWeatherCacheToStorage(weatherCache);
+                applyDefaultCityDropdown();
+                renderAQIList();
+
+                aqiPromise.then(aqi => {
+                    if (!cities.some(c => c.name === city.name)) return;
+                    const idx = weatherCache?.findIndex(r => r.city.name === city.name) ?? -1;
+                    if (idx >= 0) {
+                        weatherCache[idx] = { ...weatherCache[idx], aqi };
+                        saveWeatherCacheToStorage(weatherCache);
+                        renderAQIList();
                     }
-                } else {
-                    if (!cardsEl.querySelector(`.card[data-city="${CSS.escape(city.name)}"]`)) {
-                        const errCard = createCard({ city, weather: null, aqi: null });
-                        errCard.classList.add('city-add-pop');
-                        cardsEl.appendChild(errCard);
-                        setTimeout(() => errCard.classList.remove('city-add-pop'), 800);
-                        scrollToCard(errCard);
-                    }
-                }
-                applyDefaultCityDropdown(); renderAQIList();
+                });
             } catch (err) {
                 tempCard.remove();
-                if (!cardsEl.querySelector(`.card[data-city="${CSS.escape(city.name)}"]`)) {
-                    const errCard = createCard({ city, weather: null, aqi: null });
-                    errCard.classList.add('city-add-pop');
-                    cardsEl.appendChild(errCard);
-                    setTimeout(() => errCard.classList.remove('city-add-pop'), 800);
-                    scrollToCard(errCard);
-                }
+                const errCard = createCard({ city, weather: null, aqi: null });
+                errCard.classList.add('city-add-pop');
+                cardsEl.appendChild(errCard);
+                setTimeout(() => errCard.classList.remove('city-add-pop'), 800);
+                scrollToCard(errCard);
+                applyDefaultCityDropdown();
             }
         }
 
@@ -4392,13 +4486,22 @@
         document.addEventListener('click', (e) => { if (!e.target.closest('.search-wrapper')) hideSuggestions(); });
 
         async function geocodeCity(name) {
-            const isFa = hasPersianChars(name); const apiQuery = isFa ? translatePersianToEnglish(name) : name; const lang = currentLang === 'fa' ? 'fa' : 'en';
-            const url = `${GEO_API}?name=${encodeURIComponent(apiQuery)}&count=1&language=${lang}&format=json`;
-            const res = await fetchWithTimeout(url, {}, 8000); if (!res.ok) throw new Error('Geocoding failed');
-            const data = await res.json(); if (!data.results || data.results.length === 0) throw new Error('City not found');
-            const r = data.results[0];
-            const internalName = hasPersianChars(r.name) ? translatePersianToEnglish(r.name) : r.name;
-            return { name: internalName, name_fa: hasPersianChars(r.name) ? r.name : (PERSIAN_CITY_MAP[internalName] || null), lat: r.latitude, lon: r.longitude, country: r.country_code };
+            const isFa = hasPersianChars(name);
+            const translated = isFa ? translatePersianToEnglish(name) : name;
+            const apiQuery = translated && !hasPersianChars(translated) ? translated : name;
+            const url = `${GEO_API}?name=${encodeURIComponent(apiQuery)}&count=10&language=en&format=json`;
+            const res = await fetchWithTimeout(url, {}, 8000);
+            if (!res.ok) throw new Error('Geocoding failed');
+            const data = await res.json();
+            if (!Array.isArray(data.results) || data.results.length === 0) throw new Error('City not found');
+            const r = isFa ? (data.results.find(x => x.country_code === 'IR') || data.results[0]) : data.results[0];
+            const local = IRAN_CITIES_PREP.find(c => Math.abs(c.lat - r.latitude) < 0.12 && Math.abs(c.lon - r.longitude) < 0.12);
+            const internalName = hasPersianChars(r.name) ? (local?.name || translatePersianToEnglish(r.name)) : r.name;
+            return {
+                name: internalName,
+                name_fa: local?.name_fa || PERSIAN_CITY_MAP[internalName] || (isFa && hasPersianChars(name) ? name : null),
+                lat: r.latitude, lon: r.longitude, country: r.country_code
+            };
         }
 
         const activeControllers = new Set();
@@ -4499,7 +4602,7 @@
                 if (euAqi == null && usAqi == null) return null;
                 return {
                     aqi: settings.aqiScale === 'us' ? usAqi : euAqi,
-                    euAqi, usAqi,
+                    euAqi: euAqi ?? null, usAqi: usAqi ?? null,
                     pm25: cur.pm2_5 != null ? Math.round(cur.pm2_5 * 10) / 10 : null,
                     pm10: cur.pm10 != null ? Math.round(cur.pm10 * 10) / 10 : null,
                     o3: cur.ozone != null ? Math.round(cur.ozone) : null,
@@ -4674,7 +4777,7 @@
             const temp = convertTemp(c.temperature_2m); const feels = convertTemp(c.apparent_temperature); const humidity = c.relative_humidity_2m ?? null;
             const wind = convertWind(c.wind_speed_10m); const pressure = c.pressure_msl != null ? Math.round(c.pressure_msl) : null; const visibility = c.visibility != null ? (c.visibility / 1000).toFixed(1) : null;
             const dew = convertTemp(c.dew_point_2m); const uv = c.uv_index != null ? (typeof c.uv_index === 'number' ? c.uv_index.toFixed(1) : c.uv_index) : '—';
-            const precipProb = d.precipitation_probability_max?.[0] ?? '—'; const sunrise = d.sunrise?.[0] ? fmtTime(d.sunrise[0]) : '—'; const sunset = d.sunset?.[0] ? fmtTime(d.sunset[0]) : '—';
+            const precipProb = d?.precipitation_probability_max?.[0] ?? '—'; const sunrise = d?.sunrise?.[0] ? fmtTime(d.sunrise[0]) : '—'; const sunset = d?.sunset?.[0] ? fmtTime(d.sunset[0]) : '—';
 
             let forecastHTML = '';
             if (d && d.time && d.time.length > 1) {
@@ -4719,7 +4822,7 @@
             cardEl.classList.add('city-remove-shrink'); cardEl.style.zIndex = '2';
             let handled = false;
             const finishRemoval = () => {
-                if (handled) return; handled = true; cardEl.removeEventListener('animationend', finishRemoval);
+                if (handled) return; handled = true; cardEl.removeEventListener('animationend', onRemovalAnimationEnd);
                 cardEl.remove(); void cardsEl.offsetWidth;
                 requestAnimationFrame(() => {
                     siblings.forEach(({ el, rect: oldRect }) => {
@@ -4736,8 +4839,11 @@
                     applyDefaultCityDropdown(); renderAQIList();
                 });
             };
-            cardEl.addEventListener('animationend', finishRemoval);
-            setTimeout(() => { if (!handled && cardEl.parentNode) finishRemoval(); }, 1200);
+            const onRemovalAnimationEnd = (event) => {
+                if (event.target === cardEl && event.animationName === 'cityRemoveShrink') finishRemoval();
+            };
+            cardEl.addEventListener('animationend', onRemovalAnimationEnd);
+            setTimeout(() => { if (!handled && cardEl.isConnected) finishRemoval(); }, 600);
         }
 
         function renderCards(results) {
@@ -4756,7 +4862,12 @@
                 }
                 fragment.appendChild(newCard);
             });
-            cardsEl.innerHTML = ''; cardsEl.appendChild(fragment); isFirstLoad = false; lastAddedCityName = null;
+            // Keep cards already animating out in the DOM until their own animation completes.
+            existingMap.forEach(oldCard => {
+                if (oldCard.classList.contains('city-remove-shrink') && oldCard.isConnected) fragment.appendChild(oldCard);
+            });
+            cardsEl.replaceChildren(fragment);
+            isFirstLoad = false; lastAddedCityName = null;
             renderAQIList(); scrollToDefaultCity();
         }
 
@@ -4770,7 +4881,11 @@
             const fragment = document.createDocumentFragment(); const usedNames = new Set();
             data.forEach((item, index) => {
                 const { city } = item; const oldCard = existingMap.get(city.name);
-                const aqiData = normalizeAqiData(item.aqi); const aqiValue = aqiData?.aqi ?? null;
+                const aqiData = normalizeAqiData(item.aqi);
+                const selectedAqi = settings.aqiScale === 'us'
+                    ? (aqiData?.usAqi ?? aqiData?.aqi ?? null)
+                    : (aqiData?.euAqi ?? aqiData?.aqi ?? null);
+                const aqiValue = selectedAqi != null && Number.isFinite(Number(selectedAqi)) ? Number(selectedAqi) : null;
                 const pm25 = aqiData?.pm25 ?? null; const pm10 = aqiData?.pm10 ?? null;
                 const o3 = aqiData?.o3 ?? null; const no2 = aqiData?.no2 ?? null;
                 const so2 = aqiData?.so2 ?? null; const co = aqiData?.co ?? null; const dust = aqiData?.dust ?? null;
@@ -4907,6 +5022,8 @@
 
         async function addCity() {
             const name = searchInput.value.trim(); if (!name) return;
+            if (addCity.isRunning) return;
+            addCity.isRunning = true;
             hideSuggestions();
             try {
                 const geo = await geocodeCity(name);
@@ -4914,6 +5031,7 @@
                 lastAddedCityName = geo.name; const newCity = { name: geo.name, name_fa: geo.name_fa, lat: geo.lat, lon: geo.lon };
                 cities.push(newCity); saveCities(); searchInput.value = ''; await addSingleCity(newCity);
             } catch (err) { showToast(t('city_not_found'), 'error'); }
+            finally { addCity.isRunning = false; }
         }
 
         document.getElementById('cookieAccept').addEventListener('click', acceptCookies);
