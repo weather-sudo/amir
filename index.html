@@ -8,8 +8,8 @@
     <meta name="description" content="Live weather & air quality for Iranian cities">
     <title>Weather_ԹʍɿՐ ʍԾɧԹʍԹԺ</title>
 
-    <!-- PWA Manifest Placeholder -->
-    <link id="manifestLink" rel="manifest" href="#">
+    <!-- PWA Manifest -->
+    <link id="manifestLink" rel="manifest" href="manifest.json">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +39,6 @@
             --accent: #38bdf8;
             --border: #334155;
             --radius: 16px;
-            /* 🌟 سایه‌ها بسیار نرم‌تر شدند تا هاله سیاه دور کارت‌ها حذف شود */
             --shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.15);
             --shadow-sm: 0 2px 10px -2px rgba(0, 0, 0, 0.1);
             --aqi-good: #22c55e;
@@ -73,7 +72,6 @@
             --cookie-bg: #ffffff;
         }
 
-        /* 🌟 اضافه کردن رنگ پس‌زمینه به HTML برای جلوگیری از ایجاد حاشیه‌های سیاه/سفید */
         html {
             font-size: 16px;
             background-color: var(--bg);
@@ -95,7 +93,6 @@
             font-size: 21px;
         }
 
-        /* Accent Colors */
         body[data-accent="blue"] {
             --accent: #38bdf8;
         }
@@ -209,14 +206,12 @@
             overflow-x: hidden;
             transition: background 0.3s, color 0.3s;
             position: relative;
-            /* 🌟 اصلاح چیدمان دسکتاپ: وسط‌چین کردن کل بدنه */
             display: flex;
             flex-direction: column;
             align-items: center;
             width: 100%;
         }
 
-        /* Hide welcome screen if JS fails to load */
         body:not(.js-loaded) .welcome-screen {
             display: none !important;
         }
@@ -330,7 +325,6 @@
             flex-direction: column;
             gap: 1rem;
             align-items: stretch;
-            /* 🌟 کشیده شدن عرض */
         }
 
         .header {
@@ -492,14 +486,10 @@
             display: block;
         }
 
-        /* ========================================== */
-        /* 6. SEARCH & SUGGESTIONS                    */
-        /* ========================================== */
         .search-wrapper {
             position: -webkit-sticky;
             position: sticky;
             top: env(safe-area-inset-top, 0px);
-            /* 🌟 اصلاح z-index و ایجاد استکینگ کانتکست برای جلوگیری از تداخل با کارت‌ها */
             z-index: 500;
             transform: translateZ(0);
             background: var(--bg);
@@ -543,7 +533,6 @@
             top: calc(100% + 6px);
             left: 0;
             right: 0;
-            /* 🌟 پس‌زمینه کاملاً توپر برای جلوگیری از دیده شدن کارت‌های پشت آن */
             background: #1e293b;
             border: 1px solid var(--border);
             border-radius: 12px;
@@ -552,7 +541,6 @@
             overflow-y: auto;
             overflow-x: hidden;
             z-index: 501;
-            /* بالاتر از search-wrapper */
             display: none;
             padding: 0.35rem;
             -webkit-overflow-scrolling: touch;
@@ -769,7 +757,6 @@
             color: var(--accent);
             line-height: 1.1;
             margin-bottom: 0.5rem;
-            /* 🌟 کمی فاصله برای زیبایی بیشتر */
         }
 
         .weather-desc {
@@ -883,9 +870,7 @@
             color: var(--text-muted);
             border-top: 1px solid var(--border);
             padding-top: 0.75rem;
-            /* 🌟 فاصله بالای اطلاعات */
             margin-top: 0;
-            /* 🌟 حذف فاصله اضافی اضافی */
             margin-bottom: 0;
             line-height: 1.5;
         }
@@ -904,7 +889,6 @@
             padding-top: 0.75rem;
             border-top: 1px solid var(--border);
             margin-top: auto;
-            /* 🌟 هل دادن پیش‌بینی به پایین‌ترین قسمت کارت */
         }
 
         .forecast-day {
@@ -1095,9 +1079,6 @@
             unicode-bidi: isolate;
         }
 
-        /* ========================================== */
-        /* 9. AIR QUALITY CARDS & HEADER              */
-        /* ========================================== */
         .aqi-header-bar {
             display: flex;
             align-items: center;
@@ -1503,9 +1484,6 @@
             }
         }
 
-        /* ========================================== */
-        /* 10. SETTINGS, TOAST & MODAL                */
-        /* ========================================== */
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -2021,7 +1999,6 @@
             max-width: 100%;
         }
 
-        /* Toggle Theme CSS */
         .theme-switch {
             --toggle-size: 10px;
             --container-width: 5.625em;
@@ -2421,7 +2398,6 @@
             border: 1px solid var(--border);
         }
 
-        /* بهینه‌سازی سنگین برای موبایل: حذف بلرها و افکت‌های گران‌قیمت */
         @media (max-width: 768px) {
             .ambient-bg {
                 display: none !important;
@@ -2585,19 +2561,15 @@
 
 <body>
 
-    <!-- Toast Notifications Container -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <!-- AQI Legend Modal -->
     <div id="aqiModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="aqiModalTitle" data-i18n="aqi_legend_title">Air Quality Index Guide</h3>
                 <button id="closeAqiModal" class="modal-close" aria-label="Close">×</button>
             </div>
-            <div class="modal-body" id="aqiLegendBody">
-                <!-- Populated via JS -->
-            </div>
+            <div class="modal-body" id="aqiLegendBody"></div>
         </div>
     </div>
 
@@ -3132,36 +3104,26 @@
     <script>
         // --- PWA Setup ---
         (function initPWA() {
-            const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="48" fill="#0f172a"/><text x="96" y="130" font-size="80" text-anchor="middle">🌤️</text></svg>`;
-            const iconUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(iconSvg)));
-            const manifestData = {
-                name: 'Weather & Air Quality',
-                short_name: 'Weather',
-                start_url: window.location.href,
-                display: 'standalone',
-                background_color: '#0f172a',
-                theme_color: '#0f172a',
-                icons: [{ src: iconUrl, sizes: '192x192', type: 'image/svg+xml' }]
-            };
-            const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
-            document.getElementById('manifestLink').href = URL.createObjectURL(manifestBlob);
-
             let deferredPrompt;
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 deferredPrompt = e;
-                document.getElementById('installAppBtn').style.display = 'inline-block';
+                const installBtn = document.getElementById('installAppBtn');
+                if (installBtn) installBtn.style.display = 'inline-block';
             });
-            document.getElementById('installAppBtn').addEventListener('click', async () => {
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    const { outcome } = await deferredPrompt.userChoice;
-                    if (outcome === 'accepted') {
-                        document.getElementById('installAppBtn').style.display = 'none';
+            const installAppBtn = document.getElementById('installAppBtn');
+            if (installAppBtn) {
+                installAppBtn.addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        if (outcome === 'accepted') {
+                            installAppBtn.style.display = 'none';
+                        }
+                        deferredPrompt = null;
                     }
-                    deferredPrompt = null;
-                }
-            });
+                });
+            }
         })();
 
         // --- Toast Notifications ---
@@ -3538,7 +3500,6 @@
         function updateIntervalLabel() {
             const intervalLabelEl = document.getElementById('intervalLabel');
             if (!intervalLabelEl) return;
-            // 🌟 تبدیل صریح به عدد برای جلوگیری از خطای مقایسه رشته با عدد
             const val = parseFloat(settings.refreshInterval);
             const isFa = currentLang === 'fa';
 
@@ -3610,7 +3571,6 @@
         let saveSettingsTimer = null;
         function saveSettingsDebounced() { clearTimeout(saveSettingsTimer); saveSettingsTimer = setTimeout(saveSettings, 300); }
 
-        // --- Theme Sync with OS ---
         const colorSchemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
         if (colorSchemeQuery.addEventListener) {
             colorSchemeQuery.addEventListener('change', (e) => {
@@ -3755,7 +3715,6 @@
             document.getElementById('setting-extended-pollutants').addEventListener('change', (e) => { settings.extendedPollutants = e.target.checked; saveSettings(); renderAQIList(); });
             document.getElementById('setting-aqi-trend').addEventListener('change', (e) => { settings.showAqiTrend = e.target.checked; saveSettings(); renderAQIList(); });
 
-            // 🌟 کپی کردن آیدی تلگرام
             const copyBtn = document.getElementById('copyTelegramBtn');
             if (copyBtn) {
                 let copyTimeout = null;
@@ -4124,7 +4083,6 @@
         function hideCookieBanner() { const banner = document.getElementById('cookieBanner'); banner.classList.remove('visible'); setTimeout(() => { banner.style.display = 'none'; }, 400); }
         function acceptCookies() { setConsent('accepted'); hideCookieBanner(); }
         function rejectCookies() {
-            // Keep essential user-created data (cities and pins); clear optional caches only.
             setConsent('rejected');
             storeDelete(COOKIE_CACHE_KEY);
             storeDelete(COOKIE_SEARCH_CACHE_KEY);
@@ -4176,7 +4134,6 @@
                 if (!raw) return null;
                 const parsed = JSON.parse(raw);
                 if (!parsed || !Array.isArray(parsed.data)) return null;
-                // Migrate old broken entries with current/daily at the top level.
                 parsed.data = parsed.data.filter(item => item && item.city).map(item => ({
                     ...item,
                     weather: item.weather || ((item.current || item.daily) ? { current: item.current || null, daily: item.daily || null } : null),
@@ -4406,7 +4363,7 @@
                 try {
                     const weatherRes = await omQueue.add(() => fetchBatch([city]), 'single-weather');
                     finalWeather = weatherRes?.[0]?.weather || null;
-                } catch (e) { /* secondary provider below */ }
+                } catch (e) { }
 
                 if (!finalWeather) {
                     const wttrRes = await fetchFromWttrIn(city);
@@ -4673,7 +4630,6 @@
         function tempSymbol() { return settings.tempUnit === 'F' ? '°F' : '°C'; }
         function windSymbol() { return settings.windUnit === 'mph' ? 'mph' : settings.windUnit === 'ms' ? 'm/s' : 'km/h'; }
 
-        // --- AQI Legend Modal Logic ---
         function renderAqiLegend() {
             const body = document.getElementById('aqiLegendBody');
             if (!body) return;
@@ -4792,7 +4748,6 @@
 
             const inner = document.createElement('div');
             inner.className = 'card-content';
-            // 🌟 متن وضعیت هوا کاملاً حذف شد و فاصله دما تا خط کم شد
             inner.innerHTML = `
                 <div class="card-header"><span class="city-name">${getCityDisplayName(city)}</span><span class="weather-icon">${icon}</span></div>
                 <div class="temp-main">${temp !== null ? `${temp}${tempSymbol()}` : '—'}</div>
@@ -4862,7 +4817,6 @@
                 }
                 fragment.appendChild(newCard);
             });
-            // Keep cards already animating out in the DOM until their own animation completes.
             existingMap.forEach(oldCard => {
                 if (oldCard.classList.contains('city-remove-shrink') && oldCard.isConnected) fragment.appendChild(oldCard);
             });
@@ -5092,6 +5046,15 @@
         }, 3000);
 
         async function init() {
+            // ثبت Service Worker برای PWA
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('./sw.js')
+                        .then(reg => console.log('SW registered:', reg.scope))
+                        .catch(err => console.warn('SW registration failed:', err));
+                });
+            }
+
             loadSettings();
             loadFavorites();
             cities = loadCities();
