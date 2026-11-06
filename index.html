@@ -5,16 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-    <!-- تگ‌های جلوگیری از کش شدن فایل HTML -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
 
     <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Weather">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
     <meta name="description" content="Live weather & air quality for Iranian cities">
     <title>Weather_ԹʍɿՐ ʍԾɧԹʍԹԺ</title>
 
-    <!-- Manifest برای قابلیت نصب روی صفحه -->
     <link id="manifestLink" rel="manifest" href="manifest.json">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,7 +28,6 @@
     <link rel="dns-prefetch" href="https://wttr.in">
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
 
-    <!-- کتابخانه Twemoji -->
     <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15/dist/twemoji.min.js" crossorigin="anonymous"></script>
 
     <script>
@@ -763,7 +765,6 @@
             min-width: 0;
         }
 
-        /* استایل‌های Twemoji */
         img.emoji {
             height: 1em;
             width: 1em;
@@ -773,7 +774,6 @@
             transform: none !important;
         }
 
-        /* قرینه کردن آیکون‌های خورشید-ابری در حالت فارسی (RTL) */
         [dir="rtl"] .weather-icon:has(img[alt="⛅"]),
         [dir="rtl"] .weather-icon:has(img[alt="🌤️"]),
         [dir="rtl"] .weather-icon:has(img[alt="🌦️"]),
@@ -860,7 +860,6 @@
             width: 1.2rem;
         }
 
-        /* انیمیشن‌های آب و هوا (بدون چرخش) */
         @keyframes icon-float {
 
             0%,
@@ -1719,7 +1718,6 @@
             gap: 1rem;
         }
 
-        /* استایل‌های اختصاصی مودال */
         .city-modal-hero {
             display: flex;
             align-items: center;
@@ -2899,16 +2897,13 @@
         </div>
     </div>
 
-    <!-- مودال جزئیات شهر -->
     <div id="cityModal" class="modal-overlay">
         <div class="modal-content city-modal-content">
             <div class="modal-header">
                 <h3 id="cityModalTitle">City Details</h3>
                 <button id="closeCityModal" class="modal-close" aria-label="Close">×</button>
             </div>
-            <div class="modal-body" id="cityModalBody">
-                <!-- محتوا توسط جاوا اسکریپت پر می‌شود -->
-            </div>
+            <div class="modal-body" id="cityModalBody"></div>
         </div>
     </div>
 
@@ -3303,14 +3298,13 @@
 
                     <div class="settings-section">
                         <div class="settings-section-title">ℹ️ <span data-i18n="settings_about">About</span></div>
-                        <!-- ✅ دکمه نصب برنامه -->
                         <div class="setting-row">
                             <div class="setting-label">
                                 <div class="setting-label-main" data-i18n="install_app">Install App</div>
                                 <div class="setting-label-desc" data-i18n="install_app_desc">Install site on your home
                                     screen</div>
                             </div>
-                            <button class="setting-btn" id="installAppBtn"
+                            <button class="setting-btn" id="installAppBtn" type="button"
                                 style="background: var(--accent); color: #0f172a;" data-i18n="install_now">Install
                                 Now</button>
                         </div>
@@ -3441,61 +3435,116 @@
         })();
     </script>
 
-    <!-- ✅ لود کردن داینامیک دیتابیس شهرها بدون نیاز به شماره نسخه (با زمان‌سنج) -->
-    <script>
-        document.write('<script src="cities.js?t=' + new Date().getTime() + '"><\/script>');
-    </script>
+    <!-- ✅ شهرها به‌صورت مستقیم لود می‌شوند (بدون کش‌شکن) -->
+    <script src="cities.js"></script>
 
     <script>
-        // --- ✅ PWA Setup: Inline Service Worker & Install Button ---
+        // --- PWA: standalone installation + offline app shell ---
         (function initPWA() {
-            // 1. Register an Inline Service Worker (Needed for "Install App" to work)
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                    const swCode = `
-                        self.addEventListener('install', (e) => self.skipWaiting());
-                        self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
-                        self.addEventListener('fetch', (e) => e.respondWith(fetch(e.request).catch(() => new Response('', { status: 503 }))));
-                    `;
-                    const blob = new Blob([swCode], { type: 'application/javascript' });
-                    const swUrl = URL.createObjectURL(blob);
-                    navigator.serviceWorker.register(swUrl, { scope: './' })
-                        .then(reg => console.log('Inline SW registered:', reg.scope))
-                        .catch(err => console.warn('Inline SW registration failed:', err));
-                });
+            const installBtn = document.getElementById('installAppBtn');
+            let deferredInstallPrompt = null;
+            const isStandalone = () =>
+                window.matchMedia('(display-mode: standalone)').matches ||
+                window.matchMedia('(display-mode: minimal-ui)').matches ||
+                window.navigator.standalone === true;
+
+            function setInstallButtonState(installed) {
+                if (!installBtn) return;
+                installBtn.disabled = !!installed;
+                installBtn.textContent = installed
+                    ? (currentLang === 'fa' ? 'برنامه نصب شده' : 'App Installed')
+                    : (currentLang === 'fa' ? 'نصب برنامه' : 'Install App');
+                installBtn.setAttribute('aria-label', installBtn.textContent);
+                installBtn.title = installBtn.textContent;
             }
 
-            // 2. Handle Install Prompt
-            let deferredPrompt;
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                deferredPrompt = e;
+            function installHelpMessage() {
+                const fa = currentLang === 'fa';
+                const message = fa
+                    ? 'برای نصب برنامه مستقل، منوی مرورگر را باز کنید و گزینه «Install app» یا «Add to Home Screen» را بزنید. در آیفون: Share سپس Add to Home Screen.'
+                    : 'To install the standalone app, open your browser menu and choose “Install app” or “Add to Home Screen”. On iPhone: Share → Add to Home Screen.';
+                showToast(message, 'info');
+            }
+
+            setInstallButtonState(isStandalone());
+
+            if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('./sw.js', { scope: './' })
+                        .then(registration => {
+                            registration.update().catch(() => {});
+                            console.info('PWA service worker ready:', registration.scope);
+                        })
+                        .catch(error => console.warn('PWA service worker registration failed:', error));
+                }, { once: true });
+            }
+
+            window.addEventListener('beforeinstallprompt', event => {
+                event.preventDefault();
+                deferredInstallPrompt = event;
+                if (!isStandalone()) setInstallButtonState(false);
             });
 
-            const installAppBtn = document.getElementById('installAppBtn');
-            if (installAppBtn) {
-                installAppBtn.addEventListener('click', async () => {
-                    if (deferredPrompt) {
-                        deferredPrompt.prompt();
-                        const { outcome } = await deferredPrompt.userChoice;
-                        if (outcome === 'accepted') {
-                            showToast(currentLang === 'fa' ? 'برنامه با موفقیت نصب شد.' : 'App installed successfully.', 'success');
+            window.addEventListener('appinstalled', () => {
+                deferredInstallPrompt = null;
+                setInstallButtonState(true);
+                showToast(currentLang === 'fa' ? 'برنامه با موفقیت نصب شد.' : 'App installed successfully.', 'success');
+            });
+
+            if (installBtn) {
+                installBtn.addEventListener('click', async () => {
+                    if (isStandalone()) {
+                        setInstallButtonState(true);
+                        showToast(currentLang === 'fa' ? 'برنامه روی دستگاه نصب شده است.' : 'This app is already installed.', 'info');
+                        return;
+                    }
+                    if (!deferredInstallPrompt) {
+                        installHelpMessage();
+                        return;
+                    }
+                    try {
+                        deferredInstallPrompt.prompt();
+                        const choice = await deferredInstallPrompt.userChoice;
+                        if (choice && choice.outcome === 'accepted') {
+                            setInstallButtonState(true);
+                            showToast(currentLang === 'fa' ? 'درخواست نصب پذیرفته شد.' : 'Install request accepted.', 'success');
                         }
-                        deferredPrompt = null;
-                    } else {
-                        // راهنمای نصب برای مرورگرهایی که از پرامپت مستقیم پشتیبانی نمی‌کنند (مثل سافاری)
-                        showToast(currentLang === 'fa' ? 'برای نصب، از منوی مرورگر خود گزینه "Add to Home Screen" یا "نصب برنامه" را انتخاب کنید.' : 'To install, use your browser menu and select "Add to Home Screen" or "Install App".', 'info');
+                    } catch (error) {
+                        console.warn('PWA install prompt failed:', error);
+                        installHelpMessage();
+                    } finally {
+                        deferredInstallPrompt = null;
                     }
                 });
             }
+
+            // Keep the button label synchronized when the user changes language.
+            window.addEventListener('languagechange', () => setInstallButtonState(isStandalone()));
         })();
+
+        // --- Safe helpers (bug fixes) ---
+        function safeTwemoji(el) {
+            if (typeof twemoji !== 'undefined' && twemoji && typeof twemoji.parse === 'function') {
+                try { twemoji.parse(el); } catch (e) { }
+            }
+        }
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
+
+        // --- Guard for missing cities.js ---
+        if (typeof window.PERSIAN_CITY_MAP === 'undefined') { window.PERSIAN_CITY_MAP = {}; }
+        if (typeof window.IRAN_CITIES === 'undefined') { window.IRAN_CITIES = []; }
+        const MAX_CITIES = 30;
 
         // --- Toast Notifications ---
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            toast.innerHTML = `<span>${message}</span>`;
+            toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
             container.appendChild(toast);
             requestAnimationFrame(() => toast.classList.add('show'));
             setTimeout(() => {
@@ -3758,7 +3807,7 @@
                 aqi_trend_setting: 'AQI Trend', aqi_trend_setting_desc: 'Show if AQI is improving or worsening',
                 trend_rising: 'Rising', trend_falling: 'Falling', trend_stable: 'Stable',
                 unhealthy_sensitive: 'Unhealthy (Sensitive)', unhealthy: 'Unhealthy', very_unhealthy: 'Very Unhealthy',
-                install_app: 'Install App', install_app_desc: 'Install site on your home screen', install_now: 'Install Now',
+                install_app: 'Install App', install_app_desc: 'Install as a standalone app on this device', install_now: 'Install App',
                 aqi_legend_title: 'Air Quality Index Guide',
                 legend_desc_us: 'US AQI Scale (0-500)',
                 legend_desc_eu: 'European AQI Scale (0-100+)',
@@ -3772,6 +3821,7 @@
                 uv_index: 'UV Index', precip_prob: 'Precip.', sunrise: 'Sunrise', sunset: 'Sunset',
                 copy: 'Copy', copied: 'Copied!',
                 detailed_weather: 'Detailed Weather',
+                daily_forecast: 'Daily Forecast',
                 cloud_cover: 'Cloud Cover',
                 wind_gust: 'Wind Gust',
                 close: 'Close',
@@ -3821,7 +3871,7 @@
                 aqi_trend_setting: 'روند AQI', aqi_trend_setting_desc: 'نمایش بهبود یا بدتر شدن کیفیت هوا',
                 trend_rising: 'صعودی', trend_falling: 'نزولی', trend_stable: 'ثابت',
                 unhealthy_sensitive: 'ناسالم (گروه‌های حساس)', unhealthy: 'ناسالم', very_unhealthy: 'خیلی ناسالم',
-                install_app: 'نصب برنامه', install_app_desc: 'نصب سایت روی صفحه اصلی گوشی', install_now: 'نصب کن',
+                install_app: 'نصب برنامه', install_app_desc: 'نصب به‌صورت یک برنامه مستقل روی دستگاه', install_now: 'نصب برنامه',
                 aqi_legend_title: 'راهنمای شاخص کیفیت هوا',
                 legend_desc_us: 'مقیاس آمریکایی AQI (۰ تا ۵۰۰)',
                 legend_desc_eu: 'مقیاس اروپایی AQI (۰ تا ۱۰۰+)',
@@ -3835,6 +3885,7 @@
                 uv_index: 'شاخص UV', precip_prob: 'بارش', sunrise: 'طلوع', sunset: 'غروب',
                 copy: 'کپی', copied: 'کپی شد',
                 detailed_weather: 'جزئیات هواشناسی',
+                daily_forecast: 'پیش‌بینی روزانه',
                 cloud_cover: 'پوشش ابر',
                 wind_gust: 'تندباد',
                 close: 'بستن',
@@ -3847,11 +3898,20 @@
             2: { en: 'Partly cloudy', fa: 'نیمه ابری' }, 3: { en: 'Overcast', fa: 'ابری' },
             45: { en: 'Fog', fa: 'مه' }, 48: { en: 'Rime fog', fa: 'مه یخ‌زده' },
             51: { en: 'Light drizzle', fa: 'نم‌نم باران' }, 53: { en: 'Moderate drizzle', fa: 'نم‌نم باران' },
-            55: { en: 'Dense drizzle', fa: 'نم‌نم شدید' }, 61: { en: 'Slight rain', fa: 'باران سبک' },
+            55: { en: 'Dense drizzle', fa: 'نم‌نم شدید' },
+            56: { en: 'Freezing drizzle', fa: 'نم‌نم یخ‌زده' },
+            57: { en: 'Dense freezing drizzle', fa: 'نم‌نم یخ‌زده شدید' },
+            61: { en: 'Slight rain', fa: 'باران سبک' },
             63: { en: 'Moderate rain', fa: 'باران متوسط' }, 65: { en: 'Heavy rain', fa: 'باران شدید' },
+            66: { en: 'Freezing rain', fa: 'باران یخ‌زده' },
+            67: { en: 'Heavy freezing rain', fa: 'باران یخ‌زده شدید' },
             71: { en: 'Slight snow', fa: 'برف سبک' }, 73: { en: 'Moderate snow', fa: 'برف متوسط' },
-            75: { en: 'Heavy snow', fa: 'برف شدید' }, 80: { en: 'Rain showers', fa: 'رگبار' },
+            75: { en: 'Heavy snow', fa: 'برف شدید' },
+            77: { en: 'Snow grains', fa: 'دانه‌های برف' },
+            80: { en: 'Rain showers', fa: 'رگبار' },
             81: { en: 'Moderate showers', fa: 'رگبار متوسط' }, 82: { en: 'Violent showers', fa: 'رگبار شدید' },
+            85: { en: 'Snow showers', fa: 'رگبار برف' },
+            86: { en: 'Heavy snow showers', fa: 'رگبار برف شدید' },
             95: { en: 'Thunderstorm', fa: 'رعد و برق' }, 96: { en: 'Thunderstorm & hail', fa: 'رعد و برق و تگرگ' },
             99: { en: 'Severe thunderstorm', fa: 'رعد و برق شدید' }
         };
@@ -3903,7 +3963,7 @@
                 const st = statusTextEl?.dataset.statusKey; if (st) statusTextEl.textContent = t(st);
                 updateNavPill(false);
                 renderAqiLegend();
-                twemoji.parse(document.body);
+                safeTwemoji(document.body);
             });
         }
 
@@ -3989,7 +4049,7 @@
                 if (glassInput) glassInput.disabled = true;
                 if (blurInput) blurInput.disabled = true;
 
-                document.documentElement.style.setProperty('--glass-bg', '');
+                document.documentElement.style.removeProperty('--glass-bg');
                 document.documentElement.style.setProperty('--glass-blur', '0px');
             }
         }
@@ -4190,14 +4250,21 @@
             _admin: (c.admin || '').toLowerCase()
         }));
 
-        const WMO_ICONS = { 0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌁', 48: '🌁', 51: '🌦️', 53: '🌦️', 55: '🌧️', 61: '🌧️', 63: '🌧️', 65: '🌧️', 71: '🌨️', 73: '🌨️', 75: '❄️', 80: '🌦️', 81: '🌧️', 82: '⛈️', 95: '⛈️', 96: '⛈️', 99: '⛈️' };
+        const WMO_ICONS = {
+            0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌁', 48: '🌁',
+            51: '🌦️', 53: '🌦️', 55: '🌧️', 56: '🌧️', 57: '🌧️',
+            61: '🌧️', 63: '🌧️', 65: '🌧️', 66: '🌧️', 67: '🌧️',
+            71: '🌨️', 73: '🌨️', 75: '❄️', 77: '🌨️',
+            80: '🌦️', 81: '🌧️', 82: '⛈️', 85: '🌨️', 86: '🌨️',
+            95: '⛈️', 96: '⛈️', 99: '⛈️'
+        };
         const WWW_TO_WMO = { 113: 0, 116: 2, 119: 3, 122: 3, 143: 45, 248: 45, 260: 48, 176: 80, 179: 71, 182: 56, 185: 56, 200: 95, 227: 71, 230: 75, 263: 51, 266: 53, 281: 56, 284: 57, 293: 61, 296: 61, 299: 63, 302: 63, 305: 65, 308: 65, 311: 66, 314: 67, 317: 71, 320: 73, 323: 71, 326: 71, 329: 73, 332: 73, 335: 75, 338: 75, 350: 77, 353: 80, 356: 81, 359: 82, 362: 85, 365: 86, 368: 85, 371: 86, 374: 85, 377: 86, 386: 95, 389: 96, 392: 95, 395: 99 };
         function convertWwwToWmo(c) { return WWW_TO_WMO[parseInt(c)] ?? 0; }
 
         function getIconAnimClass(code) {
             if ([0, 1].includes(code)) return 'anim-sun';
             if ([2, 3, 45, 48].includes(code)) return 'anim-cloud';
-            if ([51, 53, 55, 61, 63, 65, 80, 81, 82, 71, 73, 75, 77, 85, 86].includes(code)) return 'anim-rain';
+            if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 71, 73, 75, 77, 85, 86].includes(code)) return 'anim-rain';
             if ([95, 96, 99].includes(code)) return 'anim-storm';
             return '';
         }
@@ -4214,7 +4281,12 @@
             if (key in memoryStore) return memoryStore[key];
             return null;
         }
-        function storeSet(key, value, days = COOKIE_DAYS) { memoryStore[key] = value; try { localStorage.setItem(key, value); } catch (e) { } setCookie(key, value, days); try { sessionStorage.setItem(key, value); } catch (e) { } }
+        function storeSet(key, value, days = COOKIE_DAYS) {
+            memoryStore[key] = value;
+            try { localStorage.setItem(key, value); } catch (e) { }
+            if (String(value).length < 3000) setCookie(key, value, days);
+            try { sessionStorage.setItem(key, value); } catch (e) { }
+        }
         function storeDelete(key) { delete memoryStore[key]; try { localStorage.removeItem(key); } catch (e) { } deleteCookie(key); try { sessionStorage.removeItem(key); } catch (e) { } }
 
         function getConsent() { const raw = storeGet(COOKIE_CONSENT_KEY); if (raw === 'accepted' || raw === 'rejected') return raw; return null; }
@@ -4466,7 +4538,7 @@
                 frag.appendChild(item);
             });
             suggestionsEl.appendChild(frag); suggestionsEl.classList.add('visible');
-            twemoji.parse(suggestionsEl);
+            safeTwemoji(suggestionsEl);
         }
 
         function hideSuggestions() { if (!suggestionsEl.classList.contains('visible')) return; suggestionsEl.classList.remove('visible'); suggestionsEl.innerHTML = ''; activeSuggestionIndex = -1; currentSuggestions = []; }
@@ -4481,6 +4553,10 @@
             hideSuggestions(); searchInput.value = '';
             const lat = r.latitude ?? r.lat; const lon = r.longitude ?? r.lon;
             if (cities.some(c => c.name.toLowerCase() === r.name.toLowerCase() && Math.abs(c.lat - lat) < 0.01)) return;
+            if (cities.length >= MAX_CITIES) {
+                showToast(currentLang === 'fa' ? 'حداکثر ۳۰ شهر مجاز است' : 'Maximum 30 cities allowed', 'info');
+                return;
+            }
             const localCity = IRAN_CITIES_PREP.find(c =>
                 Math.abs(c.lat - Number(lat)) < 0.12 && Math.abs(c.lon - Number(lon)) < 0.12
             );
@@ -4488,7 +4564,7 @@
             lastAddedCityName = internalName;
             const newCity = {
                 name: internalName,
-                name_fa: r.name_fa || localCity?.name_fa || PERSIAN_CITY_MAP[internalName] || null,
+                name_fa: r.name_fa || localCity?.name_fa || null,
                 lat: Number(lat), lon: Number(lon)
             };
             cities.push(newCity); saveCities(); haptic([10, 30, 10]); await addSingleCity(newCity);
@@ -4519,7 +4595,7 @@
             const tempId = 'loading-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
             const tempCard = document.createElement('div');
             tempCard.className = 'card no-anim'; tempCard.id = tempId;
-            tempCard.innerHTML = `<div class="card-content"><div class="card-header"><span class="city-name">${getCityDisplayName(city)}</span><span class="weather-icon">⏳</span></div><div class="temp-main" style="color:var(--text-muted);font-size:1.2rem;">${t('fetching_city')}</div></div>`;
+            tempCard.innerHTML = `<div class="card-content"><div class="card-header"><span class="city-name">${escapeHtml(getCityDisplayName(city))}</span><span class="weather-icon">⏳</span></div><div class="temp-main" style="color:var(--text-muted);font-size:1.2rem;">${t('fetching_city')}</div></div>`;
             cardsEl.appendChild(tempCard);
 
             const aqiPromise = omQueue.add(() => fetchAQIBatch([city]), 'single-aqi')
@@ -4547,7 +4623,7 @@
                 const newCard = createCard(result);
                 newCard.classList.add('city-add-pop');
                 cardsEl.appendChild(newCard);
-                twemoji.parse(newCard);
+                safeTwemoji(newCard);
                 setTimeout(() => newCard.classList.remove('city-add-pop'), 800);
                 scrollToCard(newCard);
                 saveWeatherCacheToStorage(weatherCache);
@@ -4568,7 +4644,7 @@
                 const errCard = createCard({ city, weather: null, aqi: null });
                 errCard.classList.add('city-add-pop');
                 cardsEl.appendChild(errCard);
-                twemoji.parse(errCard);
+                safeTwemoji(errCard);
                 setTimeout(() => errCard.classList.remove('city-add-pop'), 800);
                 scrollToCard(errCard);
                 applyDefaultCityDropdown();
@@ -4645,7 +4721,7 @@
             const internalName = hasPersianChars(r.name) ? (local?.name || translatePersianToEnglish(r.name)) : r.name;
             return {
                 name: internalName,
-                name_fa: local?.name_fa || PERSIAN_CITY_MAP[internalName] || (isFa && hasPersianChars(name) ? name : null),
+                name_fa: local?.name_fa || (isFa && hasPersianChars(name) ? name : null),
                 lat: r.latitude, lon: r.longitude, country: r.country_code
             };
         }
@@ -4670,7 +4746,7 @@
             async process() {
                 if (this.processing) return; this.processing = true;
                 while (this.items.length > 0 || this.active > 0) {
-                    if (document.hidden) { await new Promise(r => setTimeout(r, 500)); continue; }
+                    if (document.hidden && !settings.backgroundRefresh) { await new Promise(r => setTimeout(r, 500)); continue; }
                     const maxConcurrent = this.MAX_CONCURRENT;
                     while (this.active < maxConcurrent && this.items.length > 0) {
                         const item = this.items.shift(); this.active++;
@@ -4882,7 +4958,6 @@
             });
         }
 
-        // --- مدیریت مودال جزئیات شهر ---
         const cityModal = document.getElementById('cityModal');
         const closeCityModal = document.getElementById('closeCityModal');
         const cityModalTitle = document.getElementById('cityModalTitle');
@@ -4932,7 +5007,6 @@
                 const cloud = c.cloud_cover ?? '—';
                 const windDir = c.wind_direction_10m ?? 0;
 
-                // جزئیات
                 const detailsHTML = `
                     <h4 style="margin-top:0.5rem; font-size:0.9rem; color:var(--text);">${t('detailed_weather')}</h4>
                     <div class="detail-grid">
@@ -4959,7 +5033,6 @@
                     </div>
                 `;
 
-                // پیش‌بینی ۷ روزه
                 let dailyHTML = '';
                 if (d && d.time) {
                     dailyHTML = `<h4 style="margin-top:0.5rem; font-size:0.9rem; color:var(--text);">${t('daily_forecast')}</h4><div class="daily-list">`;
@@ -4988,7 +5061,6 @@
                     dailyHTML += `</div>`;
                 }
 
-                // بخش AQI
                 let aqiHTML = '';
                 const aqiData = normalizeAqiData(aqi);
                 if (aqiData && aqiData.aqi != null) {
@@ -5022,7 +5094,7 @@
                     ${aqiHTML}
                 `;
 
-                twemoji.parse(cityModalBody);
+                safeTwemoji(cityModalBody);
                 cityModal.classList.add('visible');
                 haptic(10);
 
@@ -5036,7 +5108,6 @@
             const { city, weather, aqi } = item;
             const card = document.createElement('div'); card.className = 'card'; card.dataset.city = city.name;
 
-            // کلیک روی کارت برای باز کردن مودال
             card.addEventListener('click', (e) => {
                 if (e.target.closest('button')) return;
                 openCityModal(item);
@@ -5050,10 +5121,12 @@
             favBtn.className = 'favorite-city-btn' + (isFavorite(city.name) ? ' active' : '');
             favBtn.textContent = isFavorite(city.name) ? '★' : '☆';
             favBtn.title = isFavorite(city.name) ? t('unpin') : t('pin');
+            favBtn.setAttribute('aria-label', isFavorite(city.name) ? 'Unpin city' : 'Pin city');
             favBtn.addEventListener('click', (e) => {
                 e.stopPropagation(); toggleFavorite(city.name);
                 const nowFav = isFavorite(city.name);
                 favBtn.classList.toggle('active', nowFav); favBtn.textContent = nowFav ? '★' : '☆'; favBtn.title = nowFav ? t('unpin') : t('pin');
+                favBtn.setAttribute('aria-label', nowFav ? 'Unpin city' : 'Pin city');
                 card.classList.toggle('is-favorite', nowFav); haptic(15);
                 if (weatherCache) renderCards(weatherCache);
             });
@@ -5061,6 +5134,7 @@
             if (isFavorite(city.name)) card.classList.add('is-favorite');
 
             const removeBtn = document.createElement('button'); removeBtn.className = 'remove-city-btn'; removeBtn.textContent = '×';
+            removeBtn.setAttribute('aria-label', 'Remove city');
             removeBtn.addEventListener('click', (e) => { e.stopPropagation(); removeCity(city.name, card); });
             card.appendChild(removeBtn);
 
@@ -5068,14 +5142,14 @@
                 card.classList.add('error-card');
                 const inner = document.createElement('div');
                 inner.className = 'card-content';
-                inner.innerHTML = `<div class="card-header"><span class="city-name">${getCityDisplayName(city)}</span><span class="weather-icon">⚠️</span></div><div class="temp-main">${t('no_data')}</div><div class="weather-desc">${t('fetch_failed')}</div><button class="retry-btn">${t('retry')}</button>`;
+                inner.innerHTML = `<div class="card-header"><span class="city-name">${escapeHtml(getCityDisplayName(city))}</span><span class="weather-icon">⚠️</span></div><div class="temp-main">${t('no_data')}</div><div class="weather-desc">${t('fetch_failed')}</div><button class="retry-btn">${t('retry')}</button>`;
                 inner.querySelector('.retry-btn').addEventListener('click', (e) => { e.stopPropagation(); updateAll(true); });
                 card.appendChild(inner); return card;
             }
 
             const c = weather.current; const d = weather.daily;
             const icon = WMO_ICONS[c.weather_code] || '❓';
-            const animClass = getIconAnimClass(c.weather_code); // کلاس انیمیشن
+            const animClass = getIconAnimClass(c.weather_code);
             const temp = convertTemp(c.temperature_2m); const feels = convertTemp(c.apparent_temperature); const humidity = c.relative_humidity_2m ?? null;
             const wind = convertWind(c.wind_speed_10m); const pressure = c.pressure_msl != null ? Math.round(c.pressure_msl) : null; const visibility = c.visibility != null ? (c.visibility / 1000).toFixed(1) : null;
             const dew = convertTemp(c.dew_point_2m); const uv = c.uv_index != null ? (typeof c.uv_index === 'number' ? c.uv_index.toFixed(1) : c.uv_index) : '—';
@@ -5086,7 +5160,7 @@
                 forecastHTML = '<div class="forecast-row">';
                 for (let i = 1; i < Math.min(d.time.length, 7); i++) {
                     const dayIcon = WMO_ICONS[d.weather_code[i]] || '❓';
-                    const dayAnimClass = getIconAnimClass(d.weather_code[i]); // کلاس انیمیشن
+                    const dayAnimClass = getIconAnimClass(d.weather_code[i]);
                     const dayName = fmtDay(d.time[i]);
                     const maxT = convertTemp(d.temperature_2m_max[i]); const minT = convertTemp(d.temperature_2m_min[i]);
                     forecastHTML += `<div class="forecast-day"><span class="day-label">${dayName}</span><span class="day-icon ${dayAnimClass}">${dayIcon}</span><span class="day-temp">${maxT}°<span class="min">/${minT}°</span></span></div>`;
@@ -5097,7 +5171,7 @@
             const inner = document.createElement('div');
             inner.className = 'card-content';
             inner.innerHTML = `
-                <div class="card-header"><span class="city-name">${getCityDisplayName(city)}</span><span class="weather-icon ${animClass}">${icon}</span></div>
+                <div class="card-header"><span class="city-name">${escapeHtml(getCityDisplayName(city))}</span><span class="weather-icon ${animClass}">${icon}</span></div>
                 <div class="temp-main">${temp !== null ? `${temp}${tempSymbol()}` : '—'}</div>
                 <div class="details">
                     <span class="detail-item">💧 ${t('humidity')} ${humidity !== null ? `${humidity}%` : '—'}</span>
@@ -5155,7 +5229,6 @@
             const fragment = document.createDocumentFragment();
             sorted.forEach((item, index) => {
                 const oldCard = existingMap.get(item.city.name); const newCard = createCard(item);
-                if (oldCard && oldCard.innerHTML === newCard.innerHTML && oldCard.className === newCard.className) { fragment.appendChild(oldCard); return; }
                 if (!oldCard) {
                     if (isFirstLoad) newCard.style.setProperty('--stagger-delay', (index * 0.06) + 's');
                     else if (lastAddedCityName === item.city.name) newCard.classList.add('city-add-pop');
@@ -5169,7 +5242,7 @@
                 if (oldCard.classList.contains('city-remove-shrink') && oldCard.isConnected) fragment.appendChild(oldCard);
             });
             cardsEl.replaceChildren(fragment);
-            twemoji.parse(cardsEl); // تبدیل ایموجی‌ها به SVG
+            safeTwemoji(cardsEl);
             isFirstLoad = false; lastAddedCityName = null;
             renderAQIList(); scrollToDefaultCity();
         }
@@ -5205,7 +5278,10 @@
                 const card = document.createElement('div'); card.className = 'aqi-card'; card.dataset.sig = sig; card.dataset.city = city.name;
                 if (!oldCard) card.style.animationDelay = (index * 0.05) + 's'; else card.style.animation = 'none';
                 card.style.setProperty('--aqi-color', cat.color);
-                const circumference = 213.6; const percent = aqiValue != null ? Math.min(aqiValue, 100) / 100 : 0; const dashOffset = circumference * (1 - percent);
+                const circumference = 213.6;
+                const maxScale = settings.aqiScale === 'us' ? 300 : 100;
+                const percent = aqiValue != null ? Math.min(aqiValue, maxScale) / maxScale : 0;
+                const dashOffset = circumference * (1 - percent);
                 let dominant = null; if (pm25 != null && pm10 != null) dominant = pm25 > pm10 / 2 ? 'pm25' : 'pm10';
                 let pollutantsHTML = '';
                 if (pm25 != null || pm10 != null) {
@@ -5233,7 +5309,7 @@
                 card.innerHTML = `
                     <div class="aqi-card-inner">
                         <div class="aqi-card-info">
-                            <div class="aqi-card-city"><span>${getCityDisplayName(city)}</span>${trendHTML}</div>
+                            <div class="aqi-card-city"><span>${escapeHtml(getCityDisplayName(city))}</span>${trendHTML}</div>
                             <span class="aqi-card-level" style="background:${cat.color}">${cat.icon} ${cat.label}</span>
                             ${pollutantsHTML}${extendedHTML}
                             ${cat.advice ? `<div class="aqi-advice"><span class="advice-icon">${cat.adviceIcon}</span><span>${cat.advice}</span></div>` : ''}
@@ -5250,7 +5326,7 @@
             });
             existingMap.forEach((oldCard, name) => { if (!usedNames.has(name)) oldCard.remove(); });
             aqiListEl.innerHTML = ''; aqiListEl.appendChild(fragment);
-            twemoji.parse(aqiListEl); // تبدیل ایموجی‌ها به SVG
+            safeTwemoji(aqiListEl);
         }
 
         async function updateAll(force = false) {
@@ -5332,6 +5408,11 @@
             try {
                 const geo = await geocodeCity(name);
                 if (cities.some(c => c.name.toLowerCase() === geo.name.toLowerCase())) { searchInput.value = ''; return; }
+                if (cities.length >= MAX_CITIES) {
+                    showToast(currentLang === 'fa' ? 'حداکثر ۳۰ شهر مجاز است' : 'Maximum 30 cities allowed', 'info');
+                    searchInput.value = '';
+                    return;
+                }
                 lastAddedCityName = geo.name; const newCity = { name: geo.name, name_fa: geo.name_fa, lat: geo.lat, lon: geo.lon };
                 cities.push(newCity); saveCities(); searchInput.value = ''; await addSingleCity(newCity);
             } catch (err) { showToast(t('city_not_found'), 'error'); }
@@ -5396,8 +5477,7 @@
         }, 3000);
 
         async function init() {
-            // تبدیل ایموجی‌های استاتیک (مثل هدر و تب‌ها) به SVG
-            twemoji.parse(document.body);
+            safeTwemoji(document.body);
 
             loadSettings();
             loadFavorites();
@@ -5408,7 +5488,7 @@
             setTimeout(() => updateNavPill(false), 50);
             setTimeout(() => updateNavPill(false), 400);
 
-            if (getConsent()) {
+            if (hasConsent()) {
                 const cacheResult = await cacheGet('weather-data');
                 if (cacheResult && cacheResult.data) {
                     weatherCache = cacheResult.data;
