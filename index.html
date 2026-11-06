@@ -18,6 +18,9 @@
     <link rel="preconnect" href="https://geocoding-api.open-meteo.com" crossorigin>
     <link rel="dns-prefetch" href="https://wttr.in">
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- کتابخانه Twemoji برای یکسان‌سازی آیکون‌ها -->
+    <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15/dist/twemoji.min.js" crossorigin="anonymous"></script>
 
     <!-- Fix Theme FOUC (Flash of Unstyled Content) -->
     <script>
@@ -476,7 +479,8 @@
             flex: 1;
         }
 
-        .suggestion-flag { font-size: 1.1rem; flex-shrink: 0; }
+        .suggestion-flag { font-size: 1.1rem; flex-shrink: 0; display: flex; align-items: center; }
+        .suggestion-flag img.emoji { height: 1.1rem; width: 1.1rem; margin: 0; }
 
         .suggestion-name {
             font-weight: 500;
@@ -616,11 +620,63 @@
             min-width: 0;
         }
 
+        /* ✅ استایل‌های Twemoji و جلوگیری از آینه‌ای شدن ناخواسته */
+        img.emoji {
+            height: 1em;
+            width: 1em;
+            margin: 0 .05em 0 .1em;
+            vertical-align: -0.1em;
+            display: inline-block;
+            transform: none !important; /* جلوگیری از چرخش یا آینه‌ای شدن ناخواسته */
+        }
+
+        /* قرینه کردن آیکون‌های خورشید-ابری در حالت فارسی (RTL) */
+        [dir="rtl"] .emoji[alt="⛅"],
+        [dir="rtl"] .emoji[alt="🌤️"],
+        [dir="rtl"] .emoji[alt="🌦️"] {
+            transform: scaleX(-1) !important;
+        }
+
         .weather-icon {
             font-size: 2.2rem;
             line-height: 1;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: translateZ(0);
+            width: 40px;
+            height: 40px;
         }
+        .weather-icon img.emoji { height: 2.2rem; width: 2.2rem; }
+
+        .forecast-day .day-icon { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin: 0 auto; }
+        .forecast-day .day-icon img.emoji { height: 1.25rem; width: 1.25rem; }
+
+        .city-modal-icon { display: flex; align-items: center; justify-content: center; width: 80px; height: 80px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.2)); }
+        .city-modal-icon img.emoji { height: 5rem; width: 5rem; }
+
+        .daily-icon { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; margin: 0 auto; }
+        .daily-icon img.emoji { height: 1.2rem; width: 1.2rem; }
+
+        /* انیمیشن‌های آب و هوا (بدون چرخش) */
+        @keyframes icon-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+        @keyframes icon-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+        @keyframes icon-flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .anim-sun img.emoji { animation: icon-float 4s ease-in-out infinite; }
+        .anim-cloud img.emoji { animation: icon-float 3s ease-in-out infinite; }
+        .anim-rain img.emoji { animation: icon-bounce 2s ease-in-out infinite; }
+        .anim-storm img.emoji { animation: icon-flash 1.5s ease-in-out infinite; }
 
         .temp-main {
             font-size: 2.5rem;
@@ -763,7 +819,6 @@
         }
 
         .forecast-day .day-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; }
-        .forecast-day .day-icon { font-size: 1.25rem; }
         .forecast-day .day-temp { font-size: 0.74rem; font-weight: 700; color: var(--accent); }
         .forecast-day .day-temp .min { color: var(--text-muted); font-weight: 500; font-size: 0.9em; }
 
@@ -1334,7 +1389,7 @@
             gap: 1rem;
         }
 
-        /* --- استایل‌های اختصاصی مودال جدید --- */
+        /* --- استایل‌های اختصاصی مودال --- */
         .city-modal-hero {
             display: flex;
             align-items: center;
@@ -1364,12 +1419,6 @@
             font-weight: 500;
         }
 
-        .city-modal-icon {
-            font-size: 5rem;
-            line-height: 1;
-            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.2));
-        }
-
         /* نوار پیشرفت روز */
         .sun-track-container {
             display: flex;
@@ -1389,12 +1438,14 @@
             font-weight: 600;
         }
 
+        /* ✅ نوار جهت‌دار برای جلوگیری از به‌هم‌ریختگی در RTL */
         .sun-track-bar {
             height: 6px;
             background: rgba(148, 163, 184, 0.2);
             border-radius: 3px;
             position: relative;
             overflow: hidden;
+            direction: ltr; /* همیشه از چپ به راست حرکت کند */
         }
 
         .sun-track-fill {
@@ -1404,7 +1455,7 @@
             height: 100%;
             background: linear-gradient(90deg, #f59e0b, #fbbf24, #fcd34d);
             border-radius: 3px;
-            transition: width 0.3s ease;
+            transition: width 1s linear;
         }
 
         .sun-dot {
@@ -1417,34 +1468,9 @@
             border: 2px solid #f59e0b;
             border-radius: 50%;
             box-shadow: 0 0 8px #fbbf24;
-            transition: left 0.3s ease;
+            transition: left 1s linear;
+            z-index: 2;
         }
-
-        .hourly-scroll {
-            display: flex;
-            overflow-x: auto;
-            gap: 0.5rem;
-            padding-bottom: 0.5rem;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-        }
-        .hourly-scroll::-webkit-scrollbar { display: none; }
-
-        .hourly-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-width: 65px;
-            padding: 0.6rem 0.4rem;
-            background: rgba(148, 163, 184, 0.08);
-            border-radius: 10px;
-            border: 1px solid rgba(148, 163, 184, 0.15);
-        }
-
-        .hourly-time { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.3rem; font-weight: 600; }
-        .hourly-icon { font-size: 1.3rem; margin-bottom: 0.3rem; }
-        .hourly-temp { font-size: 0.9rem; font-weight: 700; color: var(--accent); }
-        .hourly-precip { font-size: 0.65rem; color: #38bdf8; margin-top: 0.2rem; font-weight: 600; }
 
         .detail-grid {
             display: grid;
@@ -1514,7 +1540,6 @@
         }
 
         .daily-day { font-size: 0.85rem; font-weight: 600; width: 45px; }
-        .daily-icon { font-size: 1.2rem; width: 30px; text-align: center; }
         .daily-precip { font-size: 0.75rem; color: #38bdf8; width: 50px; text-align: center; }
         .daily-wind { font-size: 0.75rem; color: var(--text-muted); width: 65px; text-align: center; }
         .daily-temps { font-size: 0.85rem; font-weight: 700; display: flex; gap: 0.5rem; width: 80px; justify-content: flex-end; }
@@ -1934,7 +1959,8 @@
         .nav-item.active { color: var(--accent); }
         .nav-item:active { transform: scale(0.95); }
 
-        .nav-icon { font-size: 1.3rem; line-height: 1; }
+        .nav-icon { font-size: 1.3rem; line-height: 1; display: flex; align-items: center; justify-content: center; height: 24px; }
+        .nav-icon img.emoji { height: 1.3rem; width: 1.3rem; margin: 0; }
 
         .nav-label {
             font-size: 0.62rem;
@@ -2159,6 +2185,8 @@
             opacity: 0;
             animation: welcomeFadeScale 1s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
         }
+        
+        .welcome-icon-wrap .welcome-icon img.emoji { height: clamp(2.8rem, 7vw, 4.5rem); width: clamp(2.8rem, 7vw, 4.5rem); margin: 0; }
 
         .welcome-icon-glow {
             position: absolute;
@@ -2172,6 +2200,9 @@
             position: relative;
             font-size: clamp(2.8rem, 7vw, 4.5rem);
             filter: drop-shadow(0 6px 20px rgba(56, 189, 248, 0.5));
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         @keyframes welcomeFadeScale {
@@ -2262,7 +2293,8 @@
             gap: 1rem;
         }
 
-        .cookie-icon { font-size: 1.8rem; flex-shrink: 0; }
+        .cookie-icon { font-size: 1.8rem; flex-shrink: 0; display: flex; align-items: center; }
+        .cookie-icon img.emoji { height: 1.8rem; width: 1.8rem; margin: 0; }
 
         .cookie-text { flex: 1; min-width: 200px; }
 
@@ -3284,8 +3316,6 @@
                 humidity: 'Humidity', feels_like: 'Feels Like', wind: 'Wind', wind_dir: 'Dir', pressure: 'Pressure', visibility: 'Visibility',
                 uv_index: 'UV Index', precip_prob: 'Precip.', sunrise: 'Sunrise', sunset: 'Sunset',
                 copy: 'Copy', copied: 'Copied!',
-                hourly_forecast: 'Hourly Forecast (24h)',
-                daily_forecast: '7-Day Forecast',
                 detailed_weather: 'Detailed Weather',
                 cloud_cover: 'Cloud Cover',
                 wind_gust: 'Wind Gust',
@@ -3349,8 +3379,6 @@
                 humidity: 'رطوبت', feels_like: 'احساس', wind: 'باد', wind_dir: 'جهت', pressure: 'فشار', visibility: 'دید',
                 uv_index: 'شاخص UV', precip_prob: 'بارش', sunrise: 'طلوع', sunset: 'غروب',
                 copy: 'کپی', copied: 'کپی شد',
-                hourly_forecast: 'پیش‌بینی ساعتی (۲۴ ساعت)',
-                daily_forecast: 'پیش‌بینی ۷ روزه',
                 detailed_weather: 'جزئیات هواشناسی',
                 cloud_cover: 'پوشش ابر',
                 wind_gust: 'تندباد',
@@ -3420,6 +3448,7 @@
                 const st = statusTextEl?.dataset.statusKey; if (st) statusTextEl.textContent = t(st);
                 updateNavPill(false);
                 renderAqiLegend();
+                twemoji.parse(document.body); // آپدیت آیکون‌ها پس از تغییر زبان
             });
         }
 
@@ -3694,7 +3723,8 @@
         const COOKIE_SEARCH_CACHE_KEY = 'iran_weather_search_cache';
         const COOKIE_DAYS = 365;
 
-        const CACHE_NAME = 'iran-weather-cache-v2';
+        // ✅ نسخه کش آپدیت شد تا مرورگر مجبور به دریافت دیتای جدید شود
+        const CACHE_NAME = 'iran-weather-cache-v5';
         const CACHE_API_PREFIX = 'api-cache:';
 
         const DEFAULT_CITIES = [{ name: 'Tehran', lat: 35.6892, lon: 51.3890 }];
@@ -3709,6 +3739,15 @@
         const WMO_ICONS = { 0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌁', 48: '🌁', 51: '🌦️', 53: '🌦️', 55: '🌧️', 61: '🌧️', 63: '🌧️', 65: '🌧️', 71: '🌨️', 73: '🌨️', 75: '❄️', 80: '🌦️', 81: '🌧️', 82: '⛈️', 95: '⛈️', 96: '⛈️', 99: '⛈️' };
         const WWW_TO_WMO = { 113: 0, 116: 2, 119: 3, 122: 3, 143: 45, 248: 45, 260: 48, 176: 80, 179: 71, 182: 56, 185: 56, 200: 95, 227: 71, 230: 75, 263: 51, 266: 53, 281: 56, 284: 57, 293: 61, 296: 61, 299: 63, 302: 63, 305: 65, 308: 65, 311: 66, 314: 67, 317: 71, 320: 73, 323: 71, 326: 71, 329: 73, 332: 73, 335: 75, 338: 75, 350: 77, 353: 80, 356: 81, 359: 82, 362: 85, 365: 86, 368: 85, 371: 86, 374: 85, 377: 86, 386: 95, 389: 96, 392: 95, 395: 99 };
         function convertWwwToWmo(c) { return WWW_TO_WMO[parseInt(c)] ?? 0; }
+
+        // ✅ تابع انیمیشن بر اساس کد آب‌وهوا (بدون چرخش)
+        function getIconAnimClass(code) {
+            if ([0, 1].includes(code)) return 'anim-sun';
+            if ([2, 3, 45, 48].includes(code)) return 'anim-cloud';
+            if ([51, 53, 55, 61, 63, 65, 80, 81, 82, 71, 73, 75, 77, 85, 86].includes(code)) return 'anim-rain';
+            if ([95, 96, 99].includes(code)) return 'anim-storm';
+            return '';
+        }
 
         const memoryStore = Object.create(null);
         function setCookie(name, value, days = COOKIE_DAYS) { try { const expires = new Date(Date.now() + days * 864e5).toUTCString(); document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`; } catch (e) { } }
@@ -3799,7 +3838,6 @@
             memoryStore[COOKIE_CITIES_KEY] = value;
         }
         
-        // ✅ این تابع تغییر کرد تا اگر کش قدیمی بود (بدون hourly) مجبور به دریافت دیتای جدید شود
         function loadWeatherCacheFromStorage() {
             if (!hasConsent()) return null;
             try {
@@ -3808,14 +3846,9 @@
                 const parsed = JSON.parse(raw);
                 if (!parsed || !Array.isArray(parsed.data)) return null;
                 
-                // بررسی اینکه آیا دیتاهای ساعتی (hourly) در کش وجود دارند یا خیر (برای جلوگیری از نمایش اطلاعات ناقص)
-                if (parsed.data.length > 0 && parsed.data[0].weather && !parsed.data[0].weather.hourly) {
-                    return null; // کش را نامعتبر می‌دانیم تا دیتای جدید فچ شود
-                }
-
                 parsed.data = parsed.data.filter(item => item && item.city).map(item => ({
                     ...item,
-                    weather: item.weather || ((item.current || item.daily) ? { current: item.current || null, daily: item.daily || null, hourly: null } : null),
+                    weather: item.weather || ((item.current || item.daily) ? { current: item.current || null, daily: item.daily || null } : null),
                     aqi: normalizeAqiData(item.aqi)
                 }));
                 return parsed;
@@ -3832,7 +3865,7 @@
             try {
                 const compact = results.map(r => ({
                     city: r.city, aqi: normalizeAqiData(r.aqi),
-                    weather: r.weather ? { current: r.weather.current || null, daily: r.weather.daily || null, hourly: r.weather.hourly || null } : null
+                    weather: r.weather ? { current: r.weather.current || null, daily: r.weather.daily || null, utc_offset_seconds: r.weather.utc_offset_seconds || 0 } : null
                 }));
                 storeSet(COOKIE_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: compact }), 7);
             } catch (e) { }
@@ -3980,6 +4013,7 @@
                 frag.appendChild(item);
             });
             suggestionsEl.appendChild(frag); suggestionsEl.classList.add('visible');
+            twemoji.parse(suggestionsEl);
         }
 
         function hideSuggestions() { if (!suggestionsEl.classList.contains('visible')) return; suggestionsEl.classList.remove('visible'); suggestionsEl.innerHTML = ''; activeSuggestionIndex = -1; currentSuggestions = []; }
@@ -4060,6 +4094,7 @@
                 const newCard = createCard(result);
                 newCard.classList.add('city-add-pop');
                 cardsEl.appendChild(newCard);
+                twemoji.parse(newCard);
                 setTimeout(() => newCard.classList.remove('city-add-pop'), 800);
                 scrollToCard(newCard);
                 saveWeatherCacheToStorage(weatherCache);
@@ -4080,6 +4115,7 @@
                 const errCard = createCard({ city, weather: null, aqi: null });
                 errCard.classList.add('city-add-pop');
                 cardsEl.appendChild(errCard);
+                twemoji.parse(errCard);
                 setTimeout(() => errCard.classList.remove('city-add-pop'), 800);
                 scrollToCard(errCard);
                 applyDefaultCityDropdown();
@@ -4238,8 +4274,7 @@
 
         async function fetchBatch(citiesList) {
             const latParam = citiesList.map(c => c.lat).join(','); const lonParam = citiesList.map(c => c.lon).join(',');
-            // ✅ hourly به لیست پارامترها اضافه شد
-            const weatherParams = ['current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility,uv_index,dew_point_2m', 'daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,sunrise,sunset,daylight_duration,sunshine_duration,uv_index_max,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant', 'hourly=temperature_2m,weather_code,precipitation_probability,wind_speed_10m,cloud_cover', 'timezone=auto', 'forecast_days=7'].join('&');
+            const weatherParams = ['current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility,uv_index,dew_point_2m', 'daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,sunrise,sunset,daylight_duration,sunshine_duration,uv_index_max,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant', 'timezone=auto', 'forecast_days=7'].join('&');
             const weatherUrl = `${WEATHER_API}?latitude=${latParam}&longitude=${lonParam}&${weatherParams}`;
             const res = await fetchWithTimeout(weatherUrl);
             if (res.status === 429) throw new Error('Rate limit'); if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -4400,9 +4435,19 @@
         const cityModalTitle = document.getElementById('cityModalTitle');
         const cityModalBody = document.getElementById('cityModalBody');
 
+        let sunTimer = null;
+
         if (closeCityModal && cityModal) {
-            closeCityModal.addEventListener('click', () => cityModal.classList.remove('visible'));
-            cityModal.addEventListener('click', (e) => { if (e.target === cityModal) cityModal.classList.remove('visible'); });
+            closeCityModal.addEventListener('click', () => {
+                cityModal.classList.remove('visible');
+                if (sunTimer) { clearInterval(sunTimer); sunTimer = null; }
+            });
+            cityModal.addEventListener('click', (e) => {
+                if (e.target === cityModal) {
+                    cityModal.classList.remove('visible');
+                    if (sunTimer) { clearInterval(sunTimer); sunTimer = null; }
+                }
+            });
         }
 
         function getUVBadge(uv) {
@@ -4414,6 +4459,37 @@
             return { text: t('uv_ext'), color: '#8b5cf6' };
         }
 
+        function updateSunPosition(item) {
+            const { weather } = item;
+            if (!weather || !weather.daily || !weather.daily.sunrise || !weather.daily.sunset) return;
+
+            const sunFill = document.querySelector('.sun-track-fill');
+            const sunDot = document.querySelector('.sun-dot');
+            if (!sunFill || !sunDot) return;
+
+            const utcOffset = (weather.utc_offset_seconds || 0) * 1000;
+            const nowLocalMs = Date.now() + utcOffset;
+            
+            const sunriseMs = new Date(weather.daily.sunrise[0] + 'Z').getTime();
+            const sunsetMs = new Date(weather.daily.sunset[0] + 'Z').getTime();
+
+            let percent = 0;
+            if (isNaN(sunriseMs) || isNaN(sunsetMs)) return;
+
+            if (nowLocalMs >= sunsetMs) {
+                percent = 100;
+            } else if (nowLocalMs <= sunriseMs) {
+                percent = 0;
+            } else {
+                percent = ((nowLocalMs - sunriseMs) / (sunsetMs - sunriseMs)) * 100;
+            }
+
+            percent = Math.max(0, Math.min(100, percent));
+
+            sunFill.style.width = percent + '%';
+            sunDot.style.left = percent + '%';
+        }
+
         function openCityModal(item) {
             try {
                 const { city, weather, aqi } = item;
@@ -4423,9 +4499,8 @@
 
                 const c = weather.current;
                 const d = weather.daily;
-                const h = weather.hourly;
-
                 const icon = WMO_ICONS[c.weather_code] || '❓';
+                const animClass = getIconAnimClass(c.weather_code);
                 const desc = getWmoDesc(c.weather_code);
                 const temp = convertTemp(c.temperature_2m);
                 const feels = convertTemp(c.apparent_temperature);
@@ -4442,14 +4517,6 @@
                 // نوار طلوع تا غروب
                 let sunTrackHTML = '';
                 if (d && d.sunrise && d.sunset) {
-                    const sunrise = new Date(d.sunrise[0]).getTime();
-                    const sunset = new Date(d.sunset[0]).getTime();
-                    const now = Date.now();
-                    const total = sunset - sunrise;
-                    let percent = ((now - sunrise) / total) * 100;
-                    if (percent < 0) percent = 0;
-                    if (percent > 100) percent = 100;
-                    
                     sunTrackHTML = `
                         <div class="sun-track-container">
                             <div class="sun-track-labels">
@@ -4457,37 +4524,11 @@
                                 <span>🌇 ${fmtTime(d.sunset[0])}</span>
                             </div>
                             <div class="sun-track-bar">
-                                <div class="sun-track-fill" style="width: ${percent}%;"></div>
-                                <div class="sun-dot" style="left: ${percent}%;"></div>
+                                <div class="sun-track-fill" style="width: 0%;"></div>
+                                <div class="sun-dot" style="left: 0%;"></div>
                             </div>
                         </div>
                     `;
-                }
-
-                // بخش پیش‌بینی ساعتی
-                let hourlyHTML = '';
-                if (h && h.time) {
-                    hourlyHTML = `<h4 style="margin-top:0.5rem; font-size:0.9rem; color:var(--text);">${t('hourly_forecast')}</h4><div class="hourly-scroll">`;
-                    const nowIndex = h.time.findIndex(t => new Date(t) >= new Date());
-                    const startIndex = nowIndex !== -1 ? nowIndex : 0;
-                    for (let i = startIndex; i < Math.min(startIndex + 24, h.time.length); i++) {
-                        const timeStr = fmtTime(h.time[i]);
-                        const hIcon = WMO_ICONS[h.weather_code[i]] || '❓';
-                        const hTemp = convertTemp(h.temperature_2m[i]);
-                        const hPrecip = h.precipitation_probability[i] ?? 0;
-                        hourlyHTML += `
-                            <div class="hourly-item">
-                                <span class="hourly-time">${timeStr}</span>
-                                <span class="hourly-icon">${hIcon}</span>
-                                <span class="hourly-temp">${hTemp}°</span>
-                                ${hPrecip > 0 ? `<span class="hourly-precip">💧${hPrecip}%</span>` : ''}
-                            </div>
-                        `;
-                    }
-                    hourlyHTML += `</div>`;
-                } else {
-                    // اگر دیتای ساعتی نبود (مثلا از wttr.in اومده باشه)
-                    hourlyHTML = `<div style="font-size:0.8rem; color:var(--text-muted); text-align:center; padding:0.5rem;">Hourly data not available. Please refresh.</div>`;
                 }
 
                 // جزئیات
@@ -4524,6 +4565,7 @@
                     for (let i = 1; i < d.time.length; i++) {
                         const dayName = new Date(d.time[i] + 'T12:00:00').toLocaleDateString(currentLang === 'fa' ? 'fa-IR' : 'en-US', { weekday: 'long' });
                         const dIcon = WMO_ICONS[d.weather_code[i]] || '❓';
+                        const dAnimClass = getIconAnimClass(d.weather_code[i]);
                         const maxT = convertTemp(d.temperature_2m_max[i]);
                         const minT = convertTemp(d.temperature_2m_min[i]);
                         const precip = d.precipitation_probability_max[i] ?? 0;
@@ -4532,7 +4574,7 @@
                         dailyHTML += `
                             <div class="daily-item">
                                 <span class="daily-day">${dayName}</span>
-                                <span class="daily-icon">${dIcon}</span>
+                                <span class="daily-icon ${dAnimClass}">${dIcon}</span>
                                 <span class="daily-precip">${precip > 0 ? `💧${precip}%` : '—'}</span>
                                 <span class="daily-wind">💨${windMax}</span>
                                 <div class="daily-temps">
@@ -4557,7 +4599,7 @@
                     aqiHTML = `
                         <h4 style="margin-top:0.5rem; font-size:0.9rem; color:var(--text);">${t('air_quality')}</h4>
                         <div style="display:flex; align-items:center; gap:0.5rem; background:rgba(148,163,184,0.08); padding:0.75rem; border-radius:8px; border:1px solid rgba(148,163,184,0.15);">
-                            <div style="font-size:1.5rem;">${cat.icon}</div>
+                            <div style="font-size:1.5rem; display:flex; align-items:center; justify-content:center;">${cat.icon}</div>
                             <div style="flex:1;">
                                 <div style="font-size:0.9rem; font-weight:700; color:${cat.color};">${cat.label} (${aqiData.aqi})</div>
                                 <div class="aqi-pollutants" style="margin-top:0.2rem;">${pollutants}</div>
@@ -4572,17 +4614,22 @@
                             <div class="city-modal-temp">${temp}${tempSymbol()}</div>
                             <div class="city-modal-desc">${desc}</div>
                         </div>
-                        <div class="city-modal-icon">${icon}</div>
+                        <div class="city-modal-icon ${animClass}">${icon}</div>
                     </div>
                     ${sunTrackHTML}
-                    ${hourlyHTML}
                     ${detailsHTML}
                     ${dailyHTML}
                     ${aqiHTML}
                 `;
 
+                twemoji.parse(cityModalBody);
                 cityModal.classList.add('visible');
                 haptic(10);
+
+                // شروع تایمر حرکت خورشید
+                if (sunTimer) clearInterval(sunTimer);
+                updateSunPosition(item);
+                sunTimer = setInterval(() => updateSunPosition(item), 60000);
 
             } catch (err) {
                 console.error('[Modal] Error:', err);
@@ -4633,6 +4680,7 @@
 
             const c = weather.current; const d = weather.daily;
             const icon = WMO_ICONS[c.weather_code] || '❓';
+            const animClass = getIconAnimClass(c.weather_code); // ✅ کلاس انیمیشن
             const temp = convertTemp(c.temperature_2m); const feels = convertTemp(c.apparent_temperature); const humidity = c.relative_humidity_2m ?? null;
             const wind = convertWind(c.wind_speed_10m); const pressure = c.pressure_msl != null ? Math.round(c.pressure_msl) : null; const visibility = c.visibility != null ? (c.visibility / 1000).toFixed(1) : null;
             const dew = convertTemp(c.dew_point_2m); const uv = c.uv_index != null ? (typeof c.uv_index === 'number' ? c.uv_index.toFixed(1) : c.uv_index) : '—';
@@ -4642,9 +4690,11 @@
             if (d && d.time && d.time.length > 1) {
                 forecastHTML = '<div class="forecast-row">';
                 for (let i = 1; i < Math.min(d.time.length, 7); i++) {
-                    const dayIcon = WMO_ICONS[d.weather_code[i]] || '❓'; const dayName = fmtDay(d.time[i]);
+                    const dayIcon = WMO_ICONS[d.weather_code[i]] || '❓'; 
+                    const dayAnimClass = getIconAnimClass(d.weather_code[i]); // ✅ کلاس انیمیشن
+                    const dayName = fmtDay(d.time[i]);
                     const maxT = convertTemp(d.temperature_2m_max[i]); const minT = convertTemp(d.temperature_2m_min[i]);
-                    forecastHTML += `<div class="forecast-day"><span class="day-label">${dayName}</span><span class="day-icon">${dayIcon}</span><span class="day-temp">${maxT}°<span class="min">/${minT}°</span></span></div>`;
+                    forecastHTML += `<div class="forecast-day"><span class="day-label">${dayName}</span><span class="day-icon ${dayAnimClass}">${dayIcon}</span><span class="day-temp">${maxT}°<span class="min">/${minT}°</span></span></div>`;
                 }
                 forecastHTML += '</div>';
             }
@@ -4652,7 +4702,7 @@
             const inner = document.createElement('div');
             inner.className = 'card-content';
             inner.innerHTML = `
-                <div class="card-header"><span class="city-name">${getCityDisplayName(city)}</span><span class="weather-icon">${icon}</span></div>
+                <div class="card-header"><span class="city-name">${getCityDisplayName(city)}</span><span class="weather-icon ${animClass}">${icon}</span></div>
                 <div class="temp-main">${temp !== null ? `${temp}${tempSymbol()}` : '—'}</div>
                 <div class="details">
                     <span class="detail-item">💧 ${t('humidity')} ${humidity !== null ? `${humidity}%` : '—'}</span>
@@ -4724,6 +4774,7 @@
                 if (oldCard.classList.contains('city-remove-shrink') && oldCard.isConnected) fragment.appendChild(oldCard);
             });
             cardsEl.replaceChildren(fragment);
+            twemoji.parse(cardsEl); // تبدیل ایموجی‌ها به SVG
             isFirstLoad = false; lastAddedCityName = null;
             renderAQIList(); scrollToDefaultCity();
         }
@@ -4804,6 +4855,7 @@
             });
             existingMap.forEach((oldCard, name) => { if (!usedNames.has(name)) oldCard.remove(); });
             aqiListEl.innerHTML = ''; aqiListEl.appendChild(fragment);
+            twemoji.parse(aqiListEl); // تبدیل ایموجی‌ها به SVG
         }
 
         async function updateAll(force = false) {
@@ -4958,6 +5010,9 @@
                 });
             }
 
+            // تبدیل ایموجی‌های استاتیک (مثل هدر و تب‌ها) به SVG
+            twemoji.parse(document.body);
+
             loadSettings();
             loadFavorites();
             cities = loadCities();
@@ -4970,14 +5025,9 @@
             if (getConsent()) {
                 const cacheResult = await cacheGet('weather-data');
                 if (cacheResult && cacheResult.data) {
-                    // چک کردن اینکه آیا دیتای ساعتی وجود دارد یا خیر
-                    if (cacheResult.data.length > 0 && cacheResult.data[0].weather && !cacheResult.data[0].weather.hourly) {
-                        // اگر نبود، کش را نادیده بگیر
-                    } else {
-                        weatherCache = cacheResult.data;
-                        renderCards(weatherCache);
-                        lastFetchTimestamp = cacheResult.cachedAt || 0; Core.state.cacheHits++;
-                    }
+                    weatherCache = cacheResult.data;
+                    renderCards(weatherCache);
+                    lastFetchTimestamp = cacheResult.cachedAt || 0; Core.state.cacheHits++;
                 } else {
                     const sc = loadWeatherCacheFromStorage();
                     if (sc && sc.data) {
