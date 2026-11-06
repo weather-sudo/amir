@@ -10,11 +10,6 @@
     <meta http-equiv="Expires" content="0">
 
     <meta name="theme-color" content="#0f172a">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Weather">
-    <link rel="apple-touch-icon" href="./icons/icon-192.png">
     <meta name="description" content="Live weather & air quality for Iranian cities">
     <title>Weather_ԹʍɿՐ ʍԾɧԹʍԹԺ</title>
 
@@ -3304,7 +3299,7 @@
                                 <div class="setting-label-desc" data-i18n="install_app_desc">Install site on your home
                                     screen</div>
                             </div>
-                            <button class="setting-btn" id="installAppBtn" type="button"
+                            <button class="setting-btn" id="installAppBtn"
                                 style="background: var(--accent); color: #0f172a;" data-i18n="install_now">Install
                                 Now</button>
                         </div>
@@ -3439,87 +3434,41 @@
     <script src="cities.js"></script>
 
     <script>
-        // --- PWA: standalone installation + offline app shell ---
+        // --- ✅ PWA Setup: try ./sw.js first, then fallback gracefully ---
         (function initPWA() {
-            const installBtn = document.getElementById('installAppBtn');
-            let deferredInstallPrompt = null;
-            const isStandalone = () =>
-                window.matchMedia('(display-mode: standalone)').matches ||
-                window.matchMedia('(display-mode: minimal-ui)').matches ||
-                window.navigator.standalone === true;
-
-            function setInstallButtonState(installed) {
-                if (!installBtn) return;
-                installBtn.disabled = !!installed;
-                installBtn.textContent = installed
-                    ? (currentLang === 'fa' ? 'برنامه نصب شده' : 'App Installed')
-                    : (currentLang === 'fa' ? 'نصب برنامه' : 'Install App');
-                installBtn.setAttribute('aria-label', installBtn.textContent);
-                installBtn.title = installBtn.textContent;
-            }
-
-            function installHelpMessage() {
-                const fa = currentLang === 'fa';
-                const message = fa
-                    ? 'برای نصب برنامه مستقل، منوی مرورگر را باز کنید و گزینه «Install app» یا «Add to Home Screen» را بزنید. در آیفون: Share سپس Add to Home Screen.'
-                    : 'To install the standalone app, open your browser menu and choose “Install app” or “Add to Home Screen”. On iPhone: Share → Add to Home Screen.';
-                showToast(message, 'info');
-            }
-
-            setInstallButtonState(isStandalone());
-
-            if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('./sw.js', { scope: './' })
-                        .then(registration => {
-                            registration.update().catch(() => {});
-                            console.info('PWA service worker ready:', registration.scope);
-                        })
-                        .catch(error => console.warn('PWA service worker registration failed:', error));
-                }, { once: true });
-            }
-
-            window.addEventListener('beforeinstallprompt', event => {
-                event.preventDefault();
-                deferredInstallPrompt = event;
-                if (!isStandalone()) setInstallButtonState(false);
-            });
-
-            window.addEventListener('appinstalled', () => {
-                deferredInstallPrompt = null;
-                setInstallButtonState(true);
-                showToast(currentLang === 'fa' ? 'برنامه با موفقیت نصب شد.' : 'App installed successfully.', 'success');
-            });
-
-            if (installBtn) {
-                installBtn.addEventListener('click', async () => {
-                    if (isStandalone()) {
-                        setInstallButtonState(true);
-                        showToast(currentLang === 'fa' ? 'برنامه روی دستگاه نصب شده است.' : 'This app is already installed.', 'info');
-                        return;
-                    }
-                    if (!deferredInstallPrompt) {
-                        installHelpMessage();
-                        return;
-                    }
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', async () => {
                     try {
-                        deferredInstallPrompt.prompt();
-                        const choice = await deferredInstallPrompt.userChoice;
-                        if (choice && choice.outcome === 'accepted') {
-                            setInstallButtonState(true);
-                            showToast(currentLang === 'fa' ? 'درخواست نصب پذیرفته شد.' : 'Install request accepted.', 'success');
-                        }
-                    } catch (error) {
-                        console.warn('PWA install prompt failed:', error);
-                        installHelpMessage();
-                    } finally {
-                        deferredInstallPrompt = null;
+                        await navigator.serviceWorker.register('./sw.js', { scope: './' });
+                    } catch (err) {
+                        // sw.js not present — install prompt won't fire, but site keeps working
+                        // (browser will fall back to the "use browser menu" toast)
+                        console.warn('SW registration failed (add sw.js to enable install prompt):', err && err.message);
                     }
                 });
             }
 
-            // Keep the button label synchronized when the user changes language.
-            window.addEventListener('languagechange', () => setInstallButtonState(isStandalone()));
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+            });
+
+            const installAppBtn = document.getElementById('installAppBtn');
+            if (installAppBtn) {
+                installAppBtn.addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        if (outcome === 'accepted') {
+                            showToast(currentLang === 'fa' ? 'برنامه با موفقیت نصب شد.' : 'App installed successfully.', 'success');
+                        }
+                        deferredPrompt = null;
+                    } else {
+                        showToast(currentLang === 'fa' ? 'برای نصب، از منوی مرورگر خود گزینه "Add to Home Screen" یا "نصب برنامه" را انتخاب کنید.' : 'To install, use your browser menu and select "Add to Home Screen" or "Install App".', 'info');
+                    }
+                });
+            }
         })();
 
         // --- Safe helpers (bug fixes) ---
@@ -3807,7 +3756,7 @@
                 aqi_trend_setting: 'AQI Trend', aqi_trend_setting_desc: 'Show if AQI is improving or worsening',
                 trend_rising: 'Rising', trend_falling: 'Falling', trend_stable: 'Stable',
                 unhealthy_sensitive: 'Unhealthy (Sensitive)', unhealthy: 'Unhealthy', very_unhealthy: 'Very Unhealthy',
-                install_app: 'Install App', install_app_desc: 'Install as a standalone app on this device', install_now: 'Install App',
+                install_app: 'Install App', install_app_desc: 'Install site on your home screen', install_now: 'Install Now',
                 aqi_legend_title: 'Air Quality Index Guide',
                 legend_desc_us: 'US AQI Scale (0-500)',
                 legend_desc_eu: 'European AQI Scale (0-100+)',
@@ -3871,7 +3820,7 @@
                 aqi_trend_setting: 'روند AQI', aqi_trend_setting_desc: 'نمایش بهبود یا بدتر شدن کیفیت هوا',
                 trend_rising: 'صعودی', trend_falling: 'نزولی', trend_stable: 'ثابت',
                 unhealthy_sensitive: 'ناسالم (گروه‌های حساس)', unhealthy: 'ناسالم', very_unhealthy: 'خیلی ناسالم',
-                install_app: 'نصب برنامه', install_app_desc: 'نصب به‌صورت یک برنامه مستقل روی دستگاه', install_now: 'نصب برنامه',
+                install_app: 'نصب برنامه', install_app_desc: 'نصب سایت روی صفحه اصلی گوشی', install_now: 'نصب کن',
                 aqi_legend_title: 'راهنمای شاخص کیفیت هوا',
                 legend_desc_us: 'مقیاس آمریکایی AQI (۰ تا ۵۰۰)',
                 legend_desc_eu: 'مقیاس اروپایی AQI (۰ تا ۱۰۰+)',
@@ -5520,4 +5469,4 @@
     </script>
 </body>
 
-</html>
+</html>Ï
