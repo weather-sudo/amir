@@ -14,7 +14,7 @@
     <meta name="description" content="Live weather & air quality for Iranian cities">
     <title>Weather_ԹʍɿՐ ʍԾɧԹʍԹԺ</title>
 
-    <!-- ✅ برگرداندن Manifest برای قابلیت نصب روی صفحه -->
+    <!-- Manifest برای قابلیت نصب روی صفحه -->
     <link id="manifestLink" rel="manifest" href="manifest.json">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1749,61 +1749,6 @@
             font-weight: 500;
         }
 
-        /* نوار پیشرفت روز */
-        .sun-track-container {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            background: rgba(148, 163, 184, 0.05);
-            padding: 0.85rem;
-            border-radius: 10px;
-            border: 1px solid rgba(148, 163, 184, 0.1);
-        }
-
-        .sun-track-labels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            font-weight: 600;
-        }
-
-        .sun-track-bar {
-            height: 6px;
-            background: rgba(148, 163, 184, 0.2);
-            border-radius: 3px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .sun-track-fill {
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            background: linear-gradient(90deg, #f59e0b, #fbbf24, #fcd34d);
-            border-radius: 3px;
-            transition: width 1s linear;
-        }
-
-        [dir="rtl"] .sun-track-fill {
-            background: linear-gradient(270deg, #f59e0b, #fbbf24, #fcd34d);
-        }
-
-        .sun-dot {
-            position: absolute;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 12px;
-            height: 12px;
-            background: #fff;
-            border: 2px solid #f59e0b;
-            border-radius: 50%;
-            box-shadow: 0 0 8px #fbbf24;
-            transition: left 1s linear, right 1s linear, transform 1s linear;
-            z-index: 2;
-        }
-
         .detail-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -3358,7 +3303,7 @@
 
                     <div class="settings-section">
                         <div class="settings-section-title">ℹ️ <span data-i18n="settings_about">About</span></div>
-                        <!-- ✅ دکمه نصب برنامه برگشت -->
+                        <!-- ✅ دکمه نصب برنامه -->
                         <div class="setting-row">
                             <div class="setting-label">
                                 <div class="setting-label-main" data-i18n="install_app">Install App</div>
@@ -3366,8 +3311,8 @@
                                     screen</div>
                             </div>
                             <button class="setting-btn" id="installAppBtn"
-                                style="display: none; background: var(--accent); color: #0f172a;"
-                                data-i18n="install_now">Install Now</button>
+                                style="background: var(--accent); color: #0f172a;" data-i18n="install_now">Install
+                                Now</button>
                         </div>
                         <div class="setting-row">
                             <div class="setting-label">
@@ -3496,10 +3441,13 @@
         })();
     </script>
 
-    <script src="cities.js?v=2"></script>
+    <!-- ✅ لود کردن داینامیک دیتابیس شهرها بدون نیاز به شماره نسخه (با زمان‌سنج) -->
+    <script>
+        document.write('<script src="cities.js?t=' + new Date().getTime() + '"><\/script>');
+    </script>
 
     <script>
-        // --- ✅ PWA Setup: Inline Service Worker (No external file needed) ---
+        // --- ✅ PWA Setup: Inline Service Worker & Install Button ---
         (function initPWA() {
             // 1. Register an Inline Service Worker (Needed for "Install App" to work)
             if ('serviceWorker' in navigator) {
@@ -3522,9 +3470,8 @@
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 deferredPrompt = e;
-                const installBtn = document.getElementById('installAppBtn');
-                if (installBtn) installBtn.style.display = 'inline-block';
             });
+
             const installAppBtn = document.getElementById('installAppBtn');
             if (installAppBtn) {
                 installAppBtn.addEventListener('click', async () => {
@@ -3532,11 +3479,12 @@
                         deferredPrompt.prompt();
                         const { outcome } = await deferredPrompt.userChoice;
                         if (outcome === 'accepted') {
-                            installAppBtn.style.display = 'none';
+                            showToast(currentLang === 'fa' ? 'برنامه با موفقیت نصب شد.' : 'App installed successfully.', 'success');
                         }
                         deferredPrompt = null;
                     } else {
-                        showToast(currentLang === 'fa' ? 'مرورگر شما از نصب مستقیم پشتیبانی نمی‌کند. از منوی مرورگر "Add to Home Screen" را انتخاب کنید.' : 'Your browser does not support direct install. Use "Add to Home Screen" from the menu.', 'info');
+                        // راهنمای نصب برای مرورگرهایی که از پرامپت مستقیم پشتیبانی نمی‌کنند (مثل سافاری)
+                        showToast(currentLang === 'fa' ? 'برای نصب، از منوی مرورگر خود گزینه "Add to Home Screen" یا "نصب برنامه" را انتخاب کنید.' : 'To install, use your browser menu and select "Add to Home Screen" or "Install App".', 'info');
                     }
                 });
             }
@@ -4940,17 +4888,13 @@
         const cityModalTitle = document.getElementById('cityModalTitle');
         const cityModalBody = document.getElementById('cityModalBody');
 
-        let sunTimer = null;
-
         if (closeCityModal && cityModal) {
             closeCityModal.addEventListener('click', () => {
                 cityModal.classList.remove('visible');
-                if (sunTimer) { clearInterval(sunTimer); sunTimer = null; }
             });
             cityModal.addEventListener('click', (e) => {
                 if (e.target === cityModal) {
                     cityModal.classList.remove('visible');
-                    if (sunTimer) { clearInterval(sunTimer); sunTimer = null; }
                 }
             });
         }
@@ -4962,54 +4906,6 @@
             if (uv <= 7) return { text: t('uv_high'), color: '#f97316' };
             if (uv <= 10) return { text: t('uv_vhigh'), color: '#ef4444' };
             return { text: t('uv_ext'), color: '#8b5cf6' };
-        }
-
-        function updateSunPosition(item) {
-            const { weather } = item;
-            if (!weather || !weather.daily || !weather.daily.sunrise || !weather.daily.sunset) return;
-
-            const sunFill = document.querySelector('.sun-track-fill');
-            const sunDot = document.querySelector('.sun-dot');
-            if (!sunFill || !sunDot) return;
-
-            const utcOffset = (weather.utc_offset_seconds || 0) * 1000;
-            const nowLocalMs = Date.now() + utcOffset;
-
-            const sunriseMs = new Date(weather.daily.sunrise[0] + 'Z').getTime();
-            const sunsetMs = new Date(weather.daily.sunset[0] + 'Z').getTime();
-
-            let percent = 0;
-            if (isNaN(sunriseMs) || isNaN(sunsetMs)) return;
-
-            if (nowLocalMs >= sunsetMs) {
-                percent = 100;
-            } else if (nowLocalMs <= sunriseMs) {
-                percent = 0;
-            } else {
-                percent = ((nowLocalMs - sunriseMs) / (sunsetMs - sunriseMs)) * 100;
-            }
-
-            percent = Math.max(0, Math.min(100, percent));
-
-            const isRTL = document.documentElement.dir === 'rtl';
-
-            if (isRTL) {
-                sunFill.style.width = percent + '%';
-                sunFill.style.right = '0';
-                sunFill.style.left = 'auto';
-
-                sunDot.style.right = percent + '%';
-                sunDot.style.left = 'auto';
-                sunDot.style.transform = 'translate(50%, -50%)';
-            } else {
-                sunFill.style.width = percent + '%';
-                sunFill.style.left = '0';
-                sunFill.style.right = 'auto';
-
-                sunDot.style.left = percent + '%';
-                sunDot.style.right = 'auto';
-                sunDot.style.transform = 'translate(-50%, -50%)';
-            }
         }
 
         function openCityModal(item) {
@@ -5035,23 +4931,6 @@
                 const uvBadge = getUVBadge(uvVal);
                 const cloud = c.cloud_cover ?? '—';
                 const windDir = c.wind_direction_10m ?? 0;
-
-                // نوار طلوع تا غروب
-                let sunTrackHTML = '';
-                if (d && d.sunrise && d.sunset) {
-                    sunTrackHTML = `
-                        <div class="sun-track-container">
-                            <div class="sun-track-labels">
-                                <span>🌅 ${fmtTime(d.sunrise[0])}</span>
-                                <span>🌇 ${fmtTime(d.sunset[0])}</span>
-                            </div>
-                            <div class="sun-track-bar">
-                                <div class="sun-track-fill" style="width: 0%;"></div>
-                                <div class="sun-dot" style="left: 0%;"></div>
-                            </div>
-                        </div>
-                    `;
-                }
 
                 // جزئیات
                 const detailsHTML = `
@@ -5138,7 +5017,6 @@
                         </div>
                         <div class="city-modal-icon ${animClass}">${icon}</div>
                     </div>
-                    ${sunTrackHTML}
                     ${detailsHTML}
                     ${dailyHTML}
                     ${aqiHTML}
@@ -5147,11 +5025,6 @@
                 twemoji.parse(cityModalBody);
                 cityModal.classList.add('visible');
                 haptic(10);
-
-                // شروع تایمر حرکت خورشید
-                if (sunTimer) clearInterval(sunTimer);
-                updateSunPosition(item);
-                sunTimer = setInterval(() => updateSunPosition(item), 60000);
 
             } catch (err) {
                 console.error('[Modal] Error:', err);
