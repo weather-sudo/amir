@@ -1,20 +1,16 @@
-/* Weather PWA service worker
- * Cache the application shell only. Weather/geocoding APIs stay network-only
- * so live readings are never replaced by stale API responses.
- */
 'use strict';
 
 const CACHE_PREFIX = 'weather-pwa-';
-const CACHE_VERSION = 'v1.0.0';
+const CACHE_VERSION = 'v1.0.2';
 const SHELL_CACHE = CACHE_PREFIX + CACHE_VERSION;
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
   './cities.js',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-512-maskable.png'
+  './icon-192.png',
+  './icon-512.png',
+  './icon-512-maskable.png'
 ];
 
 self.addEventListener('install', event => {
@@ -41,7 +37,7 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(request.url);
 
-  // Never cache weather, air-quality, geocoding, or other cross-origin API data.
+  // Never cache API calls or CDNs
   if (url.origin !== self.location.origin) return;
   if (url.pathname.endsWith('/sw.js')) return;
 
