@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta name="Pragma" content="no-cache">
+    <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
 
     <meta name="theme-color" content="#0f172a">
@@ -14,7 +14,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Weather">
-    <link rel="apple-touch-icon" href="./icons/icon-192.png">
+    <link rel="apple-touch-icon" href="./icon-192.png">
     <meta name="description" content="Live weather & air quality for Iranian cities">
     <title>Weather_ԹʍɿՐ ʍԾɧԹʍԹԺ</title>
 
@@ -134,7 +134,6 @@
         }
         body:not(.js-loaded) .welcome-screen { display: none !important; }
 
-        /* 🟢 محیط پس‌زمینه */
         .ambient-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; contain: strict; }
         .ambient-orb { position: absolute; border-radius: 50%; animation-play-state: var(--anim-state, running); transform: translateZ(0); backface-visibility: hidden; }
         .orb-1 { width: 480px; height: 480px; top: -120px; left: -120px; background: radial-gradient(circle, rgba(56, 189, 248, 0.22), rgba(56, 189, 248, 0) 70%); animation: orbFloat1 24s ease-in-out infinite; }
@@ -446,7 +445,7 @@
         .theme-switch__checkbox:checked+.theme-switch__container .theme-switch__clouds { bottom: -4.062em; }
         .theme-switch__checkbox:checked+.theme-switch__container .theme-switch__stars-container { top: 50%; transform: translateY(-50%); }
 
-        /* 🟢 ولکام اسکرین با فالبک CSS برای جلوگیری از گیر کردن */
+        /* 🟢 ولکام اسکرین با فالبک CSS */
         .welcome-screen {
             position: fixed; inset: 0; z-index: 99999;
             background: radial-gradient(ellipse at top, #0f172a 0%, #070b16 55%, #03060f 100%);
@@ -454,7 +453,6 @@
             overflow: hidden; opacity: 1;
             transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1), visibility 1s;
             cursor: pointer; contain: strict;
-            /* فالبک: حتی اگر جاوااسکریپت لود نشه، بعد از 4 ثانیه محو میشه */
             animation: welcomeFallbackFade 4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
         @keyframes welcomeFallbackFade {
@@ -1085,88 +1083,6 @@
     <script src="cities.js"></script>
 
     <script>
-        // --- PWA Integration ---
-        (function initPWA() {
-            const installBtn = document.getElementById('installAppBtn');
-            let deferredInstallPrompt = null;
-            const isStandalone = () =>
-                window.matchMedia('(display-mode: standalone)').matches ||
-                window.matchMedia('(display-mode: minimal-ui)').matches ||
-                window.navigator.standalone === true;
-
-            function updateInstallUI() {
-                if (!installBtn) return;
-                const installed = isStandalone();
-                if (installed) {
-                    installBtn.textContent = currentLang === 'fa' ? 'نصب شده' : 'Installed';
-                    installBtn.disabled = true;
-                    installBtn.style.background = 'transparent';
-                    installBtn.style.color = 'var(--text-muted)';
-                    installBtn.style.border = '1px solid var(--border)';
-                    installBtn.style.cursor = 'default';
-                    installBtn.setAttribute('aria-label', installBtn.textContent);
-                } else {
-                    installBtn.textContent = currentLang === 'fa' ? 'نصب برنامه' : 'Install App';
-                    installBtn.disabled = false;
-                    installBtn.style.background = 'var(--accent)';
-                    installBtn.style.color = '#0f172a';
-                    installBtn.style.border = 'none';
-                    installBtn.style.cursor = 'pointer';
-                    installBtn.setAttribute('aria-label', installBtn.textContent);
-                }
-            }
-
-            updateInstallUI();
-            window.addEventListener('languagechange', updateInstallUI);
-
-            if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('./sw.js', { scope: './' })
-                        .then(reg => { reg.update().catch(() => {}); console.info('PWA SW ready:', reg.scope); })
-                        .catch(err => console.warn('PWA SW failed:', err));
-                }, { once: true });
-            }
-
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                deferredInstallPrompt = e;
-                updateInstallUI();
-            });
-
-            window.addEventListener('appinstalled', () => {
-                deferredInstallPrompt = null;
-                updateInstallUI();
-                showToast(currentLang === 'fa' ? 'برنامه با موفقیت نصب شد.' : 'App installed successfully.', 'success');
-            });
-
-            if (installBtn) {
-                installBtn.addEventListener('click', async () => {
-                    if (isStandalone()) {
-                        showToast(currentLang === 'fa' ? 'برنامه روی دستگاه نصب شده است.' : 'This app is already installed.', 'info');
-                        return;
-                    }
-                    if (!deferredInstallPrompt) {
-                        showToast(currentLang === 'fa' 
-                            ? 'برای نصب، از منوی مرورگر خود گزینه «Install app» یا «Add to Home Screen» را انتخاب کنید.' 
-                            : 'To install, open your browser menu and choose “Install app” or “Add to Home Screen”.', 'info');
-                        return;
-                    }
-                    try {
-                        deferredInstallPrompt.prompt();
-                        const choice = await deferredInstallPrompt.userChoice;
-                        if (choice && choice.outcome === 'accepted') {
-                            updateInstallUI();
-                            showToast(currentLang === 'fa' ? 'درخواست نصب پذیرفته شد.' : 'Install request accepted.', 'success');
-                        }
-                    } catch (err) {
-                        console.warn('Install failed:', err);
-                    } finally {
-                        deferredInstallPrompt = null;
-                    }
-                });
-            }
-        })();
-
         // --- Safe helpers ---
         function safeTwemoji(el) {
             if (typeof twemoji !== 'undefined' && twemoji && typeof twemoji.parse === 'function') {
@@ -3122,8 +3038,7 @@
         }, 3000);
 
         async function init() {
-            safeTwemoji(document.body);
-
+            // 1. First, init settings and translations
             loadSettings();
             loadFavorites();
             cities = loadCities();
@@ -3133,6 +3048,7 @@
             setTimeout(() => updateNavPill(false), 50);
             setTimeout(() => updateNavPill(false), 400);
 
+            // 2. Then load cache
             if (hasConsent()) {
                 const cacheResult = await cacheGet('weather-data');
                 if (cacheResult && cacheResult.data) {
@@ -3152,6 +3068,88 @@
             if (!document.hidden) updateAll(true);
             startRefreshInterval();
             refreshBtn.addEventListener('click', () => updateAll(true));
+
+            // 3. INIT PWA (Wait until currentLang is defined)
+            (function initPWA() {
+                const installBtn = document.getElementById('installAppBtn');
+                let deferredInstallPrompt = null;
+                const isStandalone = () =>
+                    window.matchMedia('(display-mode: standalone)').matches ||
+                    window.matchMedia('(display-mode: minimal-ui)').matches ||
+                    window.navigator.standalone === true;
+
+                function updateInstallUI() {
+                    if (!installBtn) return;
+                    const installed = isStandalone();
+                    if (installed) {
+                        installBtn.textContent = currentLang === 'fa' ? 'نصب شده' : 'Installed';
+                        installBtn.disabled = true;
+                        installBtn.style.background = 'transparent';
+                        installBtn.style.color = 'var(--text-muted)';
+                        installBtn.style.border = '1px solid var(--border)';
+                        installBtn.style.cursor = 'default';
+                        installBtn.setAttribute('aria-label', installBtn.textContent);
+                    } else {
+                        installBtn.textContent = currentLang === 'fa' ? 'نصب برنامه' : 'Install App';
+                        installBtn.disabled = false;
+                        installBtn.style.background = 'var(--accent)';
+                        installBtn.style.color = '#0f172a';
+                        installBtn.style.border = 'none';
+                        installBtn.style.cursor = 'pointer';
+                        installBtn.setAttribute('aria-label', installBtn.textContent);
+                    }
+                }
+
+                updateInstallUI();
+                window.addEventListener('languagechange', updateInstallUI);
+
+                if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+                    window.addEventListener('load', () => {
+                        navigator.serviceWorker.register('./sw.js', { scope: './' })
+                            .then(reg => { reg.update().catch(() => {}); console.info('PWA SW ready:', reg.scope); })
+                            .catch(err => console.warn('PWA SW failed:', err));
+                    }, { once: true });
+                }
+
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    deferredInstallPrompt = e;
+                    updateInstallUI();
+                });
+
+                window.addEventListener('appinstalled', () => {
+                    deferredInstallPrompt = null;
+                    updateInstallUI();
+                    showToast(currentLang === 'fa' ? 'برنامه با موفقیت نصب شد.' : 'App installed successfully.', 'success');
+                });
+
+                if (installBtn) {
+                    installBtn.addEventListener('click', async () => {
+                        if (isStandalone()) {
+                            showToast(currentLang === 'fa' ? 'برنامه روی دستگاه نصب شده است.' : 'This app is already installed.', 'info');
+                            return;
+                        }
+                        if (!deferredInstallPrompt) {
+                            showToast(currentLang === 'fa' 
+                                ? 'برای نصب، از منوی مرورگر خود گزینه «Install app» یا «Add to Home Screen» را انتخاب کنید.' 
+                                : 'To install, open your browser menu and choose “Install app” or “Add to Home Screen”.', 'info');
+                            return;
+                        }
+                        try {
+                            deferredInstallPrompt.prompt();
+                            const choice = await deferredInstallPrompt.userChoice;
+                            if (choice && choice.outcome === 'accepted') {
+                                updateInstallUI();
+                                showToast(currentLang === 'fa' ? 'درخواست نصب پذیرفته شد.' : 'Install request accepted.', 'success');
+                            }
+                        } catch (err) {
+                            console.warn('Install failed:', err);
+                        } finally {
+                            deferredInstallPrompt = null;
+                        }
+                    });
+                }
+            })();
 
             window.diagnose = () => {
                 _log('=== Unified Diagnostic ==='); Core.diagnose();
