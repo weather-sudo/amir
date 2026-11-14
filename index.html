@@ -229,7 +229,7 @@
         .anim-rain img.emoji { animation: icon-bounce 2s ease-in-out infinite; }
         .anim-storm img.emoji { animation: icon-flash 1.5s ease-in-out infinite; }
 
-        .temp-main { font-size: 2.5rem; font-weight: 700; color: var(--accent); line-height: 1.1; margin-bottom: 0.5rem; }
+        .temp-main { font-size: 2.5rem; font-weight: 700; color: var(--accent); line-height: 1.1; margin-bottom: 0.5rem; font-variant-numeric: tabular-nums; }
         .weather-desc { font-size: 0.9rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 0; }
 
         .favorite-city-btn { position: absolute; top: 0.55rem; right: 2.8rem; width: 28px; height: 28px; border-radius: 50%; background: rgba(148, 163, 184, 0.15); border: 1px solid rgba(148, 163, 184, 0.25); color: var(--text-muted); font-size: 0.9rem; cursor: pointer; display: grid; place-items: center; opacity: 0; transition: opacity 0.2s, background 0.2s, color 0.2s, transform 0.15s; padding: 0; line-height: 1; z-index: 3; touch-action: manipulation; }
@@ -2152,6 +2152,29 @@
             }, 800);
         }
 
+        // 🌟 افکت انیمیشن شمارش اعداد
+        function animateNumber(el, start, end, duration, symbol) {
+            if (start === end) {
+                el.textContent = `${end}${symbol}`;
+                return;
+            }
+            const startTime = performance.now();
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                // easeOutCubic برای نرمی انیمیشن
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                const current = Math.round(start + (end - start) * easeOut);
+                el.textContent = `${current}${symbol}`;
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                } else {
+                    el.textContent = `${end}${symbol}`;
+                }
+            }
+            requestAnimationFrame(update);
+        }
+
         async function addSingleCity(city) {
             const tempId = 'loading-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
             const tempCard = document.createElement('div');
@@ -2184,6 +2207,14 @@
                 const newCard = createCard(result);
                 newCard.classList.add('city-add-pop');
                 cardsEl.appendChild(newCard);
+                
+                // افکت شمارش برای شهر جدید
+                const tempEl = newCard.querySelector('.temp-main');
+                if (tempEl && tempEl.dataset.target !== undefined) {
+                    const end = parseInt(tempEl.dataset.target, 10);
+                    if (!isNaN(end)) animateNumber(tempEl, 0, end, 800, tempSymbol());
+                }
+
                 safeTwemoji(newCard);
                 setTimeout(() => newCard.classList.remove('city-add-pop'), 800);
                 scrollToCard(newCard);
@@ -2731,9 +2762,11 @@
 
             const inner = document.createElement('div');
             inner.className = 'card-content';
+            // 🌟 data-target اضافه شد تا مقدار نهایی دما رو بدونیم
+            const tempHTML = temp !== null ? `<div class="temp-main" data-target="${temp}">${temp}${tempSymbol()}</div>` : `<div class="temp-main">—</div>`;
             inner.innerHTML = `
                 <div class="card-header"><span class="city-name">${escapeHtml(getCityDisplayName(city))}</span><span class="weather-icon ${animClass}">${icon}</span></div>
-                <div class="temp-main">${temp !== null ? `${temp}${tempSymbol()}` : '—'}</div>
+                ${tempHTML}
                 <div class="details">
                     <span class="detail-item">💧 ${t('humidity')} ${humidity !== null ? `${humidity}%` : '—'}</span>
                     <span class="detail-item">🌡️ ${t('feels_like')} ${feels !== null ? `${feels}°` : '—'}</span>
@@ -2785,11 +2818,30 @@
         }
 
         function renderCards(results) {
+            // 🌟 ذخیره دماهای قبلی برای انیمیشن
+            const oldTemps = {};
+            cardsEl.querySelectorAll('.card').forEach(c => {
+                const cityName = c.dataset.city;
+                const tempEl = c.querySelector('.temp-main');
+                if (cityName && tempEl && tempEl.dataset.target !== undefined) {
+                    oldTemps[cityName] = parseInt(tempEl.dataset.target, 10);
+                }
+            });
+
             const sorted = [...results].sort((a, b) => { const aFav = isFavorite(a.city.name) ? 0 : 1; const bFav = isFavorite(b.city.name) ? 0 : 1; return aFav - bFav; });
             const existingMap = new Map(); cardsEl.querySelectorAll('.card').forEach(c => { const name = c.dataset.city; if (name) existingMap.set(name, c); });
             const fragment = document.createDocumentFragment();
             sorted.forEach((item, index) => {
                 const oldCard = existingMap.get(item.city.name); const newCard = createCard(item);
+                
+                // 🌟 آماده‌سازی برای انیمیشن
+                const tempEl = newCard.querySelector('.temp-main');
+                if (tempEl && tempEl.dataset.target !== undefined) {
+                    const end = parseInt(tempEl.dataset.target, 10);
+                    const start = oldTemps[item.city.name] !== undefined ? oldTemps[item.city.name] : 0;
+                    tempEl.dataset.start = start; // ذخیره نقطه شروع
+                }
+
                 if (!oldCard) {
                     if (isFirstLoad) newCard.style.setProperty('--stagger-delay', (index * 0.06) + 's');
                     else if (lastAddedCityName === item.city.name) newCard.classList.add('city-add-pop');
@@ -2803,6 +2855,18 @@
                 if (oldCard.classList.contains('city-remove-shrink') && oldCard.isConnected) fragment.appendChild(oldCard);
             });
             cardsEl.replaceChildren(fragment);
+            
+            // 🌟 اجرای انیمیشن بعد از اضافه شدن به DOM
+            cardsEl.querySelectorAll('.temp-main').forEach(el => {
+                if (el.dataset.target !== undefined && el.dataset.start !== undefined) {
+                    const start = parseInt(el.dataset.start, 10);
+                    const end = parseInt(el.dataset.target, 10);
+                    if (!isNaN(start) && !isNaN(end) && start !== end) {
+                        animateNumber(el, start, end, 800, tempSymbol());
+                    }
+                }
+            });
+
             safeTwemoji(cardsEl);
             isFirstLoad = false; lastAddedCityName = null;
             renderAQIList(); scrollToDefaultCity();
