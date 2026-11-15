@@ -28,6 +28,7 @@
     <link rel="dns-prefetch" href="https://wttr.in">
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
 
+    <!-- ✅ برگرداندن Twemoji -->
     <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15/dist/twemoji.min.js" crossorigin="anonymous"></script>
 
     <script>
@@ -170,9 +171,40 @@
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
 
-        .search-wrapper { position: -webkit-sticky; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 500; transform: translateZ(0); background: var(--bg); padding-top: 0.5rem; padding-bottom: 0.5rem; margin-top: -0.5rem; margin-bottom: 0.5rem; width: 100%; }
-        .search-box { display: flex; gap: 0.5rem; width: 100%; }
-        .search-box input { flex: 1; min-width: 0; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 0.75rem 1rem; color: var(--text); font-family: inherit; font-size: 16px; -webkit-appearance: none; appearance: none; transition: border-color 0.2s; touch-action: manipulation; background-clip: padding-box; }
+        /* ✅ اصلاح باکس جستجو برای جلوگیری از Miss Click */
+        .search-wrapper { 
+            position: -webkit-sticky; 
+            position: sticky; 
+            top: env(safe-area-inset-top, 0px); 
+            z-index: 500; 
+            transform: translateZ(0); 
+            background: var(--bg); 
+            padding-top: 0.5rem; 
+            padding-bottom: 1rem; 
+            margin-top: 0; 
+            margin-bottom: 0.5rem; 
+            width: 100%; 
+            cursor: text;
+        }
+        .search-box { display: flex; gap: 0.5rem; width: 100%; position: relative; }
+        .search-box input { 
+            flex: 1; 
+            min-width: 0; 
+            background: var(--card-bg); 
+            border: 1px solid var(--border); 
+            border-radius: 12px; 
+            padding: 0.85rem 1rem; 
+            color: var(--text); 
+            font-family: inherit; 
+            font-size: 16px; 
+            -webkit-appearance: none; 
+            appearance: none; 
+            transition: border-color 0.2s, box-shadow 0.2s; 
+            touch-action: manipulation; 
+            background-clip: padding-box; 
+            width: 100%;
+            cursor: text;
+        }
         .search-box input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
 
         .suggestions { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #1e293b; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.6); max-height: 400px; overflow-y: auto; overflow-x: hidden; z-index: 501; display: none; padding: 0.35rem; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; color: var(--text); touch-action: pan-y; }
@@ -205,6 +237,7 @@
         [dir="rtl"] .card-header { padding-right: 0; padding-left: 4.5rem; }
         .city-name { font-size: 1.15rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 
+        /* ✅ بازگرداندن استایل‌های Twemoji */
         img.emoji { height: 1em; width: 1em; margin: 0 .05em 0 .1em; vertical-align: -0.1em; display: inline-block; transform: none !important; }
 
         [dir="rtl"] .weather-icon:has(img[alt="⛅"]), [dir="rtl"] .weather-icon:has(img[alt="🌤️"]), [dir="rtl"] .weather-icon:has(img[alt="🌦️"]), [dir="rtl"] .weather-icon:has(img[alt="🌧️"]), [dir="rtl"] .weather-icon:has(img[alt="🌨️"]), [dir="rtl"] .weather-icon:has(img[alt="⛈️"]),
@@ -414,10 +447,60 @@
         .color-swatch::after { content: '✓'; position: absolute; inset: 0; display: grid; place-items: center; font-size: 0.9rem; color: #fff; font-weight: 900; opacity: 0; transition: opacity 0.2s; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); }
         .color-swatch.active::after { opacity: 1; }
 
-        .bottom-nav { position: fixed; bottom: calc(1rem + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%) translateZ(0); display: flex; gap: 0.25rem; padding: 0.4rem; background: var(--nav-bg); border: 1px solid var(--nav-border); border-radius: 30px; backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); z-index: 1000; }
-        .nav-pill { position: absolute; top: 0; left: 0; width: 0; height: 0; background: color-mix(in srgb, var(--accent) 18%, transparent); border-radius: 22px; pointer-events: none; z-index: 0; transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), width 0.4s cubic-bezier(0.22, 1, 0.36, 1), height 0.4s cubic-bezier(0.22, 1, 0.36, 1); will-change: transform, width, height; }
+        /* ✅ اصلاح لمس دکمه‌های پایین */
+        .bottom-nav { 
+            position: fixed; 
+            bottom: calc(1rem + env(safe-area-inset-bottom)); 
+            left: 50%; 
+            transform: translateX(-50%) translateZ(0); 
+            display: flex; 
+            gap: 0.25rem; 
+            padding: 0.4rem; 
+            background: var(--nav-bg); 
+            border: 1px solid var(--nav-border); 
+            border-radius: 30px; 
+            backdrop-filter: blur(20px) saturate(180%); 
+            -webkit-backdrop-filter: blur(20px) saturate(180%); 
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); 
+            z-index: 9999; /* افزایش Z-index */
+            touch-action: manipulation;
+        }
+        .nav-pill { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 0; 
+            height: 0; 
+            background: color-mix(in srgb, var(--accent) 18%, transparent); 
+            border-radius: 22px; 
+            pointer-events: none; /* اطمینان از عدم مسدود کردن کلیک */
+            z-index: 0; 
+            transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), width 0.4s cubic-bezier(0.22, 1, 0.36, 1), height 0.4s cubic-bezier(0.22, 1, 0.36, 1); 
+            will-change: transform, width, height; 
+        }
         .nav-pill.no-anim { transition: none !important; }
-        .nav-item { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem; padding: 0.55rem 1.15rem; background: none; border: none; color: var(--text-muted); font-family: inherit; font-size: 0.62rem; font-weight: 600; cursor: pointer; border-radius: 22px; transition: color 0.3s; min-width: 70px; touch-action: manipulation; }
+        .nav-item { 
+            position: relative; 
+            z-index: 1; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 0.1rem; 
+            padding: 0.55rem 1.15rem; 
+            background: none; 
+            border: none; 
+            color: var(--text-muted); 
+            font-family: inherit; 
+            font-size: 0.62rem; 
+            font-weight: 600; 
+            cursor: pointer; 
+            border-radius: 22px; 
+            transition: color 0.3s; 
+            min-width: 70px; 
+            touch-action: manipulation; 
+            -webkit-tap-highlight-color: transparent;
+        }
         .nav-item.active { color: var(--accent); }
         .nav-item:active { transform: scale(0.95); }
         .nav-icon { font-size: 1.3rem; line-height: 1; display: flex; align-items: center; justify-content: center; height: 24px; }
@@ -445,7 +528,6 @@
         .theme-switch__checkbox:checked+.theme-switch__container .theme-switch__clouds { bottom: -4.062em; }
         .theme-switch__checkbox:checked+.theme-switch__container .theme-switch__stars-container { top: 50%; transform: translateY(-50%); }
 
-        /* 🟢 ولکام اسکرین با فالبک CSS */
         .welcome-screen {
             position: fixed; inset: 0; z-index: 99999;
             background: radial-gradient(ellipse at top, #0f172a 0%, #070b16 55%, #03060f 100%);
@@ -453,7 +535,7 @@
             overflow: hidden; opacity: 1;
             transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1), visibility 1s;
             cursor: pointer; contain: strict;
-            animation: welcomeFallbackFade 4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            animation: welcomeFallbackFade 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
         @keyframes welcomeFallbackFade {
             0%, 80% { opacity: 1; visibility: visible; pointer-events: auto; }
@@ -463,16 +545,16 @@
         .welcome-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
         .welcome-screen.gone { display: none; }
         .welcome-content { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 2rem; max-width: 90vw; }
-        .welcome-icon-wrap { position: relative; width: clamp(72px, 14vw, 110px); height: clamp(72px, 14vw, 110px); margin-bottom: 2rem; display: flex; align-items: center; justify-content: center; opacity: 0; animation: welcomeFadeScale 1s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards; }
+        .welcome-icon-wrap { position: relative; width: clamp(72px, 14vw, 110px); height: clamp(72px, 14vw, 110px); margin-bottom: 2rem; display: flex; align-items: center; justify-content: center; opacity: 0; animation: welcomeFadeScale 1s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards; font-size: clamp(2.8rem, 7vw, 4.5rem); }
         .welcome-icon-wrap .welcome-icon img.emoji { height: clamp(2.8rem, 7vw, 4.5rem); width: clamp(2.8rem, 7vw, 4.5rem); margin: 0; }
         .welcome-icon-glow { position: absolute; inset: -50%; border-radius: 50%; background: radial-gradient(circle, rgba(56, 189, 248, 0.5), rgba(56, 189, 248, 0) 60%); filter: blur(20px); }
-        .welcome-icon { position: relative; font-size: clamp(2.8rem, 7vw, 4.5rem); filter: drop-shadow(0 6px 20px rgba(56, 189, 248, 0.5)); display: flex; align-items: center; justify-content: center; }
+        .welcome-icon { position: relative; filter: drop-shadow(0 6px 20px rgba(56, 189, 248, 0.5)); display: flex; align-items: center; justify-content: center; }
         @keyframes welcomeFadeScale { from { opacity: 0; transform: scale(0.6) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         .welcome-title { font-size: clamp(2.5rem, 9vw, 6rem); font-weight: 700; background: linear-gradient(135deg, #ffffff 0%, #e0f2fe 40%, #38bdf8 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 1rem; opacity: 0; animation: welcomeSubIn 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.55s forwards; }
         .welcome-subtitle { font-size: clamp(0.95rem, 2.5vw, 1.4rem); color: rgba(226, 232, 240, 0.75); margin-bottom: 2rem; opacity: 0; animation: welcomeSubIn 1s cubic-bezier(0.22, 1, 0.36, 1) 0.9s forwards; }
         @keyframes welcomeSubIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
         .welcome-loader { width: clamp(160px, 40vw, 260px); height: 2px; background: rgba(148, 163, 184, 0.15); border-radius: 2px; overflow: hidden; position: relative; opacity: 0; animation: welcomeSubIn 0.6s ease 1.25s forwards; }
-        .welcome-loader-fill { position: absolute; top: 0; left: 0; height: 100%; width: 0%; background: linear-gradient(90deg, #38bdf8, #22d3ee, #7dd3fc); animation: welcomeLoaderFill 1.8s cubic-bezier(0.4, 0, 0.2, 1) 1.35s forwards; }
+        .welcome-loader-fill { position: absolute; top: 0; left: 0; height: 100%; width: 0%; background: linear-gradient(90deg, #38bdf8, #22d3ee, #7dd3fc); animation: welcomeLoaderFill 1.2s cubic-bezier(0.4, 0, 0.2, 1) 1.35s forwards; }
         @keyframes welcomeLoaderFill { 0% { width: 0%; } 40% { width: 45%; } 70% { width: 75%; } 100% { width: 100%; } }
 
         .cookie-banner { position: fixed; bottom: 0; left: 0; right: 0; background: var(--cookie-bg); border-top: 1px solid var(--border); box-shadow: 0 -10px 30px -5px rgba(0, 0, 0, 0.5); padding: 1.25rem; padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)); z-index: 9999; transform: translateY(100%); transition: transform 0.4s ease; display: none; }
@@ -616,7 +698,7 @@
 
         <main class="tab-content">
             <section id="tab-weather" class="tab-panel active">
-                <div class="search-wrapper">
+                <div class="search-wrapper" id="searchWrapper">
                     <div class="search-box">
                         <input type="text" id="citySearch" placeholder="Type a city and press Enter..."
                             autocomplete="off" spellcheck="false" data-i18n-placeholder="search_placeholder">
@@ -845,7 +927,7 @@
                                 </div>
                             </div>
                             <label class="toggle">
-                                <input type="checkbox" id="setting-aqi-tint">
+                                <input type="checkbox" id="setting-aqi-tint" checked>
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
@@ -946,7 +1028,8 @@
                         <div class="setting-row">
                             <div class="setting-label">
                                 <div class="setting-label-main" data-i18n="install_app">Install App</div>
-                                <div class="setting-label-desc" data-i18n="install_app_desc">Install as a standalone app on this device</div>
+                                <div class="setting-label-desc" data-i18n="install_app_desc">Install as a standalone app
+                                    on this device</div>
                             </div>
                             <button class="setting-btn" id="installAppBtn" type="button"
                                 style="background: var(--accent); color: #0f172a;" data-i18n="install_now">Install
@@ -1534,7 +1617,7 @@
             language: 'en', tempUnit: 'C', windUnit: 'kmh', refreshInterval: 1,
             backgroundRefresh: false, ambientAnim: true, accent: 'blue', density: 'normal',
             fontSize: 'normal', defaultCity: '', dataSource: 'auto', haptic: true,
-            aqiScale: 'eu', aqiTint: false, extendedPollutants: true, showAqiTrend: true
+            aqiScale: 'eu', aqiTint: true, extendedPollutants: true, showAqiTrend: true
         };
 
         let settings = { ...DEFAULT_SETTINGS };
@@ -1775,7 +1858,12 @@
 
         let navResizeRaf = 0;
         function initTabListeners() {
-            document.querySelectorAll('.nav-item').forEach(btn => { btn.addEventListener('click', () => switchTab(btn.dataset.tab)); });
+            document.querySelectorAll('.nav-item').forEach(btn => { 
+                btn.addEventListener('click', (e) => { 
+                    e.preventDefault(); 
+                    switchTab(btn.dataset.tab); 
+                }); 
+            });
             const hash = location.hash.replace('#', '');
             if (['weather', 'air', 'settings'].includes(hash)) switchTab(hash);
             window.addEventListener('hashchange', () => { const h = location.hash.replace('#', ''); if (['weather', 'air', 'settings'].includes(h)) switchTab(h); });
@@ -1946,15 +2034,18 @@
             if (typeof aqi === 'number') return { aqi, euAqi: null, usAqi: null, pm25: null, pm10: null };
             return aqi;
         }
+        
         function saveWeatherCacheToStorage(results) {
             if (!hasConsent()) return;
-            try {
-                const compact = results.map(r => ({
-                    city: r.city, aqi: normalizeAqiData(r.aqi),
-                    weather: r.weather ? { current: r.weather.current || null, daily: r.weather.daily || null, utc_offset_seconds: r.weather.utc_offset_seconds || 0 } : null
-                }));
-                storeSet(COOKIE_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: compact }), 7);
-            } catch (e) { }
+            setTimeout(() => {
+                try {
+                    const compact = results.map(r => ({
+                        city: r.city, aqi: normalizeAqiData(r.aqi),
+                        weather: r.weather ? { current: r.weather.current || null, daily: r.weather.daily || null, utc_offset_seconds: r.weather.utc_offset_seconds || 0 } : null
+                    }));
+                    storeSet(COOKIE_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: compact }), 7);
+                } catch (e) { }
+            }, 50);
         }
 
         const $ = id => document.getElementById(id);
@@ -2162,7 +2253,6 @@
             function update(currentTime) {
                 const elapsed = currentTime - startTime;
                 const progress = Math.min(elapsed / duration, 1);
-                // easeOutCubic برای نرمی انیمیشن
                 const easeOut = 1 - Math.pow(1 - progress, 3);
                 const current = Math.round(start + (end - start) * easeOut);
                 el.textContent = `${current}${symbol}`;
@@ -2208,7 +2298,6 @@
                 newCard.classList.add('city-add-pop');
                 cardsEl.appendChild(newCard);
                 
-                // افکت شمارش برای شهر جدید
                 const tempEl = newCard.querySelector('.temp-main');
                 if (tempEl && tempEl.dataset.target !== undefined) {
                     const end = parseInt(tempEl.dataset.target, 10);
@@ -2762,7 +2851,6 @@
 
             const inner = document.createElement('div');
             inner.className = 'card-content';
-            // 🌟 data-target اضافه شد تا مقدار نهایی دما رو بدونیم
             const tempHTML = temp !== null ? `<div class="temp-main" data-target="${temp}">${temp}${tempSymbol()}</div>` : `<div class="temp-main">—</div>`;
             inner.innerHTML = `
                 <div class="card-header"><span class="city-name">${escapeHtml(getCityDisplayName(city))}</span><span class="weather-icon ${animClass}">${icon}</span></div>
@@ -2783,42 +2871,34 @@
             card.appendChild(inner); return card;
         }
 
+        // ✅ تابع حذف شهر بهینه‌سازی شد (بدون لگ و هنگ کردن)
         function removeCity(name, cardEl) {
-            cities = cities.filter(c => c.name !== name); favorites = favorites.filter(n => n !== name);
+            cities = cities.filter(c => c.name !== name); 
+            favorites = favorites.filter(n => n !== name);
             saveCities(); saveFavorites(); haptic([20, 40, 20]);
-            if (weatherCache) { weatherCache = weatherCache.filter(r => r.city.name !== name); saveWeatherCacheToStorage(weatherCache); }
-            if (!cardEl) { applyDefaultCityDropdown(); renderAQIList(); return; }
+            
+            if (weatherCache) { 
+                weatherCache = weatherCache.filter(r => r.city.name !== name); 
+                saveWeatherCacheToStorage(weatherCache); 
+            }
+            
+            if (!cardEl) { 
+                applyDefaultCityDropdown(); 
+                renderAQIList(); 
+                return; 
+            }
 
-            const siblings = []; cardsEl.querySelectorAll('.card').forEach(el => { if (el !== cardEl) siblings.push({ el, rect: el.getBoundingClientRect() }); });
-            cardEl.classList.add('city-remove-shrink'); cardEl.style.zIndex = '2';
-            let handled = false;
-            const finishRemoval = () => {
-                if (handled) return; handled = true; cardEl.removeEventListener('animationend', onRemovalAnimationEnd);
-                cardEl.remove(); void cardsEl.offsetWidth;
-                requestAnimationFrame(() => {
-                    siblings.forEach(({ el, rect: oldRect }) => {
-                        const newRect = el.getBoundingClientRect(); const dx = oldRect.left - newRect.left; const dy = oldRect.top - newRect.top;
-                        if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
-                            el.style.transition = 'none'; el.style.transform = `translate3d(${dx}px, ${dy}px, 0)`; el.style.willChange = 'transform'; el.style.pointerEvents = 'none';
-                            requestAnimationFrame(() => {
-                                el.style.transition = 'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)'; el.style.transform = '';
-                                const cleanup = () => { el.style.transition = ''; el.style.transform = ''; el.style.willChange = ''; el.style.pointerEvents = ''; el.removeEventListener('transitionend', cleanup); };
-                                el.addEventListener('transitionend', cleanup, { once: true }); setTimeout(cleanup, 700);
-                            });
-                        }
-                    });
-                    applyDefaultCityDropdown(); renderAQIList();
-                });
-            };
-            const onRemovalAnimationEnd = (event) => {
-                if (event.target === cardEl && event.animationName === 'cityRemoveShrink') finishRemoval();
-            };
-            cardEl.addEventListener('animationend', onRemovalAnimationEnd);
-            setTimeout(() => { if (!handled && cardEl.isConnected) finishRemoval(); }, 600);
+            cardEl.style.pointerEvents = 'none';
+            cardEl.classList.add('city-remove-shrink');
+            
+            setTimeout(() => {
+                cardEl.remove();
+                applyDefaultCityDropdown(); 
+                renderAQIList();
+            }, 450); 
         }
 
         function renderCards(results) {
-            // 🌟 ذخیره دماهای قبلی برای انیمیشن
             const oldTemps = {};
             cardsEl.querySelectorAll('.card').forEach(c => {
                 const cityName = c.dataset.city;
@@ -2834,12 +2914,11 @@
             sorted.forEach((item, index) => {
                 const oldCard = existingMap.get(item.city.name); const newCard = createCard(item);
                 
-                // 🌟 آماده‌سازی برای انیمیشن
                 const tempEl = newCard.querySelector('.temp-main');
                 if (tempEl && tempEl.dataset.target !== undefined) {
                     const end = parseInt(tempEl.dataset.target, 10);
                     const start = oldTemps[item.city.name] !== undefined ? oldTemps[item.city.name] : 0;
-                    tempEl.dataset.start = start; // ذخیره نقطه شروع
+                    tempEl.dataset.start = start;
                 }
 
                 if (!oldCard) {
@@ -2856,7 +2935,6 @@
             });
             cardsEl.replaceChildren(fragment);
             
-            // 🌟 اجرای انیمیشن بعد از اضافه شدن به DOM
             cardsEl.querySelectorAll('.temp-main').forEach(el => {
                 if (el.dataset.target !== undefined && el.dataset.start !== undefined) {
                     const start = parseInt(el.dataset.start, 10);
@@ -3102,7 +3180,6 @@
         }, 3000);
 
         async function init() {
-            // 1. First, init settings and translations
             loadSettings();
             loadFavorites();
             cities = loadCities();
@@ -3112,7 +3189,16 @@
             setTimeout(() => updateNavPill(false), 50);
             setTimeout(() => updateNavPill(false), 400);
 
-            // 2. Then load cache
+            // ✅ اضافه کردن کلیک روی کل باکس جستجو برای جلوگیری از Miss Click
+            const searchWrapper = document.getElementById('searchWrapper');
+            if (searchWrapper) {
+                searchWrapper.addEventListener('click', (e) => {
+                    if (e.target.tagName !== 'INPUT') {
+                        document.getElementById('citySearch').focus();
+                    }
+                });
+            }
+
             if (hasConsent()) {
                 const cacheResult = await cacheGet('weather-data');
                 if (cacheResult && cacheResult.data) {
@@ -3133,7 +3219,6 @@
             startRefreshInterval();
             refreshBtn.addEventListener('click', () => updateAll(true));
 
-            // 3. INIT PWA (Wait until currentLang is defined)
             (function initPWA() {
                 const installBtn = document.getElementById('installAppBtn');
                 let deferredInstallPrompt = null;
