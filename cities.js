@@ -1,6 +1,6 @@
 // cities.js
 // دیتابیس شهرهای ایران و نقشه تبدیل فارسی به انگلیسی
-// نسخه: ۲۳۰ شهر
+// نسخه: ۲۳۱ شهر (شامل علی‌آباد کتول)
 // سازگار با index.html (از طریق window.PERSIAN_CITY_MAP و window.IRAN_CITIES)
 
 (function () {
@@ -218,6 +218,10 @@
     ماسوله: "Masuleh",
     ابیانه: "Abyaneh",
     کندوان: "Kandovan",
+    // 🆕 علی‌آباد کتول (گلستان)
+    "علی آباد کتول": "Aliabad-e Katul",
+    "علی‌آباد کتول": "Aliabad-e Katul",
+    "علی آباد": "Aliabad-e Katul",
   };
 
   const IRAN_CITIES = [
@@ -2289,6 +2293,16 @@
       lat: 37.855,
       lon: 46.4472,
       admin: "East Azerbaijan",
+      country: "Iran",
+      country_code: "IR",
+    },
+    // 🆕 علی‌آباد کتول (گلستان)
+    {
+      name: "Aliabad-e Katul",
+      name_fa: "علی‌آباد کتول",
+      lat: 36.9089,
+      lon: 54.8661,
+      admin: "Golestan",
       country: "Iran",
       country_code: "IR",
     },
